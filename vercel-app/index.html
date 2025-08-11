@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width">
+  <title>Surf+Flight Alerts</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;max-width:640px;margin:auto}
+    .card{border:1px solid #eee;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+    input,select{width:100%;padding:10px;margin:6px 0 14px;border:1px solid #ddd;border-radius:8px}
+    button{padding:10px 14px;border:0;border-radius:10px;background:#111;color:#fff;cursor:pointer}
+    .success{color:green}.error{color:#b00}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Get Surf+Flight Alerts</h2>
+    <p>We’ll email you when your surf conditions and flight prices align.</p>
+    <form id="f">
+      <label>Email</label><input id="email" type="email" required>
+      <label>Home Airport (IATA)</label><input id="home" placeholder="PAR, CDG, ORY..." required>
+      <label>Surf Spot</label><select id="spot"></select>
+      <label>Min Wave (m)</label><input id="wave" type="number" step="0.1" value="1.5">
+      <label>Max Wind (km/h)</label><input id="wind" type="number" step="1" value="15">
+      <label>Max Roundtrip Price (EUR)</label><input id="price" type="number" step="1" value="100">
+      <label>Trip Length (nights)</label>
+      <div style="display:flex;gap:10px">
+        <input id="minN" type="number" min="1" value="2"><input id="maxN" type="number" min="1" value="5">
+      </div>
+      <button>Subscribe</button>
+    </form>
+    <p id="msg"></p>
+  </div>
+  <script>
+    async function loadSpots(){
+      const res = await fetch("/api/spots"); const data = await res.json();
+      const sel = document.getElementById("spot");
+      data.forEach(s => { const o=document.createElement("option"); o.value=s.id; o.textContent=`${s.name} (${s.country||""})`; sel.appendChild(o); });
+    }
+    loadSpots();
+    document.getElementById("f").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const payload = {
+        email: email.value.trim(),
+        home_airport: home.value.trim().toUpperCase(),
+        spot_id: spot.value,
+        min_wave_m: parseFloat(wave.value),
+        max_wind_kmh: parseFloat(wind.value),
+        max_price_eur: parseInt(price.value),
+        min_nights: parseInt(minN.value),
+        max_nights: parseInt(maxN.value)
+      };
+      const res = await fetch("/api/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const msg = document.getElementById("msg");
+      if(res.ok){ msg.textContent="You're in! Check your inbox soon."; msg.className="success"; f.reset(); }
+      else { msg.textContent = "Error: " + await res.text(); msg.className="error"; }
+    });
+  </script>
+</body>
+</html>
