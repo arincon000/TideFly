@@ -224,7 +224,9 @@ def main():
         wave = fetch_wave_stats(sp["latitude"], sp["longitude"], sp["timezone"], hours)
         wind = fetch_wind_stats(sp["latitude"], sp["longitude"], sp["timezone"], hours)
         merged = pd.merge(wave, wind, on="date", how="inner", suffixes=("_wave","_wind"))
+        print(f"[spot] {sp['name']} (id={spot_id}) prefs={len(group['prefs'])} merged_rows={len(merged)}") #new print added XYX
 
+        
         # Cache generic stats per date
         cache_rows = []
         for _, r in merged.iterrows():
@@ -246,26 +248,39 @@ def main():
             # Use naive UTC midnight (no timezone info)
             start = pd.Timestamp(datetime.utcnow().date())
             horizon_days = int(pref.get("lookahead_days") or 14)
+            horizon_days = min(horizon_days, 3)  # TEMP: keep runs fast during tests
             end = start + pd.Timedelta(days=horizon_days)
+            print(
+                f"[eval] user={pref['user_id']} origin={pref['user']['home_airport']} dest=LIS "
+                f"rules: wave≥{pref['min_wave_m']}m wind≤{pref['max_wind_kmh']}km/h "
+                f"price≤€{pref['max_price_eur']} window={start.date()}..{end.date()}"
+            ) #new print added XYX
     
             # Filter dates within the window
             window = merged[merged["date"].between(start, end)]
             ok = window[(window["max_wave"] >= pref["min_wave_m"]) & (window["min_wind"] <= pref["max_wind_kmh"])]
             ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
-            if not ok_dates: continue
+            print(f"[eval] ok_dates={len(ok_dates)} -> {ok_dates[:5]}{'...' if len(ok_dates)>5 else ''}") #print added XXYX
+            if not ok_dates:
+                print("[skip] no OK surf dates in window")
+                continue
 
             origin, dest = pref["user"]["home_airport"], "LIS"  # TODO: per-spot nearest airport
             bucket = start.date()
 
-
             # Flights: check cache first
-            cached = sb_select("flight_cache",
-                               params={"origin_iata":"eq."+origin, "dest_iata":"eq."+dest, "date_bucket":"eq."+str(bucket)},
-                               select="cheapest_price,deep_link")
+            print(f"[cache] {origin}->{dest} bucket={bucket}")
+            cached = sb_select(
+                "flight_cache",
+                params={"origin_iata":"eq."+origin, "dest_iata":"eq."+dest, "date_bucket":"eq."+str(bucket)},
+                select="cheapest_price,deep_link"
+            )
+            
             if cached:
                 price, link = cached[0]["cheapest_price"], cached[0]["deep_link"]
+                print(f"[cache] HIT price={price} link={'yes' if link else 'no'}")
             else:
-                # use the same window used above
+                print("[cache] MISS -> calling Amadeus…")
                 rr = amadeus_cheapest_roundtrip(
                     origin,
                     dest,
@@ -275,9 +290,9 @@ def main():
                     pref["max_nights"],
                     currency="EUR",
                 )
-
                 price = rr["price"] if rr else None
                 link  = rr["deep_link"] if rr else None
+                print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
                 try:
                     sb_upsert("flight_cache", [{
                         "origin_iata": origin, "dest_iata": dest, "date_bucket": str(bucket),
@@ -286,7 +301,17 @@ def main():
                 except Exception as e:
                     print("flight_cache upsert error:", e)
 
-            if price is None or price > pref["max_price_eur"]: continue
+
+
+
+
+            if price is None:
+                print("[skip] no flight price found")
+                continue
+            if price > pref["max_price_eur"]:
+                print(f"[skip] price {price} > max {pref['max_price_eur']}")
+                continue
+
 
             dates_str = ", ".join(ok_dates[:7])
             key = sha(f"{pref['user_id']}|{pref['spot_id']}|{dates_str}|{price}|{link or ''}")
@@ -300,7 +325,10 @@ def main():
                 <p><strong>Cheapest roundtrip</strong>: EUR {price} &nbsp;|&nbsp; <a href="{link}">Book</a></p>
                 <p><strong>Rules</strong>: wave ≥ {pref['min_wave_m']}m, wind ≤ {pref['max_wind_kmh']} km/h; stay {pref['min_nights']}-{pref['max_nights']} nights.</p>
             """
+
             status = send_email(pref["user"]["email"], subject, html)
+            print(f"[email] status={status} to={pref['user']['email']}")
+
             if status in (200, 202):
                 try:
                     sb_insert("alerts", {
