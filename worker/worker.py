@@ -68,11 +68,10 @@ def fetch_wind_stats(lat, lon, tz_name, hours):
 _token = {"access_token": None, "exp": 0}
 
 def _amadeus_token():
-    """Fetch and cache OAuth2 token."""
     import time
     if _token["access_token"] and time.time() < _token["exp"] - 60:
         return _token["access_token"]
-
+    print("[amadeus] fetching new token...")
     r = requests.post(
         f"{AMADEUS_BASE}/v1/security/oauth2/token",
         data={
@@ -86,10 +85,12 @@ def _amadeus_token():
     d = r.json()
     _token["access_token"] = d["access_token"]
     _token["exp"] = __import__("time").time() + int(d.get("expires_in", 1800))
+    print("[amadeus] token ok; expires_in:", d.get("expires_in"))
     return _token["access_token"]
 
 def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"):
     """Return the cheapest price for a specific depart/return date pair."""
+    print(f"[amadeus] search {origin}->{dest} {depart_dt} .. {return_dt}")
     token = _amadeus_token()
     params = {
         "originLocationCode": origin,
@@ -106,22 +107,30 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
 
     # If token expired mid-run, refresh once and retry
     if r.status_code == 401:
+        print("[amadeus] 401 once; retrying with fresh token...")
         _token["access_token"] = None
         h["Authorization"] = f"Bearer {_amadeus_token()}"
         r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
 
     if r.status_code == 429:
+        print("[amadeus] 429 rate limited; skipping this pair")
         # Rate limited; just bail gracefully
         return None
-
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        print("[amadeus] HTTP error:", e, "body:", r.text[:400])
+        return None
+        
     data = r.json().get("data") or []
+    print(f"[amadeus] offers: {len(data)}")
     if not data:
         return None
-
+        
     # pick the cheapest offer
     best = min(data, key=lambda x: float(x["price"]["total"]))
     price = float(best["price"]["total"])
+    print(f"[amadeus] best price: {price}")
 
     # Make a universal deep link (Google Flights) for user convenience
     def gf_link(o, d, dep, ret):
@@ -177,9 +186,11 @@ def send_email(to_email, subject, html):
 def sha(s): return hashlib.sha256(s.encode()).hexdigest()
 
 def main():
+    print("[worker] start")
     # 1) Load active preferences
     prefs = sb_select("user_spot_prefs", params={"is_active":"eq.true"},
                       select="id,user_id,spot_id,min_wave_m,max_wind_kmh,max_price_eur,min_nights,max_nights,lookahead_days")
+    print("[worker] active prefs:", len(prefs))
     if not prefs:
         print("No active user preferences found."); return
 
