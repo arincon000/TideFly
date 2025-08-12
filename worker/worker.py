@@ -305,6 +305,7 @@ def main():
 
 
             # Flights: check cache first (ignore junk placeholders)
+            # Flights: check cache first (invalidate Google/placeholder links)
             print(f"[cache] {origin}->{dest} bucket={bucket}")
             cached = sb_select(
                 "flight_cache",
@@ -315,31 +316,33 @@ def main():
                 },
                 select="cheapest_price,deep_link"
             )
-            
+
             price = None
             link = None
             use_cache = False
-            
+
             if cached:
                 raw_price = cached[0].get("cheapest_price")
-                link = cached[0].get("deep_link")
+                link = (cached[0].get("deep_link") or "").strip()
                 # coerce price to float if present
                 try:
                     price = float(raw_price) if raw_price is not None else None
                 except (TypeError, ValueError):
                     price = None
-            
-                bad_link = (not link) or str(link).startswith("https://example.")
-                use_cache = (price is not None) and (not bad_link)
-            
+
+                is_google = link.startswith("https://www.google.") or "#flt=" in link
+                is_placeholder = (not link) or link.startswith("https://example.")
+                use_cache = (price is not None) and not (is_google or is_placeholder)
+
                 if use_cache:
-                    print(f"[cache] HIT price={price} link=yes")
+                    print(f"[cache] HIT price={price} link=ok")
                 else:
-                    why = []
-                    if price is None: why.append("no/invalid price")
-                    if bad_link:     why.append("bad link")
-                    print(f"[cache] IGNORE ({', '.join(why)}) -> calling Amadeus…")
-            
+                    reasons = []
+                    if price is None: reasons.append("invalid price")
+                    if is_google: reasons.append("google link")
+                    if is_placeholder: reasons.append("placeholder link")
+                    print(f"[cache] IGNORE ({', '.join(reasons)}) -> calling Amadeus…")
+
             if not use_cache:
                 print("[cache] MISS -> calling Amadeus…")
                 rr = amadeus_cheapest_roundtrip(
@@ -352,7 +355,10 @@ def main():
                     currency="EUR",
                 )
                 price = rr["price"] if rr else None
-                link  = rr["deep_link"] if rr else None
+                # Prefer Kayak deep link when available
+                link = ((rr or {}).get("links") or {}).get("kayak") if rr else None
+                if not link and rr:
+                    link = rr.get("deep_link")
                 print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
                 try:
                     sb_upsert("flight_cache", [{
@@ -364,6 +370,7 @@ def main():
                     }], on_conflict="origin_iata,dest_iata,date_bucket")
                 except Exception as e:
                     print("flight_cache upsert error:", e)
+
 
 
             if price is None:
