@@ -40,4 +40,3 @@ JSON
           echo "=== BODY ==="; cat /tmp/b || true
 
           grep -q "202 Accepted" /tmp/h
-
