@@ -7,20 +7,22 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
+      AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
+      AMADEUS_ENV: test
+      PYTHONUNBUFFERED: '1'
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: pip install -r worker/requirements.txt
-      - run: python worker/worker.py
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          #TEQUILA_API_KEY: ${{ secrets.TEQUILA_API_KEY }}
-          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
-          AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
-          # Optional: set to "prod" or "test" to control the base URL
-          AMADEUS_ENV: test
+      - name: Run worker (unbuffered)
+        run: python -u worker/worker.py
