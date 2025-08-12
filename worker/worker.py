@@ -26,7 +26,7 @@ def sb_select(table, params=None, select="*"):
 def sb_upsert(table, rows, on_conflict=None):
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     headers = HEADERS.copy()
-    headers["Prefer"] = "return=representation"
+    headers["Prefer"] = "resolution=merge-duplicates,return=representation"
     params = {"on_conflict": on_conflict} if on_conflict else None
     r = requests.post(url, headers=headers, params=params, data=json.dumps(rows), timeout=60)
     r.raise_for_status()
@@ -149,7 +149,8 @@ def main():
             merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
     
             # Build a window [start, end] in the same Timestamp type
-            start = pd.Timestamp.utcnow().normalize()
+            # Use naive UTC midnight (no timezone info)
+            start = pd.Timestamp(datetime.utcnow().date())
             horizon_days = int(pref.get("lookahead_days") or 14)
             end = start + pd.Timedelta(days=horizon_days)
     
