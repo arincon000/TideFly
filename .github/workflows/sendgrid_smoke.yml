@@ -1,34 +1,43 @@
 name: SendGrid Smoke Test
-on:
-  workflow_dispatch:  # run manually
+on: { workflow_dispatch: {} }
 
 jobs:
-  test:
+  send:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install sendgrid==6.11.0
-      - name: Send test email
+      - name: Send a test email
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          TEST_TO: ${{ secrets.TEST_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}   # must be your verified Single Sender
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}       # optional; defaults to EMAIL_FROM
         run: |
-          python - <<'PY'
-          import os
-          from sendgrid import SendGridAPIClient
-          from sendgrid.helpers.mail import Mail
+          set -euo pipefail
 
-          msg = Mail(
-              from_email=os.environ["EMAIL_FROM"],
-              to_emails=os.environ["TEST_TO"],
-              subject="TideFly: SendGrid smoke test",
-              html_content="<p>Success! SendGrid + GitHub Actions are wired up.</p>"
+          [ -n "${SENDGRID_API_KEY:-}" ] || { echo "Missing SENDGRID_API_KEY"; exit 1; }
+          [ -n "${EMAIL_FROM:-}" ] || { echo "Missing EMAIL_FROM"; exit 1; }
+
+          TO="${EMAIL_TO:-$EMAIL_FROM}"
+
+          BODY=$(cat <<'JSON'
+          {
+            "personalizations":[{"to":[{"email":"__TO__"}]}],
+            "from":{"email":"__FROM__"},
+            "subject":"TideFly test",
+            "content":[{"type":"text/plain","value":"Hello from TideFly!"}]
+          }
+JSON
           )
-          sg = SendGridAPIClient(os.environ["SENDGRID_API_KEY"])
-          resp = sg.send(msg)
-          print("Status:", resp.status_code)
-          print("X-Message-Id:", resp.headers.get("X-Message-Id"))
-          PY
+          BODY=${BODY/__TO__/$TO}
+          BODY=${BODY/__FROM__/$EMAIL_FROM}
+
+          curl -sS -D /tmp/h -o /tmp/b https://api.sendgrid.com/v3/mail/send \
+            -H "Authorization: Bearer $SENDGRID_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" || true
+
+          echo "=== STATUS ==="; head -1 /tmp/h || true
+          echo "=== HEADERS ==="; sed -n '1,20p' /tmp/h || true
+          echo "=== BODY ==="; cat /tmp/b || true
+
+          grep -q "202 Accepted" /tmp/h
+
