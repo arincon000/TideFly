@@ -19,4 +19,4 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           TEQUILA_API_KEY: ${{ secrets.TEQUILA_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-          EMAIL_FROM: alerts@yourdomain.com
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
