@@ -272,18 +272,45 @@ def main():
             origin, dest = pref["user"]["home_airport"], "LIS"  # TODO: per-spot nearest airport
             bucket = start.date()
 
-            # Flights: check cache first
+
+
+            # Flights: check cache first (ignore junk placeholders)
             print(f"[cache] {origin}->{dest} bucket={bucket}")
             cached = sb_select(
                 "flight_cache",
-                params={"origin_iata":"eq."+origin, "dest_iata":"eq."+dest, "date_bucket":"eq."+str(bucket)},
+                params={
+                    "origin_iata": "eq." + origin,
+                    "dest_iata": "eq." + dest,
+                    "date_bucket": "eq." + str(bucket),
+                },
                 select="cheapest_price,deep_link"
             )
             
+            price = None
+            link = None
+            use_cache = False
+            
             if cached:
-                price, link = cached[0]["cheapest_price"], cached[0]["deep_link"]
-                print(f"[cache] HIT price={price} link={'yes' if link else 'no'}")
-            else:
+                raw_price = cached[0].get("cheapest_price")
+                link = cached[0].get("deep_link")
+                # coerce price to float if present
+                try:
+                    price = float(raw_price) if raw_price is not None else None
+                except (TypeError, ValueError):
+                    price = None
+            
+                bad_link = (not link) or str(link).startswith("https://example.")
+                use_cache = (price is not None) and (not bad_link)
+            
+                if use_cache:
+                    print(f"[cache] HIT price={price} link=yes")
+                else:
+                    why = []
+                    if price is None: why.append("no/invalid price")
+                    if bad_link:     why.append("bad link")
+                    print(f"[cache] IGNORE ({', '.join(why)}) -> calling Amadeus…")
+            
+            if not use_cache:
                 print("[cache] MISS -> calling Amadeus…")
                 rr = amadeus_cheapest_roundtrip(
                     origin,
@@ -299,14 +326,14 @@ def main():
                 print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
                 try:
                     sb_upsert("flight_cache", [{
-                        "origin_iata": origin, "dest_iata": dest, "date_bucket": str(bucket),
-                        "cheapest_price": price, "deep_link": link
+                        "origin_iata": origin,
+                        "dest_iata": dest,
+                        "date_bucket": str(bucket),
+                        "cheapest_price": price,
+                        "deep_link": link
                     }], on_conflict="origin_iata,dest_iata,date_bucket")
                 except Exception as e:
                     print("flight_cache upsert error:", e)
-
-
-
 
 
             if price is None:
