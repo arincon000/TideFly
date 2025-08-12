@@ -128,6 +128,53 @@ def build_travel_links(o, d, dep, ret, currency="EUR"):
 
     return {"primary": "kayak", "google": google, "kayak": kayak, "skyscanner": skyscanner, "kiwi": kiwi}
 
+def _amadeus_reprice(offer, currency="EUR"):
+    """
+    Confirm the final price (grandTotal) for a flight offer from Flight Offers Search.
+    Works in both test and prod.
+    """
+    token = _amadeus_token()
+    # Use a deep copy so we don't mutate the original
+    offer_copy = json.loads(json.dumps(offer))
+
+    url = f"{AMADEUS_BASE}/v1/shopping/flight-offers/pricing"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "data": {
+            "type": "flight-offers-pricing",
+            "flightOffers": [offer_copy],
+            "currencyCode": currency,
+        }
+    }
+
+    r = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+
+    # Refresh once on token expiry
+    if r.status_code == 401:
+        _token["access_token"] = None
+        headers["Authorization"] = f"Bearer {_amadeus_token()}"
+        r = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+
+    if r.status_code == 429:
+        raise RuntimeError("Amadeus rate limit on pricing")
+
+    r.raise_for_status()
+    body = r.json() or {}
+    flights = (body.get("data") or {}).get("flightOffers") or []
+    if not flights:
+        raise RuntimeError(f"Pricing returned no offers: {body}")
+
+    priced = flights[0]
+    grand = (priced.get("price") or {}).get("grandTotal")
+    if grand is None:
+        raise RuntimeError(f"No grandTotal in pricing response: {priced}")
+
+    return float(grand)
+
 
 def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"):
     print(f"[amadeus] search {origin}->{dest} {depart_dt} .. {return_dt}")
@@ -142,7 +189,10 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
         "nonStop": "false",
         "max": 10,
     }
-    h = {"Authorization": f"Bearer {token}"}
+    h = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
     r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
 
     if r.status_code == 401:
@@ -164,20 +214,40 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
     print(f"[amadeus] offers: {len(data)}")
     if not data:
         return None
-    # pick the cheapest offer
-    best = min(data, key=lambda x: float(x["price"]["total"]))
-    price = float(best["price"]["total"])
+
+    # keep only offers with numeric price.total
+    def _total(o):
+        try:
+            return float(o.get("price", {}).get("total"))
+        except Exception:
+            return float("inf")
+
+    best = min(data, key=_total)
+    search_price = _total(best)
+    if not (search_price < float("inf")):
+        print("[amadeus] no valid totals in offers")
+        return None
+
+    # Confirm the final total
+    try:
+        price = _amadeus_reprice(best, currency=currency)
+        print(f"[amadeus] repriced (grandTotal): {price}")
+    except Exception as e:
+        print("[amadeus] repricing failed; falling back to search price:", e)
+        price = search_price
     print(f"[amadeus] best price: {price}")
 
     links = build_travel_links(origin, dest, depart_dt, return_dt, currency=currency)
     deep = links.get(links["primary"], links["kayak"])  # prefer kayak
+
     return {
-        "price": price,
+        "price": float(price),
         "deep_link": deep,
         "departure_date": depart_dt.strftime("%Y-%m-%d"),
         "return_date": return_dt.strftime("%Y-%m-%d"),
         "links": links,
     }
+
 
 # --- Flights (Amadeus) ---
 def amadeus_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, max_n=5, currency="EUR"):
