@@ -34,7 +34,11 @@ def sb_upsert(table, rows, on_conflict=None):
     headers["Prefer"] = "resolution=merge-duplicates,return=representation"
     params = {"on_conflict": on_conflict} if on_conflict else None
     r = requests.post(url, headers=headers, params=params, data=json.dumps(rows), timeout=60)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        body = getattr(e.response, "text", "")[:600]
+        raise RuntimeError(f"Upsert {table} failed: {e} | Body: {body}")
     return r.json()
 
 def sb_insert(table, row):
