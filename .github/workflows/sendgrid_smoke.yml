@@ -1,0 +1,34 @@
+name: SendGrid Smoke Test
+on:
+  workflow_dispatch:  # run manually
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install sendgrid==6.11.0
+      - name: Send test email
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          TEST_TO: ${{ secrets.TEST_TO }}
+        run: |
+          python - <<'PY'
+          import os
+          from sendgrid import SendGridAPIClient
+          from sendgrid.helpers.mail import Mail
+
+          msg = Mail(
+              from_email=os.environ["EMAIL_FROM"],
+              to_emails=os.environ["TEST_TO"],
+              subject="TideFly: SendGrid smoke test",
+              html_content="<p>Success! SendGrid + GitHub Actions are wired up.</p>"
+          )
+          sg = SendGridAPIClient(os.environ["SENDGRID_API_KEY"])
+          resp = sg.send(msg)
+          print("Status:", resp.status_code)
+          print("X-Message-Id:", resp.headers.get("X-Message-Id"))
+          PY
