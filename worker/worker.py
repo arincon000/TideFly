@@ -145,14 +145,23 @@ def main():
 
         # Evaluate per user preference
         for pref in group["prefs"]:
-            window = merged[(merged["date"] >= pd.Timestamp(today)) &
-                            (merged["date"] <= pd.Timestamp(today + timedelta(days=pref["lookahead_days"])))]
+            # Normalize date column to pandas Timestamp (midnight) so comparisons are consistent
+            merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
+    
+            # Build a window [start, end] in the same Timestamp type
+            start = pd.Timestamp.utcnow().normalize()
+            horizon_days = int(pref.get("lookahead_days") or 14)
+            end = start + pd.Timedelta(days=horizon_days)
+    
+            # Filter dates within the window
+            window = merged[merged["date"].between(start, end)]
             ok = window[(window["max_wave"] >= pref["min_wave_m"]) & (window["min_wind"] <= pref["max_wind_kmh"])]
             ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
             if not ok_dates: continue
 
             origin, dest = pref["user"]["home_airport"], "LIS"  # TODO: per-spot nearest airport
-            bucket = today
+            bucket = start.date()
+
 
             # Flights: check cache first
             cached = sb_select("flight_cache",
@@ -161,8 +170,12 @@ def main():
             if cached:
                 price, link = cached[0]["cheapest_price"], cached[0]["deep_link"]
             else:
-                rr = tequila_cheapest_roundtrip(origin, dest, today, today + timedelta(days=pref["lookahead_days"]),
-                                                pref["min_nights"], pref["max_nights"])
+                # use the same window used above
+                rr = tequila_cheapest_roundtrip(
+                    origin, dest,
+                    bucket, (start + pd.Timedelta(days=horizon_days)).date(),
+                    pref["min_nights"], pref["max_nights"]
+                )
                 price = rr["price"] if rr else None
                 link  = rr["deep_link"] if rr else None
                 try:
