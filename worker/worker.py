@@ -7,6 +7,11 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 TEQUILA_API_KEY = os.environ.get("TEQUILA_API_KEY")
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+AMADEUS_CLIENT_ID = os.environ.get("AMADEUS_CLIENT_ID")
+AMADEUS_CLIENT_SECRET = os.environ.get("AMADEUS_CLIENT_SECRET")
+AMADEUS_ENV = (os.environ.get("AMADEUS_ENV") or "test").lower()  # "test" or "prod"
+AMADEUS_BASE = "https://api.amadeus.com" if AMADEUS_ENV == "prod" else "https://test.api.amadeus.com"
+
 
 HEADERS = {
     "apikey": SUPABASE_SERVICE_KEY,
@@ -59,26 +64,104 @@ def fetch_wind_stats(lat, lon, tz_name, hours):
     df = df[df["hour"].isin(hours)]
     return df.groupby("date")["wind"].agg(["min","max","mean"]).rename(columns={"mean":"avg"}).reset_index()
 
-# --- Flights (Kiwi/Tequila) ---
-def tequila_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, max_n=5, currency="EUR"):
-    if not TEQUILA_API_KEY: return None
-    url = "https://api.tequila.kiwi.com/v2/search"
+# --- Flights (Amadeus) ---
+_token = {"access_token": None, "exp": 0}
+
+def _amadeus_token():
+    """Fetch and cache OAuth2 token."""
+    import time
+    if _token["access_token"] and time.time() < _token["exp"] - 60:
+        return _token["access_token"]
+
+    r = requests.post(
+        f"{AMADEUS_BASE}/v1/security/oauth2/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_id": AMADEUS_CLIENT_ID,
+            "client_secret": AMADEUS_CLIENT_SECRET,
+        },
+        timeout=60,
+    )
+    r.raise_for_status()
+    d = r.json()
+    _token["access_token"] = d["access_token"]
+    _token["exp"] = __import__("time").time() + int(d.get("expires_in", 1800))
+    return _token["access_token"]
+
+def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"):
+    """Return the cheapest price for a specific depart/return date pair."""
+    token = _amadeus_token()
     params = {
-        "fly_from": fly_from, "fly_to": fly_to,
-        "date_from": date_from.strftime("%d/%m/%Y"),
-        "date_to": date_to.strftime("%d/%m/%Y"),
-        "nights_in_dst_from": min_n, "nights_in_dst_to": max_n,
-        "flight_type": "round", "curr": currency, "one_for_city": 1,
-        "sort": "price", "limit": 1
+        "originLocationCode": origin,
+        "destinationLocationCode": dest,
+        "departureDate": depart_dt.strftime("%Y-%m-%d"),
+        "returnDate": return_dt.strftime("%Y-%m-%d"),
+        "adults": 1,
+        "currencyCode": currency,
+        "nonStop": "false",
+        "max": 10,
     }
-    r = requests.get(url, headers={"apikey": TEQUILA_API_KEY}, params=params, timeout=60)
-    if r.status_code == 401: raise RuntimeError("Unauthorized Tequila API key")
-    r.raise_for_status(); data = r.json()
-    if not data.get("data"): return None
-    best = data["data"][0]
-    route = best.get("route") or []
-    dep_date = (route[0].get("local_departure","").split("T")[0]) if route else None
-    return {"price": best.get("price"), "deep_link": best.get("deep_link"), "departure_date": dep_date}
+    h = {"Authorization": f"Bearer {token}"}
+    r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
+
+    # If token expired mid-run, refresh once and retry
+    if r.status_code == 401:
+        _token["access_token"] = None
+        h["Authorization"] = f"Bearer {_amadeus_token()}"
+        r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
+
+    if r.status_code == 429:
+        # Rate limited; just bail gracefully
+        return None
+
+    r.raise_for_status()
+    data = r.json().get("data") or []
+    if not data:
+        return None
+
+    # pick the cheapest offer
+    best = min(data, key=lambda x: float(x["price"]["total"]))
+    price = float(best["price"]["total"])
+
+    # Make a universal deep link (Google Flights) for user convenience
+    def gf_link(o, d, dep, ret):
+        return (
+            "https://www.google.com/travel/flights?hl=en#flt="
+            f"{o}.{d}.{dep.strftime('%Y-%m-%d')}*{d}.{o}.{ret.strftime('%Y-%m-%d')}"
+        )
+
+    return {
+        "price": price,
+        "deep_link": gf_link(origin, dest, depart_dt, return_dt),
+        "departure_date": depart_dt.strftime("%Y-%m-%d"),
+    }
+
+# --- Flights (Amadeus) ---
+def amadeus_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, max_n=5, currency="EUR"):
+    """
+    Scan a small grid of depart dates in [date_from, date_to] and stay lengths [min_n, max_n].
+    Returns {'price': float, 'deep_link': str, 'departure_date': 'YYYY-MM-DD'} or None.
+    """
+    if not (AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET):
+        return None
+
+    # iterate dates (be mindful of rate limits on the free plan)
+    days = (date_to - date_from).days
+    depart_candidates = [date_from + timedelta(days=i) for i in range(max(0, days) + 1)]
+    # sample durations (min, mid, max) to keep requests low
+    stay_candidates = sorted({min_n, max((min_n + max_n) // 2, min_n), max_n})
+
+    best = None
+    for dep in depart_candidates:
+        for n in stay_candidates:
+            ret = dep + timedelta(days=n)
+            offer = _amadeus_search_roundtrip(fly_from, fly_to, dep, ret, currency=currency)
+            if not offer:
+                continue
+            if not best or offer["price"] < best["price"]:
+                best = offer
+    return best
+
 
 # --- Email (SendGrid) ---
 def send_email(to_email, subject, html):
@@ -172,11 +255,16 @@ def main():
                 price, link = cached[0]["cheapest_price"], cached[0]["deep_link"]
             else:
                 # use the same window used above
-                rr = tequila_cheapest_roundtrip(
-                    origin, dest,
-                    bucket, (start + pd.Timedelta(days=horizon_days)).date(),
-                    pref["min_nights"], pref["max_nights"]
+                rr = amadeus_cheapest_roundtrip(
+                    origin,
+                    dest,
+                    start.date(),  # same window as your surf filter
+                    (start + pd.Timedelta(days=horizon_days)).date(),
+                    pref["min_nights"],
+                    pref["max_nights"],
+                    currency="EUR",
                 )
+
                 price = rr["price"] if rr else None
                 link  = rr["deep_link"] if rr else None
                 try:
