@@ -8,27 +8,17 @@ jobs:
       - name: Send a test email
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}   # must be your verified Single Sender
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}   # your verified Single Sender
           EMAIL_TO: ${{ secrets.EMAIL_TO }}       # optional; defaults to EMAIL_FROM
         run: |
           set -euo pipefail
 
-          [ -n "${SENDGRID_API_KEY:-}" ] || { echo "Missing SENDGRID_API_KEY"; exit 1; }
-          [ -n "${EMAIL_FROM:-}" ] || { echo "Missing EMAIL_FROM"; exit 1; }
+          : "${SENDGRID_API_KEY:?Missing SENDGRID_API_KEY}"
+          : "${EMAIL_FROM:?Missing EMAIL_FROM}"
 
           TO="${EMAIL_TO:-$EMAIL_FROM}"
 
-          BODY=$(cat <<'JSON'
-          {
-            "personalizations":[{"to":[{"email":"__TO__"}]}],
-            "from":{"email":"__FROM__"},
-            "subject":"TideFly test",
-            "content":[{"type":"text/plain","value":"Hello from TideFly!"}]
-          }
-JSON
-          )
-          BODY=${BODY/__TO__/$TO}
-          BODY=${BODY/__FROM__/$EMAIL_FROM}
+          BODY="{\"personalizations\":[{\"to\":[{\"email\":\"$TO\"}]}],\"from\":{\"email\":\"$EMAIL_FROM\"},\"subject\":\"TideFly test\",\"content\":[{\"type\":\"text/plain\",\"value\":\"Hello from TideFly!\"}]}"
 
           curl -sS -D /tmp/h -o /tmp/b https://api.sendgrid.com/v3/mail/send \
             -H "Authorization: Bearer $SENDGRID_API_KEY" \
