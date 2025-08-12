@@ -137,11 +137,27 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
     print(f"[amadeus] best price: {price}")
 
     # Make a universal deep link (Google Flights) for user convenience
-    def gf_link(o, d, dep, ret):
-        return (
-            "https://www.google.com/travel/flights?hl=en#flt="
-            f"{o}.{d}.{dep.strftime('%Y-%m-%d')}*{d}.{o}.{ret.strftime('%Y-%m-%d')}"
+
+    def gf_link(o, d, dep, ret, currency="EUR"):
+        dep_s = dep.strftime("%Y-%m-%d")
+        ret_s = ret.strftime("%Y-%m-%d")
+    
+        # 1) Newer-style anchor (works for many users)
+        anchor = (
+            "https://www.google.com/travel/flights?hl=en"
+            f"#flt={o}.{d}.{dep_s}*{d}.{o}.{ret_s};c:{currency};e:1;sd:1;t:e"
         )
+    
+        # 2) Fallback: query-style link that Google reliably parses in all locales
+        query = (
+            "https://www.google.com/travel/flights?hl=en&q="
+            + requests.utils.quote(f"{o} to {d} {dep_s} to {ret_s}")
+        )
+    
+        # Prefer the reliable query link
+        return query
+        # If you want to try anchor first, return anchor and keep `query`
+        # somewhere else (e.g., include it as an "alt link" in the email).
 
     return {
         "price": price,
