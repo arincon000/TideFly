@@ -92,8 +92,44 @@ def _amadeus_token():
     print("[amadeus] token ok; expires_in:", d.get("expires_in"))
     return _token["access_token"]
 
+def build_travel_links(o, d, dep, ret, currency="EUR"):
+    # Dates
+    dep_s = dep.strftime("%Y-%m-%d")
+    ret_s = ret.strftime("%Y-%m-%d")
+    dep_y = dep.strftime("%Y"); dep_m = dep.strftime("%m"); dep_d = dep.strftime("%d")
+    ret_y = ret.strftime("%Y"); ret_m = ret.strftime("%m"); ret_d = ret.strftime("%d")
+    dep_yymmdd = dep.strftime("%y%m%d")
+    ret_yymmdd = ret.strftime("%y%m%d")
+
+    # Google (query form – robust with tracking/locales)
+    google = (
+        "https://www.google.com/travel/flights?hl=en&q="
+        + requests.utils.quote(f"{o} to {d} {dep_s} to {ret_s}")
+    )
+
+    # Kayak (very reliable deep link)
+    kayak = (
+    "https://www.kayak.com/flights/"
+    f"{o}-{d}/{dep_y}-{dep_m}-{dep_d}/{ret_y}-{ret_m}-{ret_d}?adults=1&sort=bestflight_a"
+    )
+
+
+    # Skyscanner
+    skyscanner = (
+        "https://www.skyscanner.net/transport/flights/"
+        f"{o.lower()}/{d.lower()}/{dep_yymmdd}/{ret_yymmdd}/?adults=1&cabinclass=economy"
+    )
+
+    # Kiwi
+    kiwi = (
+        "https://www.kiwi.com/en/search/results/"
+        f"{o}/{d}/{dep_y}-{dep_m}-{dep_d}/{ret_y}-{ret_m}-{ret_d}?adults=1"
+    )
+
+    return {"primary": "kayak", "google": google, "kayak": kayak, "skyscanner": skyscanner, "kiwi": kiwi}
+
+
 def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"):
-    """Return the cheapest price for a specific depart/return date pair."""
     print(f"[amadeus] search {origin}->{dest} {depart_dt} .. {return_dt}")
     token = _amadeus_token()
     params = {
@@ -109,7 +145,6 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
     h = {"Authorization": f"Bearer {token}"}
     r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
 
-    # If token expired mid-run, refresh once and retry
     if r.status_code == 401:
         print("[amadeus] 401 once; retrying with fresh token...")
         _token["access_token"] = None
@@ -118,51 +153,30 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
 
     if r.status_code == 429:
         print("[amadeus] 429 rate limited; skipping this pair")
-        # Rate limited; just bail gracefully
         return None
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
         print("[amadeus] HTTP error:", e, "body:", r.text[:400])
         return None
-        
+
     data = r.json().get("data") or []
     print(f"[amadeus] offers: {len(data)}")
     if not data:
         return None
-        
     # pick the cheapest offer
     best = min(data, key=lambda x: float(x["price"]["total"]))
     price = float(best["price"]["total"])
     print(f"[amadeus] best price: {price}")
 
-    # Make a universal deep link (Google Flights) for user convenience
-
-    def gf_link(o, d, dep, ret, currency="EUR"):
-        dep_s = dep.strftime("%Y-%m-%d")
-        ret_s = ret.strftime("%Y-%m-%d")
-    
-        # 1) Newer-style anchor (works for many users)
-        anchor = (
-            "https://www.google.com/travel/flights?hl=en"
-            f"#flt={o}.{d}.{dep_s}*{d}.{o}.{ret_s};c:{currency};e:1;sd:1;t:e"
-        )
-    
-        # 2) Fallback: query-style link that Google reliably parses in all locales
-        query = (
-            "https://www.google.com/travel/flights?hl=en&q="
-            + requests.utils.quote(f"{o} to {d} {dep_s} to {ret_s}")
-        )
-    
-        # Prefer the reliable query link
-        return query
-        # If you want to try anchor first, return anchor and keep `query`
-        # somewhere else (e.g., include it as an "alt link" in the email).
-
+    links = build_travel_links(origin, dest, depart_dt, return_dt, currency=currency)
+    deep = links.get(links["primary"], links["kayak"])  # prefer kayak
     return {
         "price": price,
-        "deep_link": gf_link(origin, dest, depart_dt, return_dt),
+        "deep_link": deep,
         "departure_date": depart_dt.strftime("%Y-%m-%d"),
+        "return_date": return_dt.strftime("%Y-%m-%d"),
+        "links": links,
     }
 
 # --- Flights (Amadeus) ---
