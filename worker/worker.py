@@ -28,13 +28,6 @@ HEADERS = {
     "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
     "Content-Type": "application/json"
 }
-
-def require_env(name):
-    v = os.environ.get(name)
-    if not v:
-        raise RuntimeError(f"Missing required env var: {name}")
-    return v
-
 # --- Supabase helpers ---
 def sb_select(table, params=None, select="*"):
     url = f"{SUPABASE_URL}/rest/v1/{table}"
@@ -348,10 +341,18 @@ def main():
     # Ensure required environment is present (fail fast)
     require_env("SUPABASE_URL")
     require_env("SUPABASE_SERVICE_KEY")
-    # Optional (uncomment in prod if you want to force live email/pricing):
-    # require_env("SENDGRID_API_KEY")
-    # require_env("AMADEUS_CLIENT_ID")
-    # require_env("AMADEUS_CLIENT_SECRET")
+    # Optional:
+    # require_env("SENDGRID_API_KEY"); require_env("AMADEUS_CLIENT_ID"); require_env("AMADEUS_CLIENT_SECRET")
+    
+    # Rehydrate globals from the (now-validated) environment
+    global SUPABASE_URL, SUPABASE_SERVICE_KEY, HEADERS
+    SUPABASE_URL = os.environ["SUPABASE_URL"]
+    SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+    HEADERS = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+    }
     # === NEW: load active alert rules (replaces user_spot_prefs path) ===
     rules = sb_select(
         "alert_rules",
@@ -416,30 +417,37 @@ def main():
 
     # Cache merged forecast per-spot so we compute it once per worker run
     forecast_cache_mem = {}
+    
     def _merged_forecast_for_spot(spot):
         sid = spot["id"]
         if sid in forecast_cache_mem:
             return forecast_cache_mem[sid]
         hours = [6,7,8,9,10,11,12]
-        wave = fetch_wave_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
-        wind = fetch_wind_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
-        merged = pd.merge(wave, wind, on="date", how="inner", suffixes=("_wave","_wind"))
-        merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
-        print(f"[spot] {spot['name']} (id={sid}) merged_rows={len(merged)}")
-        forecast_cache_mem[sid] = merged
-        # (Optional) write generic daily stats to Supabase table as you did before:
-        cache_rows = []
-        for _, r in merged.iterrows():
-            cache_rows.append({
-                "spot_id": sid, "date": str(r["date"].date()), "morning_ok": False,
-                "wave_stats": {"min": float(r["min_wave"]), "max": float(r["max_wave"]), "avg": float(r["avg_wave"])},
-                "wind_stats": {"min": float(r["min_wind"]), "max": float(r["max_wind"]), "avg": float(r["avg_wind"])}
-            })
-        if cache_rows:
-            try: sb_upsert("forecast_cache", cache_rows, on_conflict="spot_id,date")
-            except Exception as e: print("forecast_cache upsert error:", e)
-        return merged
-
+        try:
+            wave = fetch_wave_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
+            wind = fetch_wind_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
+            merged = pd.merge(wave, wind, on="date", how="inner", suffixes=("_wave","_wind"))
+            merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
+            print(f"[spot] {spot['name']} (id={sid}) merged_rows={len(merged)}")
+            forecast_cache_mem[sid] = merged
+            # (Optional) write generic daily stats to Supabase table as before:
+            cache_rows = []
+            for _, r in merged.iterrows():
+                cache_rows.append({
+                    "spot_id": sid, "date": str(r["date"].date()), "morning_ok": False,
+                    "wave_stats": {"min": float(r["min_wave"]), "max": float(r["max_wave"]), "avg": float(r["avg_wave"])},
+                    "wind_stats": {"min": float(r["min_wind"]), "max": float(r["max_wind"]), "avg": float(r["avg_wind"])}
+                })
+            if cache_rows:
+                try:
+                    sb_upsert("forecast_cache", cache_rows, on_conflict="spot_id,date")
+                except Exception as e:
+                    print("forecast_cache upsert error:", e)
+            return merged
+        except requests.RequestException as e:
+            print(f"[spot] {spot['name']} forecast fetch error: {e}")
+            return pd.DataFrame()
+ 
     # Iterate rules
     for rule in rules:
         user = users.get(rule["user_id"])
@@ -464,7 +472,8 @@ def main():
         # Build forecast window
         window_days = int(rule.get("forecast_window") or 5)
         start = pd.Timestamp(today_d)
-        end   = start + pd.Timedelta(days=window_days)
+        # Make the window inclusive: 5 => exactly 5 calendar days (start..end inclusive)
+        end   = start + pd.Timedelta(days=max(0, window_days - 1))
 
         # Clamp nights once (reusable for pricing + email)
         min_n = max(1, int(rule.get("min_nights") or 2))
@@ -597,12 +606,13 @@ def main():
         # Compose and send email
         rule_name = rule.get('name') or 'Surf Alert'
         subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {price}"
+        window_len = int((end - start).days) + 1
         html = f"""
             <p><strong>Rule</strong>: {rule_name}</p>
             <p><strong>Spot</strong>: {spot['name']}</p>
             <p><strong>Surfable mornings</strong>: {dates_str}</p>
             <p><strong>Cheapest roundtrip</strong>: EUR {price} &nbsp;|&nbsp; <a href="{link}">Book</a></p>
-            <p><strong>Tier</strong>: {tier} (window {int((end-start).days)}d)</p>
+            <p><strong>Tier</strong>: {tier} (window {window_len}d)</p>
             <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {min_n}-{max_n} nights.</p>
         """
         status = send_email(user["email"], subject, html)
