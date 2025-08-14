@@ -2,6 +2,7 @@ import os, json, hashlib
 from datetime import datetime, timedelta, date
 import requests, pandas as pd
 import time  # add this (if not already imported)
+from datetime import timezone
 
 def _with_backoff(fn, *a, **kw):
     """Retry on HTTP 429 with exponential backoff: 1s, 2s, 4s (3 tries total)."""
@@ -27,6 +28,12 @@ HEADERS = {
     "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
     "Content-Type": "application/json"
 }
+
+def require_env(name):
+    v = os.environ.get(name)
+    if not v:
+        raise RuntimeError(f"Missing required env var: {name}")
+    return v
 
 # --- Supabase helpers ---
 def sb_select(table, params=None, select="*"):
@@ -81,11 +88,13 @@ def fetch_wind_stats(lat, lon, tz_name, hours):
 _token = {"access_token": None, "exp": 0}
 
 def _amadeus_token():
-    import time
+    # Reuse cached token if still valid (60s buffer)
     if _token["access_token"] and time.time() < _token["exp"] - 60:
         return _token["access_token"]
+
     print("[amadeus] fetching new token...")
-    r = requests.post(
+    r = _with_backoff(
+        requests.post,
         f"{AMADEUS_BASE}/v1/security/oauth2/token",
         data={
             "grant_type": "client_credentials",
@@ -94,12 +103,22 @@ def _amadeus_token():
         },
         timeout=60,
     )
+
+    # If we still got rate-limited after backoff attempts, surface it clearly
+    if r.status_code == 429:
+        raise RuntimeError("Amadeus rate limit when fetching OAuth token")
+
     r.raise_for_status()
-    d = r.json()
+    d = r.json() or {}
+
+    # Cache token and expiry (fallback to 1800s if missing)
+    expires_in = int(d.get("expires_in", 1800))
     _token["access_token"] = d["access_token"]
-    _token["exp"] = __import__("time").time() + int(d.get("expires_in", 1800))
-    print("[amadeus] token ok; expires_in:", d.get("expires_in"))
+    _token["exp"] = time.time() + expires_in
+
+    print("[amadeus] token ok; expires_in:", expires_in)
     return _token["access_token"]
+
 
 def build_travel_links(o, d, dep, ret, currency="EUR"):
     # Dates
@@ -160,14 +179,16 @@ def _amadeus_reprice(offer, currency="EUR"):
         }
     }
 
-    r = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+    # Call with backoff to handle transient 429s
+    r = _with_backoff(requests.post, url, headers=headers, data=json.dumps(payload), timeout=60)
 
-    # Refresh once on token expiry
+    # Refresh once on token expiry, retry with backoff
     if r.status_code == 401:
         _token["access_token"] = None
         headers["Authorization"] = f"Bearer {_amadeus_token()}"
-        r = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+        r = _with_backoff(requests.post, url, headers=headers, data=json.dumps(payload), timeout=60)
 
+    # If still rate-limited after backoff attempts, surface clearly
     if r.status_code == 429:
         raise RuntimeError("Amadeus rate limit on pricing")
 
@@ -324,6 +345,13 @@ def tier_for_days_out(days_out: int) -> str:
     return "watch"                            # 8–10+ days
 def main():
     print("[worker] start")
+    # Ensure required environment is present (fail fast)
+    require_env("SUPABASE_URL")
+    require_env("SUPABASE_SERVICE_KEY")
+    # Optional (uncomment in prod if you want to force live email/pricing):
+    # require_env("SENDGRID_API_KEY")
+    # require_env("AMADEUS_CLIENT_ID")
+    # require_env("AMADEUS_CLIENT_SECRET")
     # === NEW: load active alert rules (replaces user_spot_prefs path) ===
     rules = sb_select(
         "alert_rules",
@@ -337,7 +365,7 @@ def main():
     if not rules:
         print("No active alert rules."); return
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)   # timezone-aware UTC
     today_d = now.date()
 
     def _rule_enabled(r):
@@ -345,21 +373,28 @@ def main():
         pu = r.get("paused_until")
         if pu:
             try:
-                pu_dt = datetime.fromisoformat(str(pu).replace("Z", ""))
-                if pu_dt > now:  # still paused
+                pu_dt = datetime.fromisoformat(str(pu).replace("Z", "+00:00"))
+                if pu_dt.tzinfo is None:
+                    pu_dt = pu_dt.replace(tzinfo=timezone.utc)
+                if pu_dt > now:
                     return False
             except Exception:
                 # if parse fails, ignore pause rather than block
                 pass
+    
         # expired?
         ex = r.get("expires_at")
         if ex:
             try:
-                if date.fromisoformat(str(ex)) < today_d:
+                # robust date-only comparison (handles timestamps or dates)
+                ex_d = pd.to_datetime(str(ex)).date()
+                if ex_d < now.date():
                     return False
             except Exception:
                 pass
+    
         return True
+
 
     rules = [r for r in rules if _rule_enabled(r)]
     if not rules:
@@ -422,6 +457,9 @@ def main():
             continue
 
         merged = _merged_forecast_for_spot(spot)
+        if merged.empty:
+            print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
+            continue
 
         # Build forecast window
         window_days = int(rule.get("forecast_window") or 5)
@@ -446,6 +484,10 @@ def main():
                 end = min(end, dt)
             except Exception:
                 pass
+        # If window collapsed, skip early
+        if end < start:
+            print(f"[rule] window empty after clamping ({start.date()} > {end.date()}) -> skip")
+            continue
         # Filter by date window and weekday mask
         mask = int(rule.get("days_mask") or 127)  # default: all days if mask is null
         window = merged[(merged["date"] >= start) & (merged["date"] <= end)]
@@ -466,13 +508,16 @@ def main():
         days_out = (farthest - today_d).days
         tier = tier_for_days_out(days_out)
 
-        # Flight search
-        origin = (rule.get("origin_iata") or user.get("home_airport") or "").upper()
-        dest   = (rule.get("dest_iata") or spot.get("nearest_airport_iata") or "LIS").upper()
-        if not origin or not dest:
-            print(f"[rule] {rule['id']} missing origin/dest -> skip")
+        # Flight search (sanitize IATA)
+        origin = (rule.get("origin_iata") or user.get("home_airport") or "").strip().upper()
+        dest   = (rule.get("dest_iata") or spot.get("nearest_airport_iata") or "LIS").strip().upper()
+        
+        # Validate 3-letter IATA codes
+        def _is_iata(x): return len(x) == 3 and x.isalpha()
+        if not _is_iata(origin) or not _is_iata(dest):
+            print(f"[rule] bad IATA origin/dest '{origin}'/'{dest}' -> skip")
             continue
-
+        
         bucket = today_d  # for your flight_cache bucketing
 
         # Check flight_cache (ignore placeholders)
