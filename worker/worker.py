@@ -5,14 +5,22 @@ import time  # add this (if not already imported)
 from datetime import timezone
 
 def _with_backoff(fn, *a, **kw):
-    """Retry on HTTP 429 with exponential backoff: 1s, 2s, 4s (3 tries total)."""
+    """Retry on 429 or transient request errors with exponential backoff: 1s, 2s, 4s (3 tries)."""
     for i in range(3):
-        r = fn(*a, **kw)
-        if r.status_code != 429:
+        try:
+            r = fn(*a, **kw)
+        except requests.RequestException as e:
+            # last try: re-raise so callers can see the real error
+            if i == 2:
+                raise
+            time.sleep(2 ** i)
+            continue
+        # if not rate-limited, or we've exhausted retries, return the response
+        if r.status_code != 429 or i == 2:
             return r
         time.sleep(2 ** i)
-    return r  # last response (likely 429)
-    
+    return r
+
 # --- ENV ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -28,6 +36,13 @@ HEADERS = {
     "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
     "Content-Type": "application/json"
 }
+
+def require_env(name):
+    v = os.environ.get(name)
+    if not v:
+        raise RuntimeError(f"Missing required env var: {name}")
+    return v
+
 # --- Supabase helpers ---
 def sb_select(table, params=None, select="*"):
     url = f"{SUPABASE_URL}/rest/v1/{table}"
@@ -337,7 +352,9 @@ def tier_for_days_out(days_out: int) -> str:
     if days_out <= 7:  return "early"       # 6–7 days
     return "watch"                            # 8–10+ days
 def main():
-    print("[worker] start")
+    have_amadeus = bool(os.environ.get("AMADEUS_CLIENT_ID") and os.environ.get("AMADEUS_CLIENT_SECRET"))
+    print(f"[worker] start (amadeus={'on' if have_amadeus else 'off'})")
+
     # Ensure required environment is present (fail fast)
     require_env("SUPABASE_URL")
     require_env("SUPABASE_SERVICE_KEY")
@@ -556,14 +573,18 @@ def main():
             print(f"[cache] {'HIT' if use_cache else 'IGNORE'} price={price} link={'ok' if not bad else 'bad'}")
 
         if not use_cache:
-            print("[cache] MISS -> calling Amadeus…")
-            
-            rr = amadeus_cheapest_roundtrip(
-                origin, dest,
-                start.date(), end.date(),
-                min_n, max_n,
-                currency="EUR",
-            )
+            print("[cache] MISS")
+            rr = None
+            if have_amadeus:
+                rr = amadeus_cheapest_roundtrip(
+                    origin, dest,
+                    start.date(), end.date(),
+                    min_n, max_n,
+                    currency="EUR",
+                )
+            else:
+                print("[amadeus] creds missing -> skipping live search")
+        
             price = rr["price"] if rr else None
             link  = ((rr or {}).get("links") or {}).get("kayak") or (rr.get("deep_link") if rr else None)
             print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
@@ -578,6 +599,7 @@ def main():
             except Exception as e:
                 print("flight_cache upsert error:", e)
 
+        
         # Price guards
         if price is None:
             print("[skip] no flight price found")
@@ -607,11 +629,13 @@ def main():
         rule_name = rule.get('name') or 'Surf Alert'
         subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {price}"
         window_len = int((end - start).days) + 1
+
+        link_html = f' &nbsp;|&nbsp; <a href="{link}">Book</a>' if link else ''
         html = f"""
             <p><strong>Rule</strong>: {rule_name}</p>
             <p><strong>Spot</strong>: {spot['name']}</p>
             <p><strong>Surfable mornings</strong>: {dates_str}</p>
-            <p><strong>Cheapest roundtrip</strong>: EUR {price} &nbsp;|&nbsp; <a href="{link}">Book</a></p>
+            <p><strong>Cheapest roundtrip</strong>: EUR {price}{link_html}</p>
             <p><strong>Tier</strong>: {tier} (window {window_len}d)</p>
             <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {min_n}-{max_n} nights.</p>
         """
