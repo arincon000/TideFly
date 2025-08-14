@@ -434,7 +434,7 @@ def main():
 
     # Cache merged forecast per-spot so we compute it once per worker run
     forecast_cache_mem = {}
-    
+
     def _merged_forecast_for_spot(spot):
         sid = spot["id"]
         if sid in forecast_cache_mem:
@@ -447,7 +447,8 @@ def main():
             merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
             print(f"[spot] {spot['name']} (id={sid}) merged_rows={len(merged)}")
             forecast_cache_mem[sid] = merged
-            # (Optional) write generic daily stats to Supabase table as before:
+    
+            # (Optional) write generic daily stats:
             cache_rows = []
             for _, r in merged.iterrows():
                 cache_rows.append({
@@ -460,9 +461,11 @@ def main():
                     sb_upsert("forecast_cache", cache_rows, on_conflict="spot_id,date")
                 except Exception as e:
                     print("forecast_cache upsert error:", e)
+    
             return merged
-        except requests.RequestException as e:
-            print(f"[spot] {spot['name']} forecast fetch error: {e}")
+    
+        except (requests.RequestException, KeyError, TypeError, ValueError) as e:
+            print(f"[spot] {spot['name']} forecast fetch/parse error: {e}")
             return pd.DataFrame()
  
     # Iterate rules
@@ -576,30 +579,37 @@ def main():
             print("[cache] MISS")
             rr = None
             if have_amadeus:
-                rr = amadeus_cheapest_roundtrip(
-                    origin, dest,
-                    start.date(), end.date(),
-                    min_n, max_n,
-                    currency="EUR",
-                )
+                try:
+                    rr = amadeus_cheapest_roundtrip(
+                        origin, dest,
+                        start.date(), end.date(),
+                        min_n, max_n,
+                        currency="EUR",
+                    )
+                except Exception as e:
+                    print("[amadeus] live search error:", e)
+                    rr = None
             else:
                 print("[amadeus] creds missing -> skipping live search")
-        
-            price = rr["price"] if rr else None
-            link  = ((rr or {}).get("links") or {}).get("kayak") or (rr.get("deep_link") if rr else None)
-            print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
-            try:
-                sb_upsert("flight_cache", [{
-                    "origin_iata": origin,
-                    "dest_iata": dest,
-                    "date_bucket": str(bucket),
-                    "cheapest_price": price,
-                    "deep_link": link
-                }], on_conflict="origin_iata,dest_iata,date_bucket")
-            except Exception as e:
-                print("flight_cache upsert error:", e)
 
-        
+            if rr:
+                price = rr.get("price")
+                link  = (rr.get("links") or {}).get("kayak") or rr.get("deep_link")
+                print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
+                try:
+                    sb_upsert("flight_cache", [{
+                        "origin_iata": origin,
+                        "dest_iata": dest,
+                        "date_bucket": str(bucket),
+                        "cheapest_price": price,
+                        "deep_link": link
+                    }], on_conflict="origin_iata,dest_iata,date_bucket")
+                except Exception as e:
+                    print("flight_cache upsert error:", e)
+            else:
+                price, link = None, None
+                print("[amadeus] result -> no offer")
+
         # Price guards
         if price is None:
             print("[skip] no flight price found")
