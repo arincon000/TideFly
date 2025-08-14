@@ -1,11 +1,20 @@
 import os, json, hashlib
 from datetime import datetime, timedelta, date
-import requests, pandas as pd, pytz
+import requests, pandas as pd
+import time  # add this (if not already imported)
 
+def _with_backoff(fn, *a, **kw):
+    """Retry on HTTP 429 with exponential backoff: 1s, 2s, 4s (3 tries total)."""
+    for i in range(3):
+        r = fn(*a, **kw)
+        if r.status_code != 429:
+            return r
+        time.sleep(2 ** i)
+    return r  # last response (likely 429)
+    
 # --- ENV ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-TEQUILA_API_KEY = os.environ.get("TEQUILA_API_KEY")
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
 AMADEUS_CLIENT_ID = os.environ.get("AMADEUS_CLIENT_ID")
 AMADEUS_CLIENT_SECRET = os.environ.get("AMADEUS_CLIENT_SECRET")
@@ -193,14 +202,20 @@ def _amadeus_search_roundtrip(origin, dest, depart_dt, return_dt, currency="EUR"
         "Authorization": f"Bearer {token}",
         "Accept": "application/json"
     }
-    r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
-
+    r = _with_backoff(
+        requests.get,
+        f"{AMADEUS_BASE}/v2/shopping/flight-offers",
+        headers=h, params=params, timeout=60
+    )   
     if r.status_code == 401:
         print("[amadeus] 401 once; retrying with fresh token...")
         _token["access_token"] = None
         h["Authorization"] = f"Bearer {_amadeus_token()}"
-        r = requests.get(f"{AMADEUS_BASE}/v2/shopping/flight-offers", headers=h, params=params, timeout=60)
-
+        r = _with_backoff(
+            requests.get,
+            f"{AMADEUS_BASE}/v2/shopping/flight-offers",
+            headers=h, params=params, timeout=60
+        )
     if r.status_code == 429:
         print("[amadeus] 429 rate limited; skipping this pair")
         return None
@@ -266,15 +281,23 @@ def amadeus_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, ma
 
     best = None
     for dep in depart_candidates:
+        # micro-optimization: if even the shortest stay returns after the window, skip this dep
+        if dep + timedelta(days=min_n) > date_to:
+            continue
+
         for n in stay_candidates:
             ret = dep + timedelta(days=n)
+            if ret > date_to:
+                continue
+
             offer = _amadeus_search_roundtrip(fly_from, fly_to, dep, ret, currency=currency)
             if not offer:
                 continue
+
             if not best or offer["price"] < best["price"]:
                 best = offer
-    return best
 
+    return best
 
 # --- Email (SendGrid) ---
 def send_email(to_email, subject, html):
@@ -405,14 +428,24 @@ def main():
         start = pd.Timestamp(today_d)
         end   = start + pd.Timedelta(days=window_days)
 
-        # Respect optional explicit date range
-        if rule.get("date_from"):
-            try: start = max(start, pd.Timestamp(date.fromisoformat(str(rule["date_from"]))))
-            except Exception: pass
-        if rule.get("date_to"):
-            try: end = min(end, pd.Timestamp(date.fromisoformat(str(rule["date_to"]))))
-            except Exception: pass
+        # Clamp nights once (reusable for pricing + email)
+        min_n = max(1, int(rule.get("min_nights") or 2))
+        max_n = max(min_n, int(rule.get("max_nights") or 5))
 
+
+        # Respect optional explicit date range (robust to timestamps vs dates)
+        if rule.get("date_from"):
+            try:
+                df = pd.to_datetime(str(rule["date_from"])).normalize()
+                start = max(start, df)
+            except Exception:
+                pass
+        if rule.get("date_to"):
+            try:
+                dt = pd.to_datetime(str(rule["date_to"])).normalize()
+                end = min(end, dt)
+            except Exception:
+                pass
         # Filter by date window and weekday mask
         mask = int(rule.get("days_mask") or 127)  # default: all days if mask is null
         window = merged[(merged["date"] >= start) & (merged["date"] <= end)]
@@ -470,10 +503,11 @@ def main():
 
         if not use_cache:
             print("[cache] MISS -> calling Amadeus…")
+            
             rr = amadeus_cheapest_roundtrip(
                 origin, dest,
                 start.date(), end.date(),
-                rule["min_nights"], rule["max_nights"],
+                min_n, max_n,
                 currency="EUR",
             )
             price = rr["price"] if rr else None
@@ -524,7 +558,7 @@ def main():
             <p><strong>Surfable mornings</strong>: {dates_str}</p>
             <p><strong>Cheapest roundtrip</strong>: EUR {price} &nbsp;|&nbsp; <a href="{link}">Book</a></p>
             <p><strong>Tier</strong>: {tier} (window {int((end-start).days)}d)</p>
-            <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {rule['min_nights']}-{rule['max_nights']} nights.</p>
+            <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {min_n}-{max_n} nights.</p>
         """
         status = send_email(user["email"], subject, html)
         print(f"[email] status={status} to={user['email']}")
