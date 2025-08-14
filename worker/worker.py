@@ -3,6 +3,10 @@ from datetime import datetime, timedelta, date
 import requests, pandas as pd
 import time  # add this (if not already imported)
 from datetime import timezone
+import re
+
+def _is_iata(x: str) -> bool:
+    return bool(re.fullmatch(r"[A-Z]{3}", (x or "")))
 
 def _with_backoff(fn, *a, **kw):
     """Retry on 429 or transient request errors with exponential backoff: 1s, 2s, 4s (3 tries)."""
@@ -48,7 +52,7 @@ def sb_select(table, params=None, select="*"):
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     q = {"select": select}
     if params: q.update(params)
-    r = requests.get(url, headers=HEADERS, params=q, timeout=60)
+    r = _with_backoff(requests.get, url, headers=HEADERS, params=q, timeout=60)  # ✅
     r.raise_for_status()
     return r.json()
 
@@ -57,7 +61,7 @@ def sb_upsert(table, rows, on_conflict=None):
     headers = HEADERS.copy()
     headers["Prefer"] = "resolution=merge-duplicates,return=representation"
     params = {"on_conflict": on_conflict} if on_conflict else None
-    r = requests.post(url, headers=headers, params=params, data=json.dumps(rows), timeout=60)
+    r = _with_backoff(requests.post, url, headers=headers, params=params, data=json.dumps(rows), timeout=60)  # ✅
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
@@ -69,28 +73,55 @@ def sb_insert(table, row):
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     headers = HEADERS.copy()
     headers["Prefer"] = "return=representation"
-    r = requests.post(url, headers=headers, data=json.dumps(row), timeout=60)
+    r = _with_backoff(requests.post, url, headers=headers, data=json.dumps(row), timeout=60)  # ✅
     r.raise_for_status()
     return r.json()
 
+
 # --- Forecast (Open-Meteo; no API key) ---
 def fetch_wave_stats(lat, lon, tz_name, hours):
-    murl = "https://marine-api.open-meteo.com/v1/marine"
-    r = requests.get(murl, params={"latitude":lat,"longitude":lon,"hourly":"wave_height","timezone":tz_name}, timeout=60)
-    r.raise_for_status(); d = r.json()
-    df = pd.DataFrame({"time": pd.to_datetime(d["hourly"]["time"]), "wave": d["hourly"]["wave_height"]})
-    df["date"] = df["time"].dt.date; df["hour"] = df["time"].dt.hour
+    r = requests.get(
+        "https://marine-api.open-meteo.com/v1/marine",
+        params={"latitude": lat, "longitude": lon, "hourly": "wave_height", "timezone": tz_name},
+        timeout=60
+    )
+    r.raise_for_status()
+    h = (r.json() or {}).get("hourly", {}) or {}
+    times = h.get("time") or []
+    waves = h.get("wave_height") or []
+    if not times or not waves:
+        return pd.DataFrame(columns=["date", "min", "max", "avg"])
+    df = pd.DataFrame({
+        "time": pd.to_datetime(times, errors="coerce"),
+        "wave": pd.to_numeric(waves, errors="coerce"),
+    }).dropna(subset=["time", "wave"])
+    df["date"] = df["time"].dt.date
+    df["hour"] = df["time"].dt.hour
     df = df[df["hour"].isin(hours)]
-    return df.groupby("date")["wave"].agg(["min","max","mean"]).rename(columns={"mean":"avg"}).reset_index()
+    return (df.groupby("date", as_index=False)["wave"]
+              .agg(min="min", max="max", avg="mean"))
 
 def fetch_wind_stats(lat, lon, tz_name, hours):
-    wurl = "https://api.open-meteo.com/v1/forecast"
-    r = requests.get(wurl, params={"latitude":lat,"longitude":lon,"hourly":"wind_speed_10m","wind_speed_unit":"kmh","timezone":tz_name}, timeout=60)
-    r.raise_for_status(); d = r.json()
-    df = pd.DataFrame({"time": pd.to_datetime(d["hourly"]["time"]), "wind": d["hourly"]["wind_speed_10m"]})
-    df["date"] = df["time"].dt.date; df["hour"] = df["time"].dt.hour
+    r = requests.get(
+        "https://api.open-meteo.com/v1/forecast",
+        params={"latitude": lat, "longitude": lon, "hourly": "wind_speed_10m", "wind_speed_unit": "kmh", "timezone": tz_name},
+        timeout=60
+    )
+    r.raise_for_status()
+    h = (r.json() or {}).get("hourly", {}) or {}
+    times = h.get("time") or []
+    winds = h.get("wind_speed_10m") or []
+    if not times or not winds:
+        return pd.DataFrame(columns=["date", "min", "max", "avg"])
+    df = pd.DataFrame({
+        "time": pd.to_datetime(times, errors="coerce"),
+        "wind": pd.to_numeric(winds, errors="coerce"),
+    }).dropna(subset=["time", "wind"])
+    df["date"] = df["time"].dt.date
+    df["hour"] = df["time"].dt.hour
     df = df[df["hour"].isin(hours)]
-    return df.groupby("date")["wind"].agg(["min","max","mean"]).rename(columns={"mean":"avg"}).reset_index()
+    return (df.groupby("date", as_index=False)["wind"]
+              .agg(min="min", max="max", avg="mean"))
 
 # --- Flights (Amadeus) ---
 _token = {"access_token": None, "exp": 0}
@@ -441,8 +472,9 @@ def main():
             return forecast_cache_mem[sid]
         hours = [6,7,8,9,10,11,12]
         try:
-            wave = fetch_wave_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
-            wind = fetch_wind_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
+            tz = spot.get("timezone") or "UTC"
+            wave = fetch_wave_stats(spot["latitude"], spot["longitude"], tz, hours)
+            wind = fetch_wind_stats(spot["latitude"], spot["longitude"], tz, hours)
             merged = pd.merge(wave, wind, on="date", how="inner", suffixes=("_wave","_wind"))
             merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
             print(f"[spot] {spot['name']} (id={sid}) merged_rows={len(merged)}")
@@ -542,10 +574,13 @@ def main():
         dest   = (rule.get("dest_iata") or spot.get("nearest_airport_iata") or "LIS").strip().upper()
         
         # Validate 3-letter IATA codes
-        def _is_iata(x): return len(x) == 3 and x.isalpha()
+        def _is_iata(x: str) -> bool:
+            return bool(re.fullmatch(r"[A-Z]{3}", (x or "")))
+        
         if not _is_iata(origin) or not _is_iata(dest):
             print(f"[rule] bad IATA origin/dest '{origin}'/'{dest}' -> skip")
             continue
+
         
         bucket = today_d  # for your flight_cache bucketing
 
@@ -636,10 +671,15 @@ def main():
             print("[cooldown] recently notified -> skip"); continue
 
         # Compose and send email
+        email = (user.get("email") or "").strip()
+        if not email:
+            print(f"[rule] {rule['id']} user has no email -> skip")
+            continue
+        
         rule_name = rule.get('name') or 'Surf Alert'
         subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {price}"
         window_len = int((end - start).days) + 1
-
+        
         link_html = f' &nbsp;|&nbsp; <a href="{link}">Book</a>' if link else ''
         html = f"""
             <p><strong>Rule</strong>: {rule_name}</p>
@@ -649,9 +689,9 @@ def main():
             <p><strong>Tier</strong>: {tier} (window {window_len}d)</p>
             <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {min_n}-{max_n} nights.</p>
         """
-        status = send_email(user["email"], subject, html)
-        print(f"[email] status={status} to={user['email']}")
-
+        status = send_email(email, subject, html)
+        print(f"[email] status={status} to={email}")
+        
         if status in (200, 202):
             try:
                 sb_insert("alert_events", {
@@ -660,7 +700,8 @@ def main():
                     "summary_hash": key,
                     "price": price,
                     "deep_link": link,
-                    "ok_dates": ok_dates
+                    "ok_dates": ok_dates,
+                    "sent_at": now.isoformat(),  # ✅ cooldown relies on this
                 })
             except Exception as e:
                 print("alert_events insert error:", e)
