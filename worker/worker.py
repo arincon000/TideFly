@@ -289,194 +289,258 @@ def send_email(to_email, subject, html):
 
 def sha(s): return hashlib.sha256(s.encode()).hexdigest()
 
+def weekday_mask_ok(d: date, mask: int) -> bool:
+    """Return True if date d (Mon=0..Sun=6) is enabled by the bitmask."""
+    # bit 0 = Monday, bit 6 = Sunday
+    return ((mask >> d.weekday()) & 1) == 1
+
+def tier_for_days_out(days_out: int) -> str:
+    if days_out <= 3:  return "confident"   # 0–3 days
+    if days_out <= 5:  return "trend"       # 4–5 days
+    if days_out <= 7:  return "early"       # 6–7 days
+    return "watch"                            # 8–10+ days
 def main():
     print("[worker] start")
-    # 1) Load active preferences
-    prefs = sb_select("user_spot_prefs", params={"is_active":"eq.true"},
-                      select="id,user_id,spot_id,min_wave_m,max_wind_kmh,max_price_eur,min_nights,max_nights,lookahead_days")
-    print("[worker] active prefs:", len(prefs))
-    if not prefs:
-        print("No active user preferences found."); return
+    # === NEW: load active alert rules (replaces user_spot_prefs path) ===
+    rules = sb_select(
+        "alert_rules",
+        params={"is_active": "eq.true"},
+        select=("id,user_id,name,mode,spot_id,regions,origin_iata,dest_iata,"
+                "min_wave_m,max_wind_kmh,min_nights,max_nights,max_price_eur,"
+                "forecast_window,days_mask,date_from,date_to,cooldown_hours,"
+                "paused_until,expires_at")
+    )
+    print("[worker] active rules:", len(rules))
+    if not rules:
+        print("No active alert rules."); return
 
-    # Fetch users and spots referenced
-    user_ids = sorted({p["user_id"] for p in prefs})
-    spot_ids = sorted({p["spot_id"] for p in prefs})
+    now = datetime.utcnow()
+    today_d = now.date()
 
+    def _rule_enabled(r):
+        # paused?
+        pu = r.get("paused_until")
+        if pu:
+            try:
+                pu_dt = datetime.fromisoformat(str(pu).replace("Z", ""))
+                if pu_dt > now:  # still paused
+                    return False
+            except Exception:
+                # if parse fails, ignore pause rather than block
+                pass
+        # expired?
+        ex = r.get("expires_at")
+        if ex:
+            try:
+                if date.fromisoformat(str(ex)) < today_d:
+                    return False
+            except Exception:
+                pass
+        return True
+
+    rules = [r for r in rules if _rule_enabled(r)]
+    if not rules:
+        print("All rules paused or expired."); return
+
+    # Preload users referenced by rules
+    user_ids = sorted({r["user_id"] for r in rules})
     users = {}
     for uid in user_ids:
-        u = sb_select("users", params={"id":"eq."+uid}, select="id,email,home_airport")
+        u = sb_select("users", params={"id": "eq."+uid}, select="id,email,home_airport")
         if u: users[uid] = u[0]
 
+    # Preload spots referenced by rules (spot-mode)
+    spot_ids = sorted({r["spot_id"] for r in rules if r.get("mode") == "spot" and r.get("spot_id")})
     spots = {}
     for sid in spot_ids:
-        s = sb_select("spots", params={"id":"eq."+sid}, select="id,name,latitude,longitude,timezone")
+        s = sb_select("spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone,nearest_airport_iata")
         if s: spots[sid] = s[0]
 
-    # 2) Batch by spot
-    by_spot = {}
-    for p in prefs:
-        sp = spots.get(p["spot_id"]); us = users.get(p["user_id"])
-        if not sp or not us: continue
-        by_spot.setdefault(sp["id"], {"spot": sp, "prefs": []})
-        gp = dict(p); gp["user"] = us
-        by_spot[sp["id"]]["prefs"].append(gp)
-
-    today = date.today()
-    for spot_id, group in by_spot.items():
-        sp = group["spot"]
+    # Cache merged forecast per-spot so we compute it once per worker run
+    forecast_cache_mem = {}
+    def _merged_forecast_for_spot(spot):
+        sid = spot["id"]
+        if sid in forecast_cache_mem:
+            return forecast_cache_mem[sid]
         hours = [6,7,8,9,10,11,12]
-        wave = fetch_wave_stats(sp["latitude"], sp["longitude"], sp["timezone"], hours)
-        wind = fetch_wind_stats(sp["latitude"], sp["longitude"], sp["timezone"], hours)
+        wave = fetch_wave_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
+        wind = fetch_wind_stats(spot["latitude"], spot["longitude"], spot["timezone"], hours)
         merged = pd.merge(wave, wind, on="date", how="inner", suffixes=("_wave","_wind"))
-        print(f"[spot] {sp['name']} (id={spot_id}) prefs={len(group['prefs'])} merged_rows={len(merged)}") #new print added XYX
-
-        
-        # Cache generic stats per date
+        merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
+        print(f"[spot] {spot['name']} (id={sid}) merged_rows={len(merged)}")
+        forecast_cache_mem[sid] = merged
+        # (Optional) write generic daily stats to Supabase table as you did before:
         cache_rows = []
         for _, r in merged.iterrows():
             cache_rows.append({
-                "spot_id": spot_id, "date": str(r["date"]), "morning_ok": False,
+                "spot_id": sid, "date": str(r["date"].date()), "morning_ok": False,
                 "wave_stats": {"min": float(r["min_wave"]), "max": float(r["max_wave"]), "avg": float(r["avg_wave"])},
                 "wind_stats": {"min": float(r["min_wind"]), "max": float(r["max_wind"]), "avg": float(r["avg_wind"])}
             })
         if cache_rows:
             try: sb_upsert("forecast_cache", cache_rows, on_conflict="spot_id,date")
             except Exception as e: print("forecast_cache upsert error:", e)
+        return merged
 
-        # Evaluate per user preference
-        for pref in group["prefs"]:
-            # Normalize date column to pandas Timestamp (midnight) so comparisons are consistent
-            merged["date"] = pd.to_datetime(merged["date"]).dt.normalize()
-    
-            # Build a window [start, end] in the same Timestamp type
-            # Use naive UTC midnight (no timezone info)
-            start = pd.Timestamp(datetime.utcnow().date())
-            horizon_days = int(pref.get("lookahead_days") or 14)
-            horizon_days = min(horizon_days, 3)  # TEMP: keep runs fast during tests
-            end = start + pd.Timedelta(days=horizon_days)
-            print(
-                f"[eval] user={pref['user_id']} origin={pref['user']['home_airport']} dest=LIS "
-                f"rules: wave≥{pref['min_wave_m']}m wind≤{pref['max_wind_kmh']}km/h "
-                f"price≤€{pref['max_price_eur']} window={start.date()}..{end.date()}"
-            ) #new print added XYX
-    
-            # Filter dates within the window
-            window = merged[merged["date"].between(start, end)]
-            ok = window[(window["max_wave"] >= pref["min_wave_m"]) & (window["min_wind"] <= pref["max_wind_kmh"])]
-            ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
-            print(f"[eval] ok_dates={len(ok_dates)} -> {ok_dates[:5]}{'...' if len(ok_dates)>5 else ''}") #print added XXYX
-            if not ok_dates:
-                print("[skip] no OK surf dates in window")
-                continue
+    # Iterate rules
+    for rule in rules:
+        user = users.get(rule["user_id"])
+        if not user:
+            print(f"[rule] {rule['id']} has no user -> skip")
+            continue
 
-            origin, dest = pref["user"]["home_airport"], "LIS"  # TODO: per-spot nearest airport
-            bucket = start.date()
+        if rule.get("mode") != "spot":
+            print(f"[rule] {rule['id']} mode={rule.get('mode')} not implemented yet -> skip")
+            continue
 
+        spot = spots.get(rule.get("spot_id"))
+        if not spot:
+            print(f"[rule] {rule['id']} has no valid spot -> skip")
+            continue
 
+        merged = _merged_forecast_for_spot(spot)
 
-            # Flights: check cache first (ignore junk placeholders)
-            # Flights: check cache first (invalidate Google/placeholder links)
-            print(f"[cache] {origin}->{dest} bucket={bucket}")
-            cached = sb_select(
-                "flight_cache",
-                params={
-                    "origin_iata": "eq." + origin,
-                    "dest_iata": "eq." + dest,
-                    "date_bucket": "eq." + str(bucket),
-                },
-                select="cheapest_price,deep_link"
+        # Build forecast window
+        window_days = int(rule.get("forecast_window") or 5)
+        start = pd.Timestamp(today_d)
+        end   = start + pd.Timedelta(days=window_days)
+
+        # Respect optional explicit date range
+        if rule.get("date_from"):
+            try: start = max(start, pd.Timestamp(date.fromisoformat(str(rule["date_from"]))))
+            except Exception: pass
+        if rule.get("date_to"):
+            try: end = min(end, pd.Timestamp(date.fromisoformat(str(rule["date_to"]))))
+            except Exception: pass
+
+        # Filter by date window and weekday mask
+        mask = int(rule.get("days_mask") or 127)  # default: all days if mask is null
+        window = merged[(merged["date"] >= start) & (merged["date"] <= end)]
+        window = window[window["date"].dt.date.apply(lambda d: weekday_mask_ok(d, mask))]
+
+        # Apply surf thresholds (coerce NULLs from DB)
+        min_wave = float(rule.get("min_wave_m") or 0.0)
+        max_wind = float(rule.get("max_wind_kmh") or 999.0)
+        
+        ok = window[(window["max_wave"] >= min_wave) & (window["min_wind"] <= max_wind)]
+        ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
+        print(f"[rule] {rule.get('name') or 'Surf Alert'} ok_dates={len(ok_dates)} -> {ok_dates[:6]}{'...' if len(ok_dates)>6 else ''}")
+        if not ok_dates:
+            continue
+
+        # Determine “tier” by farthest ok date
+        farthest = ok["date"].dt.date.max()
+        days_out = (farthest - today_d).days
+        tier = tier_for_days_out(days_out)
+
+        # Flight search
+        origin = (rule.get("origin_iata") or user.get("home_airport") or "").upper()
+        dest   = (rule.get("dest_iata") or spot.get("nearest_airport_iata") or "LIS").upper()
+        if not origin or not dest:
+            print(f"[rule] {rule['id']} missing origin/dest -> skip")
+            continue
+
+        bucket = today_d  # for your flight_cache bucketing
+
+        # Check flight_cache (ignore placeholders)
+        print(f"[cache] {origin}->{dest} bucket={bucket}")
+        cached = sb_select(
+            "flight_cache",
+            params={
+                "origin_iata": "eq."+origin,
+                "dest_iata": "eq."+dest,
+                "date_bucket": "eq."+str(bucket),
+            },
+            select="cheapest_price,deep_link"
+        )
+
+        price = None
+        link  = None
+        use_cache = False
+        if cached:
+            raw_price = cached[0].get("cheapest_price")
+            link = (cached[0].get("deep_link") or "").strip()
+            try:
+                price = float(raw_price) if raw_price is not None else None
+            except Exception:
+                price = None
+            bad = (not link) or link.startswith("https://example.") or link.startswith("https://www.google.") or ("#flt=" in link)
+            use_cache = (price is not None) and not bad
+            print(f"[cache] {'HIT' if use_cache else 'IGNORE'} price={price} link={'ok' if not bad else 'bad'}")
+
+        if not use_cache:
+            print("[cache] MISS -> calling Amadeus…")
+            rr = amadeus_cheapest_roundtrip(
+                origin, dest,
+                start.date(), end.date(),
+                rule["min_nights"], rule["max_nights"],
+                currency="EUR",
             )
+            price = rr["price"] if rr else None
+            link  = ((rr or {}).get("links") or {}).get("kayak") or (rr.get("deep_link") if rr else None)
+            print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
+            try:
+                sb_upsert("flight_cache", [{
+                    "origin_iata": origin,
+                    "dest_iata": dest,
+                    "date_bucket": str(bucket),
+                    "cheapest_price": price,
+                    "deep_link": link
+                }], on_conflict="origin_iata,dest_iata,date_bucket")
+            except Exception as e:
+                print("flight_cache upsert error:", e)
 
-            price = None
-            link = None
-            use_cache = False
+        # Price guards
+        if price is None:
+            print("[skip] no flight price found")
+            continue
+        # Coerce NULL/empty max_price_eur safely (treat NULL as no cap)
+        max_price = float(rule.get("max_price_eur") or float("inf"))
+        if price > max_price:
+            print(f"[skip] price {price} > max {max_price}")
+            continue
 
-            if cached:
-                raw_price = cached[0].get("cheapest_price")
-                link = (cached[0].get("deep_link") or "").strip()
-                # coerce price to float if present
-                try:
-                    price = float(raw_price) if raw_price is not None else None
-                except (TypeError, ValueError):
-                    price = None
+        # Dedupe & cooldown with alert_events
+        dates_str = ", ".join(ok_dates[:7])
+        key = sha(f"{rule['id']}|{spot['id']}|{dates_str}|{price}|{link or ''}")
 
-                is_google = link.startswith("https://www.google.") or "#flt=" in link
-                is_placeholder = (not link) or link.startswith("https://example.")
-                use_cache = (price is not None) and not (is_google or is_placeholder)
+        # 1) exact duplicate?
+        exist = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "summary_hash":"eq."+key}, select="id")
+        if exist:
+            print("[dedupe] same summary already sent"); continue
 
-                if use_cache:
-                    print(f"[cache] HIT price={price} link=ok")
-                else:
-                    reasons = []
-                    if price is None: reasons.append("invalid price")
-                    if is_google: reasons.append("google link")
-                    if is_placeholder: reasons.append("placeholder link")
-                    print(f"[cache] IGNORE ({', '.join(reasons)}) -> calling Amadeus…")
+        # 2) cooldown window?
+        since_iso = (now - timedelta(hours=int(rule.get("cooldown_hours") or 24))).isoformat()
+        recent = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "sent_at":"gt."+since_iso}, select="id")
+        if recent:
+            print("[cooldown] recently notified -> skip"); continue
 
-            if not use_cache:
-                print("[cache] MISS -> calling Amadeus…")
-                rr = amadeus_cheapest_roundtrip(
-                    origin,
-                    dest,
-                    start.date(),  # same window as your surf filter
-                    (start + pd.Timedelta(days=horizon_days)).date(),
-                    pref["min_nights"],
-                    pref["max_nights"],
-                    currency="EUR",
-                )
-                price = rr["price"] if rr else None
-                # Prefer Kayak deep link when available
-                link = ((rr or {}).get("links") or {}).get("kayak") if rr else None
-                if not link and rr:
-                    link = rr.get("deep_link")
-                print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
-                try:
-                    sb_upsert("flight_cache", [{
-                        "origin_iata": origin,
-                        "dest_iata": dest,
-                        "date_bucket": str(bucket),
-                        "cheapest_price": price,
-                        "deep_link": link
-                    }], on_conflict="origin_iata,dest_iata,date_bucket")
-                except Exception as e:
-                    print("flight_cache upsert error:", e)
+        # Compose and send email
+        rule_name = rule.get('name') or 'Surf Alert'
+        subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {price}"
+        html = f"""
+            <p><strong>Rule</strong>: {rule_name}</p>
+            <p><strong>Spot</strong>: {spot['name']}</p>
+            <p><strong>Surfable mornings</strong>: {dates_str}</p>
+            <p><strong>Cheapest roundtrip</strong>: EUR {price} &nbsp;|&nbsp; <a href="{link}">Book</a></p>
+            <p><strong>Tier</strong>: {tier} (window {int((end-start).days)}d)</p>
+            <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {rule['min_nights']}-{rule['max_nights']} nights.</p>
+        """
+        status = send_email(user["email"], subject, html)
+        print(f"[email] status={status} to={user['email']}")
 
-
-
-            if price is None:
-                print("[skip] no flight price found")
-                continue
-            if price > pref["max_price_eur"]:
-                print(f"[skip] price {price} > max {pref['max_price_eur']}")
-                continue
-
-
-            dates_str = ", ".join(ok_dates[:7])
-            key = sha(f"{pref['user_id']}|{pref['spot_id']}|{dates_str}|{price}|{link or ''}")
-            exist = sb_select("alerts", params={"user_id":"eq."+pref["user_id"], "summary_hash":"eq."+key}, select="id")
-            if exist: continue
-
-            subject = f"Surf+Flight: {sp['name']} looks good + {origin}→{dest} ≈ EUR {price}"
-            html = f"""
-                <p><strong>Spot</strong>: {sp['name']}</p>
-                <p><strong>Surfable mornings</strong>: {dates_str}</p>
-                <p><strong>Cheapest roundtrip</strong>: EUR {price} &nbsp;|&nbsp; <a href="{link}">Book</a></p>
-                <p><strong>Rules</strong>: wave ≥ {pref['min_wave_m']}m, wind ≤ {pref['max_wind_kmh']} km/h; stay {pref['min_nights']}-{pref['max_nights']} nights.</p>
-            """
-
-            status = send_email(pref["user"]["email"], subject, html)
-            print(f"[email] status={status} to={pref['user']['email']}")
-
-            if status in (200, 202):
-                try:
-                    sb_insert("alerts", {
-                        "user_id": pref["user_id"], "spot_id": pref["spot_id"],
-                        "summary_hash": key,
-                        "details": {"ok_dates": ok_dates, "price": price, "link": link,
-                                    "origin": origin, "dest": dest}
-                    })
-                except Exception as e:
-                    print("alerts insert error:", e)
+        if status in (200, 202):
+            try:
+                sb_insert("alert_events", {
+                    "rule_id": rule["id"],
+                    "tier": tier,
+                    "summary_hash": key,
+                    "price": price,
+                    "deep_link": link,
+                    "ok_dates": ok_dates
+                })
+            except Exception as e:
+                print("alert_events insert error:", e)
 
 if __name__ == "__main__":
     main()
