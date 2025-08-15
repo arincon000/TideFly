@@ -574,12 +574,10 @@ def main():
         dest   = (rule.get("dest_iata") or spot.get("nearest_airport_iata") or "LIS").strip().upper()
         
         # Validate 3-letter IATA codes
-        def _is_iata(x: str) -> bool:
-            return bool(re.fullmatch(r"[A-Z]{3}", (x or "")))
-        
         if not _is_iata(origin) or not _is_iata(dest):
             print(f"[rule] bad IATA origin/dest '{origin}'/'{dest}' -> skip")
             continue
+
 
         
         bucket = today_d  # for your flight_cache bucketing
