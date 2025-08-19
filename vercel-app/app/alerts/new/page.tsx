@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { WEEKENDS } from "@/lib/days";
+import AirportAutocomplete from "@/components/AirportAutocomplete";
 
-type Spot = { id: string; name: string };
+type Spot = { id: string; name: string; primary_airport_iata: string | null };
 
 export default function NewAlert() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -38,12 +39,21 @@ export default function NewAlert() {
       }
 
       // optional: load spots for a select input
-      const { data: s } = await supabase.from("spots").select("id,name").limit(200);
+      const { data: s } = await supabase
+        .from("spots")
+        .select("id,name,primary_airport_iata")
+        .order("name", { ascending: true });
       setSpots(s ?? []);
     })();
   }, []);
 
   const weekendsOnly = () => setDaysMask(WEEKENDS); // 0b1100000 = 96
+
+  function onSpotChange(id: string) {
+    const s = spots.find(x => x.id === id);
+    setSpotId(id);
+    setDest((s?.primary_airport_iata || "").toUpperCase());
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +89,7 @@ export default function NewAlert() {
         </label>
 
         <label> Spot
-          <select value={spotId} onChange={e => setSpotId(e.target.value)}>
+          <select value={spotId} onChange={e => onSpotChange(e.target.value)}>
             <option value="">-- select --</option>
             {spots.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -87,10 +97,19 @@ export default function NewAlert() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label> Origin (IATA)
-            <input value={origin} onChange={e => setOrigin(e.target.value.toUpperCase())} placeholder={home || "e.g. LIS"} />
+            <AirportAutocomplete
+              value={origin}
+              onChange={iata => setOrigin(iata.toUpperCase())}
+              placeholder={home || "e.g. LIS"}
+            />
           </label>
           <label> Destination (IATA)
-            <input value={dest} onChange={e => setDest(e.target.value.toUpperCase())} placeholder="auto from spot" />
+            <input
+              value={dest}
+              onChange={e => setDest(e.target.value.toUpperCase())}
+              placeholder="auto from spot"
+              maxLength={3}
+            />
           </label>
         </div>
 
