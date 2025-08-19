@@ -48,32 +48,46 @@ def require_env(name):
     return v
 
 # --- Supabase helpers ---
+def _split_profile(table: str):
+    """Return (schema, path) where schema may be None if unqualified."""
+    if "." in table:
+        schema, rel = table.split(".", 1)
+        return schema, rel
+    return None, table
+
 def sb_select(table, params=None, select="*"):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    schema, path = _split_profile(table)
+    headers = HEADERS.copy()
+    if schema:
+        headers["Accept-Profile"] = schema
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
     q = {"select": select}
-    if params: q.update(params)
-    r = _with_backoff(requests.get, url, headers=HEADERS, params=q, timeout=60)  # ✅
+    if params:
+        q.update(params)
+    r = _with_backoff(requests.get, url, headers=headers, params=q, timeout=60)
     r.raise_for_status()
     return r.json()
 
 def sb_upsert(table, rows, on_conflict=None):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    schema, path = _split_profile(table)
     headers = HEADERS.copy()
     headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+    if schema:
+        headers["Content-Profile"] = schema
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
     params = {"on_conflict": on_conflict} if on_conflict else None
-    r = _with_backoff(requests.post, url, headers=headers, params=params, data=json.dumps(rows), timeout=60)  # ✅
-    try:
-        r.raise_for_status()
-    except requests.HTTPError as e:
-        body = getattr(e.response, "text", "")[:600]
-        raise RuntimeError(f"Upsert {table} failed: {e} | Body: {body}")
+    r = _with_backoff(requests.post, url, headers=headers, params=params, data=json.dumps(rows), timeout=60)
+    r.raise_for_status()
     return r.json()
 
 def sb_insert(table, row):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    schema, path = _split_profile(table)
     headers = HEADERS.copy()
     headers["Prefer"] = "return=representation"
-    r = _with_backoff(requests.post, url, headers=headers, data=json.dumps(row), timeout=60)  # ✅
+    if schema:
+        headers["Content-Profile"] = schema
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    r = _with_backoff(requests.post, url, headers=headers, data=json.dumps(row), timeout=60)
     r.raise_for_status()
     return r.json()
 
@@ -703,6 +717,8 @@ def main():
                 })
             except Exception as e:
                 print("alert_events insert error:", e)
+# TEMP sanity:
+# print("sanity", sb_select("api.v1_alert_rules", select="id", params={"limit":"1"}))
 
 if __name__ == "__main__":
     main()
