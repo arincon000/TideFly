@@ -23,6 +23,10 @@ export default function NewAlert() {
   const [minN, setMinN] = useState<number>(2);
   const [maxN, setMaxN] = useState<number>(5);
   const [daysMask, setDaysMask] = useState<number>(127); // all days
+  const [originError, setOriginError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
 
   useEffect(() => {
     (async () => {
@@ -57,27 +61,42 @@ export default function NewAlert() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return alert("Please sign in");
+    const originIata = (origin || "").toUpperCase();
+    if (!isIata(originIata)) {
+      setOriginError("Please enter a valid 3-letter IATA code (e.g., BOG).");
+      return;
+    }
+    setOriginError(null);
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
 
-    const row = {
-      user_id: userId,
-      name,
-      mode: "spot",
-      spot_id: spotId || null,
-      origin_iata: origin.toUpperCase() || home,
-      dest_iata: (dest || "").toUpperCase(),
-      forecast_window: forecastWindow,
-      min_wave_m: minWave,
-      max_wind_kmh: maxWind,
-      min_nights: minN,
-      max_nights: Math.max(minN, maxN),
-      days_mask: daysMask,
-      is_active: true
-    };
+      const row = {
+        user_id: user.id,
+        name,
+        mode: "spot",
+        spot_id: spotId || null,
+        origin_iata: originIata,
+        dest_iata: (dest || "").toUpperCase().slice(0, 3),
+        forecast_window: forecastWindow,
+        min_wave_m: minWave,
+        max_wind_kmh: maxWind,
+        min_nights: minN,
+        max_nights: Math.max(minN, maxN),
+        days_mask: daysMask,
+        is_active: true
+      };
 
-    const { error } = await supabase.from("alert_rules").insert(row);
-    if (error) return alert(error.message);
-    window.location.href = "/alerts";
+      const { error } = await supabase.from("alert_rules").insert(row);
+      if (error) throw error;
+      window.location.href = "/alerts";
+    } catch (err) {
+      console.error(err);
+      alert((err as Error).message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,14 +118,19 @@ export default function NewAlert() {
           <label> Origin (IATA)
             <AirportAutocomplete
               value={origin}
-              onChange={iata => setOrigin(iata.toUpperCase())}
+              onChange={iata => {
+                const upper = iata.toUpperCase();
+                setOrigin(upper);
+                setOriginError(isIata(upper) ? null : "Please enter a valid 3-letter IATA code (e.g., BOG).");
+              }}
               placeholder={home || "e.g. LIS"}
             />
+            {originError && <p className="mt-1 text-sm text-red-600">{originError}</p>}
           </label>
           <label> Destination (IATA)
             <input
               value={dest}
-              onChange={e => setDest(e.target.value.toUpperCase())}
+              onChange={e => setDest(e.target.value.toUpperCase().slice(0, 3))}
               placeholder="auto from spot"
               maxLength={3}
             />
@@ -142,7 +166,13 @@ export default function NewAlert() {
           </label>
         </div>
 
-        <button type="submit">Create alert</button>
+        <button
+          type="submit"
+          disabled={!isIata(origin) || isSubmitting}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        >
+          {isSubmitting ? "Saving..." : "Create alert"}
+        </button>
       </form>
     </>
   );
