@@ -1,17 +1,42 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "es2022"],
+    "lib": [
+      "dom",
+      "es2022"
+    ],
     "jsx": "preserve",
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
     "baseUrl": ".",
-    "paths": { "~/*": ["./*"] },
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
     "allowJs": false,
     "noEmit": true,
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "skipLibCheck": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
