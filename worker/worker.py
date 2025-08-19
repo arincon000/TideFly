@@ -403,7 +403,7 @@ def main():
     }
     # === NEW: load active alert rules (replaces user_spot_prefs path) ===
     rules = sb_select(
-        "api.v1_alert_rules",
+        "v1_alert_rules",
         params={"is_active": "eq.true"},
         select=("id,user_id,name,mode,spot_id,regions,origin_iata,dest_iata,"
                 "min_wave_m,max_wind_kmh,min_nights,max_nights,max_price_eur,"
@@ -460,7 +460,7 @@ def main():
     spot_ids = sorted({r["spot_id"] for r in rules if r.get("mode") == "spot" and r.get("spot_id")})
     spots = {}
     for sid in spot_ids:
-        s = sb_select("api.v1_spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone,nearest_airport_iata")
+        s = sb_select("v1_spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone,nearest_airport_iata")
         if s: spots[sid] = s[0]
 
     # Cache merged forecast per-spot so we compute it once per worker run
