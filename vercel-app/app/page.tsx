@@ -33,6 +33,7 @@ export default function Home() {
           appearance={{ theme: ThemeSupa }}
           theme="dark"
           providers={[]} // add Google/GitHub later
+          redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL || "https://tide-fly.vercel.app"}/reset`}
         />
         <p className="text-sm text-zinc-400 mt-3">
           Already have an account? Use the “Sign in” link in the form.
