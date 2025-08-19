@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "~/lib/supabase-browser";
-import { WEEKENDS } from "~/lib/days";
+import { supabase } from "@/lib/supabaseClient";
+import { WEEKENDS } from "@/lib/days";
 
 type Spot = { id: string; name: string };
 

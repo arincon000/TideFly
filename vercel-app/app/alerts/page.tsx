@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "~/lib/supabase-browser";
-import { AlertRow, type AlertRule } from "~/components/AlertRow";
+import { supabase } from "@/lib/supabaseClient";
+import { AlertRow, type AlertRule } from "@/components/AlertRow";
 
 export default function AlertsPage() {
   const [rules, setRules] = useState<AlertRule[] | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -21,15 +20,9 @@ export default function AlertsPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null);
-      load();
-    });
+    load();
   }, []);
 
-  if (!email) {
-    return <p><a href="/">Sign in</a> to view alerts.</p>;
-  }
   if (rules === null) return <p>Loading…</p>;
 
   return (

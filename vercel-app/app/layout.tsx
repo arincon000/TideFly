@@ -1,3 +1,5 @@
+import SignOutButton from "@/components/SignOutButton";
+
 export const metadata = { title: "TideFly", description: "Surf + flight alerts" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav style={{ display: "flex", gap: 12 }}>
               <a href="/alerts">Alerts</a>
               <a href="/alerts/new">New alert</a>
+              <SignOutButton />
             </nav>
           </header>
           {children}

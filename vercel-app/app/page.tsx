@@ -1,34 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "~/lib/supabase-browser";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Home() {
-  const [email, setEmail] = useState<string | null>(null);
+  const router = useRouter();
 
+  // If already signed in, go straight to /alerts
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setEmail(session?.user?.email ?? null);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/alerts");
     });
-    return () => sub?.subscription.unsubscribe();
-  }, []);
 
-  if (!email) {
-    return (
-      <>
-        <h2>Sign in</h2>
-        <p style={{ opacity: 0.8 }}>Use magic link (email) to sign in.</p>
-        <Auth supabaseClient={supabase} view="magic_link" providers={[]} />
-      </>
-    );
-  }
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) router.replace("/alerts");
+      if (event === "SIGNED_OUT") router.replace("/");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router]);
 
   return (
-    <>
-      <p>Signed in as <strong>{email}</strong></p>
-      <p><a href="/alerts">Go to Alerts →</a></p>
-    </>
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        <h1 className="text-2xl font-semibold mb-4">TideFly</h1>
+        {/* Primary: email + password. Users can switch to "Sign in" in the UI */}
+        <Auth
+          supabaseClient={supabase}
+          view="sign_up"
+          appearance={{ theme: ThemeSupa }}
+          theme="dark"
+          providers={[]} // add Google/GitHub later
+        />
+        <p className="text-sm text-zinc-400 mt-3">
+          Already have an account? Use the “Sign in” link in the form.
+        </p>
+      </div>
+    </main>
   );
 }
