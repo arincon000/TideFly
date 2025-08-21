@@ -662,6 +662,8 @@ def main():
                 sb,
                 rule_id=rule["id"],
                 status="forecast_unavailable",
+                ok_dates=[],
+                ok_dates_count=0,
                 reason="marine/weather unavailable and no fresh cache",
             )
             print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
@@ -709,6 +711,7 @@ def main():
                 sb,
                 rule_id=rule["id"],
                 status="no_surf",
+                ok_dates=[],
                 ok_dates_count=0,
                 reason="no surfable mornings in window",
             )
@@ -800,10 +803,10 @@ def main():
                 sb,
                 rule_id=rule["id"],
                 status="forecast_unavailable",
-                ok_dates_count=len(ok_dates),
+                ok_dates=[],
+                ok_dates_count=0,
                 tier=tier,
                 reason="flight price unavailable",
-                ok_dates=ok_dates,
             )
             continue
         raw_max = rule.get("max_price_eur")
