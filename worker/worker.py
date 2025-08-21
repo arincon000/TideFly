@@ -99,48 +99,96 @@ def sb_insert(table, row):
 
 # --- Forecast (Open-Meteo; no API key) ---
 def fetch_wave_wind_stats(lat, lon, tz_name, hours, forecast_days=5):
-    """Return aggregated wave and wind stats for the given spot."""
-    url = "https://marine-api.open-meteo.com/v1/marine"
-    params = {
+    """Return aggregated wave and wind stats for the given spot.
+
+    Two separate Open-Meteo endpoints are queried: the Marine API for wave
+    heights and the Weather API for 10 m wind speed.  The hourly series are
+    merged by timestamp prior to aggregation.
+
+    Returns a tuple ``(DataFrame, merged_hour_count)`` where the DataFrame has
+    daily aggregates expected by callers.  On error ``(None, 0)`` is returned.
+    """
+
+    forecast_days = min(forecast_days, 10)
+
+    marine_url = "https://marine-api.open-meteo.com/v1/marine"
+    marine_params = {
         "latitude": lat,
         "longitude": lon,
-        "hourly": "wave_height,wind_speed_10m",
+        "hourly": "wave_height",
         "forecast_days": forecast_days,
         "past_days": 0,
-        "windspeed_unit": "kmh",
         "timezone": tz_name,
     }
-    clean = {k: v for k, v in params.items() if k not in ("latitude", "longitude")}
 
-    def _do():
+    weather_url = "https://api.open-meteo.com/v1/forecast"
+    weather_params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": "wind_speed_10m",
+        "wind_speed_unit": "kmh",
+        "forecast_days": forecast_days,
+        "past_days": 0,
+        "timezone": tz_name,
+    }
+
+    def _marine():
         start = time.time()
-        r = http_get(url, params=params)
-        r.raise_for_status()
+        r = http_get(marine_url, params=marine_params, timeout=(8, 20))
+        data = r.json() or {}
+        h = data.get("hourly") or {}
+        times = h.get("time") or []
+        waves = h.get("wave_height") or []
         elapsed = time.time() - start
-        print(f"[forecast] live params={clean} duration={elapsed:.2f}s")
-        return r.json()
+        print(f"[marine] hours={len(times)} in {elapsed:.2f}s")
+        return times, waves
 
-    data = call_with_budget(_do, budget_seconds=35)
-    if not data:
-        return None
+    def _weather():
+        start = time.time()
+        r = http_get(weather_url, params=weather_params, timeout=(8, 20))
+        data = r.json() or {}
+        h = data.get("hourly") or {}
+        times = h.get("time") or []
+        winds = h.get("wind_speed_10m") or []
+        elapsed = time.time() - start
+        print(f"[weather] hours={len(times)} in {elapsed:.2f}s")
+        return times, winds
 
-    h = (data.get("hourly") or {}) or {}
-    times = h.get("time") or []
-    waves = h.get("wave_height") or []
-    winds = h.get("wind_speed_10m") or []
-    if not (times and waves and winds):
-        return None
+    m = call_with_budget(_marine, budget_seconds=35)
+    w = call_with_budget(_weather, budget_seconds=35)
+    if m is None or w is None:
+        return None, 0
 
-    df = pd.DataFrame({
-        "time": pd.to_datetime(times, errors="coerce"),
-        "wave": pd.to_numeric(waves, errors="coerce"),
-        "wind": pd.to_numeric(winds, errors="coerce"),
-    }).dropna(subset=["time", "wave", "wind"])
+    m_times, m_waves = m
+    w_times, w_winds = w
+    waves_hourly = {t: float(w) if w is not None else None for t, w in zip(m_times, m_waves)}
+    wind_hourly = {t: float(w) if w is not None else None for t, w in zip(w_times, w_winds)}
+
+    merged = {}
+    for t in set(list(waves_hourly.keys()) + list(wind_hourly.keys())):
+        merged[t] = {
+            "wave_height": waves_hourly.get(t),
+            "wind_speed_10m": wind_hourly.get(t),
+        }
+
+    print(f"[merge] merged_hours={len(merged)}")
+    if not merged:
+        return None, 0
+
+    df = pd.DataFrame([
+        {
+            "time": pd.to_datetime(ts, errors="coerce"),
+            "wave": v["wave_height"],
+            "wind": v["wind_speed_10m"],
+        }
+        for ts, v in merged.items()
+    ])
+    df = df.dropna(subset=["time"])
     df["date"] = df["time"].dt.normalize()
     df["hour"] = df["time"].dt.hour
     df = df[df["hour"].isin(hours)]
     if df.empty:
-        return None
+        return None, len(merged)
 
     agg = df.groupby("date").agg(
         min_wave=("wave", "min"),
@@ -150,7 +198,7 @@ def fetch_wave_wind_stats(lat, lon, tz_name, hours, forecast_days=5):
         max_wind=("wind", "max"),
         avg_wind=("wind", "mean"),
     ).reset_index()
-    return agg
+    return agg, len(merged)
 
 # --- Flights (Amadeus) ---
 _token = {"access_token": None, "exp": 0}
@@ -513,12 +561,15 @@ def main():
         sid = spot["id"]
         if sid in forecast_cache_mem:
             return forecast_cache_mem[sid]
-        hours = [6,7,8,9,10,11,12]
+
+        hours = [6, 7, 8, 9, 10, 11, 12]
         forecast_days = min(spot_window_days.get(sid, 5), 10)
         tz = spot.get("timezone") or "UTC"
 
+        merged = None
+        merged_hours = 0
         try:
-            merged = fetch_wave_wind_stats(
+            merged, merged_hours = fetch_wave_wind_stats(
                 spot["latitude"], spot["longitude"], tz, hours, forecast_days=forecast_days
             )
         except Exception as e:
@@ -527,13 +578,14 @@ def main():
 
         source = "live"
         if merged is None or merged.empty:
-            source = "cache"
-            merged = load_recent_forecast_from_cache(sb_select, sid)
-            if merged is None or merged.empty:
+            cache_df, cache_state = load_recent_forecast_from_cache(sb_select, sid)
+            if cache_df is None:
                 print(f"[spot] {spot['name']} forecast unavailable; skipping")
-                forecast_cache_mem[sid] = (pd.DataFrame(), "unavailable")
+                forecast_cache_mem[sid] = (pd.DataFrame(), "unavailable", merged_hours)
                 return forecast_cache_mem[sid]
-            print(f"[forecast] using cached forecast for spot_id={sid}")
+            merged = cache_df
+            source = cache_state
+            merged_hours = 0
         else:
             cache_rows = []
             for _, r in merged.iterrows():
@@ -541,8 +593,16 @@ def main():
                     "spot_id": sid,
                     "date": str(r["date"].date()),
                     "morning_ok": False,
-                    "wave_stats": {"min": float(r["min_wave"]), "max": float(r["max_wave"]), "avg": float(r["avg_wave"])},
-                    "wind_stats": {"min": float(r["min_wind"]), "max": float(r["max_wind"]), "avg": float(r["avg_wind"])}
+                    "wave_stats": {
+                        "min": float(r["min_wave"]),
+                        "max": float(r["max_wave"]),
+                        "avg": float(r["avg_wave"]),
+                    },
+                    "wind_stats": {
+                        "min": float(r["min_wind"]),
+                        "max": float(r["max_wind"]),
+                        "avg": float(r["avg_wind"]),
+                    },
                 })
             if cache_rows:
                 try:
@@ -551,7 +611,7 @@ def main():
                     print("forecast_cache upsert error:", e)
 
         print(f"[spot] {spot['name']} (id={sid}) rows={len(merged)} source={source}")
-        forecast_cache_mem[sid] = (merged, source)
+        forecast_cache_mem[sid] = (merged, source, merged_hours)
         return forecast_cache_mem[sid]
 
     # Dry run for a single spot
@@ -565,9 +625,9 @@ def main():
                 return
             spot = s[0]
         start_t = time.time()
-        merged, source = _merged_forecast_for_spot(spot)
+        merged, source, merged_hours = _merged_forecast_for_spot(spot)
         elapsed = time.time() - start_t
-        print(f"[dry-run] spot_id={sid} source={source} elapsed={elapsed:.2f}s rows={len(merged)}")
+        print(f"[dry-run] spot_id={sid} source={source} elapsed={elapsed:.2f}s merged_hours={merged_hours}")
         return
 
     # Iterate rules
@@ -589,7 +649,7 @@ def main():
         # Build forecast window
         window_days = int(rule.get("forecast_window") or 5)
 
-        merged, source = _merged_forecast_for_spot(spot)
+        merged, source, _ = _merged_forecast_for_spot(spot)
         if merged.empty:
             print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
             continue
