@@ -2,21 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { AlertRow, type AlertRule } from "@/components/AlertRow";
+import { AlertRow, type AlertRule, type RuleStatus } from "@/components/AlertRow";
 
 export default function AlertsPage() {
-  const [rules, setRules] = useState<AlertRule[] | null>(null);
+  const [rules, setRules] = useState<(AlertRule & { status?: RuleStatus })[] | null>(null);
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) { setRules([]); return; }
-    const { data } = await supabase
+    const { data: rdata } = await supabase
       .from("alert_rules")
-      .select("id,name,spot_id,origin_iata,dest_iata,is_active,paused_until,forecast_window")
+      .select("id,name,spot_id,origin_iata,dest_iata,is_active,paused_until,forecast_window,max_price_eur")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
-    setRules(data ?? []);
+    const rules = rdata ?? [];
+
+    let statuses: RuleStatus[] = [];
+    const ids = rules.map(r => r.id);
+    if (ids.length > 0) {
+      const { data: sdata } = await supabase
+        .schema('api')
+        .from('v1_rule_status')
+        .select('rule_id,status,price,ok_dates_count,created_at')
+        .in('rule_id', ids);
+      statuses = sdata ?? [];
+    }
+    const statusMap = new Map(statuses.map(s => [s.rule_id, s]));
+    setRules(rules.map(r => ({ ...r, status: statusMap.get(r.id) })));
   };
 
   useEffect(() => {
@@ -30,7 +43,7 @@ export default function AlertsPage() {
       <h2>Your alerts</h2>
       <p style={{ marginTop: -10 }}><a href="/alerts/new">+ New alert</a></p>
       {rules.length === 0 && <p>No alerts yet.</p>}
-      {rules.map((r) => <AlertRow key={r.id} rule={r} refresh={load} />)}
+      {rules.map((r) => <AlertRow key={r.id} rule={r} status={r.status} refresh={load} />)}
     </>
   );
 }
