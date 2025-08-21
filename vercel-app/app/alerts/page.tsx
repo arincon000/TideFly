@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { AlertRow, type AlertRule, type RuleStatus } from "@/components/AlertRow";
 
 export default function AlertsPage() {
-  const [rules, setRules] = useState<(AlertRule & { status?: RuleStatus })[] | null>(null);
+  const [rules, setRules] = useState<AlertRule[] | null>(null);
+  const [statusByRule, setStatusByRule] = useState<Record<string, RuleStatus>>({});
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -17,19 +18,20 @@ export default function AlertsPage() {
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
     const rules = rdata ?? [];
+    setRules(rules);
 
-    let statuses: RuleStatus[] = [];
     const ids = rules.map(r => r.id);
     if (ids.length > 0) {
       const { data: sdata } = await supabase
         .schema('api')
         .from('v1_rule_status')
-        .select('rule_id,status,price,ok_dates_count,created_at')
+        .select('*')
         .in('rule_id', ids);
-      statuses = sdata ?? [];
+      const map: Record<string, RuleStatus> = Object.fromEntries((sdata ?? []).map(s => [s.rule_id, s]));
+      setStatusByRule(map);
+    } else {
+      setStatusByRule({});
     }
-    const statusMap = new Map(statuses.map(s => [s.rule_id, s]));
-    setRules(rules.map(r => ({ ...r, status: statusMap.get(r.id) })));
   };
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function AlertsPage() {
       <h2>Your alerts</h2>
       <p style={{ marginTop: -10 }}><a href="/alerts/new">+ New alert</a></p>
       {rules.length === 0 && <p>No alerts yet.</p>}
-      {rules.map((r) => <AlertRow key={r.id} rule={r} status={r.status} refresh={load} />)}
+      {rules.map((r) => <AlertRow key={r.id} rule={r} status={statusByRule[r.id]} refresh={load} />)}
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabaseClient";
+import { StatusPill } from "@/components/StatusPill";
 
 export type AlertRule = {
   id: string;
@@ -19,7 +20,7 @@ export type RuleStatus = {
   status: string | null;
   price: number | null;
   ok_dates_count: number | null;
-  created_at: string | null;
+  sent_at: string | null;
 };
 
 export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: RuleStatus; refresh: () => void }) {
@@ -38,20 +39,22 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     refresh();
   };
 
-  const statusInfo = (() => {
-    switch (status?.status) {
-      case "sent":
-        return { text: "Hit sent", bg: "#16a34a", color: "#fff" };
-      case "too_pricey":
-        return { text: "Too pricey", bg: "#f59e0b", color: "#fff" };
-      case "no_surf":
-        return { text: "No surf", bg: "#6b7280", color: "#fff" };
-      case "forecast_unavailable":
-        return { text: "Forecast issue", bg: "#dc2626", color: "#fff" };
-      default:
-        return { text: "No data", bg: "#e5e7eb", color: "#000" };
+  const relTime = (d: string) => {
+    const date = new Date(d);
+    const diff = (Date.now() - date.getTime()) / 1000;
+    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+    const steps = [
+      { sec: 86400, unit: "day" },
+      { sec: 3600, unit: "hour" },
+      { sec: 60, unit: "minute" },
+      { sec: 1, unit: "second" },
+    ] as const;
+    for (const s of steps) {
+      const v = Math.floor(diff / s.sec);
+      if (Math.abs(v) >= 1) return rtf.format(-v, s.unit);
     }
-  })();
+    return "just now";
+  };
 
   return (
     <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 10, marginBottom: 10 }}>
@@ -59,18 +62,20 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ fontWeight: 600 }}>{rule.name ?? "Surf Alert"}</div>
-            <span style={{ fontSize: 12, padding: "2px 6px", borderRadius: 999, backgroundColor: statusInfo.bg, color: statusInfo.color }}>
-              {statusInfo.text}
-            </span>
+            <StatusPill status={status?.status ?? undefined} />
           </div>
           <div style={{ fontSize: 13, opacity: 0.75 }}>
             {rule.origin_iata} → {rule.dest_iata} &nbsp;|&nbsp; spot #{rule.spot_id} &nbsp;|&nbsp; window {rule.forecast_window ?? 5}d
           </div>
-          {status?.created_at && (
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Last checked: {new Date(status.created_at).toLocaleString()} • Price: €{status.price != null ? status.price.toFixed(2) : "N/A"} • OK: {status.ok_dates_count ?? 0}
-            </div>
-          )}
+          {(() => {
+            const parts: string[] = [];
+            if (status?.sent_at) parts.push(`Last checked: ${relTime(status.sent_at)}`);
+            if (status?.price != null) parts.push(`Price: €${status.price.toFixed(2)}`);
+            if (status?.ok_dates_count != null) parts.push(`OK: ${status.ok_dates_count}`);
+            return parts.length > 0 ? (
+              <div style={{ fontSize: 12, opacity: 0.75 }}>{parts.join(" • ")}</div>
+            ) : null;
+          })()}
           {rule.paused_until && (
             <div style={{ fontSize: 12, color: "#a66" }}>
               Snoozed until {new Date(rule.paused_until).toLocaleString()}

@@ -7,3 +7,5 @@ vercel-app/.env*
 
 # Dependencies
 vercel-app/node_modules
+vercel-app/.next
+vercel-app/next-env.d.ts
