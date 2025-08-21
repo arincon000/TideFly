@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date, timezone
 import requests, pandas as pd
 import time
 import re
+from decimal import Decimal, ROUND_HALF_UP
 
 from net import get as http_get
 from utils import call_with_budget
@@ -93,6 +94,31 @@ def sb_insert(table, row):
     r = _with_backoff(requests.post, url, headers=headers, data=json.dumps(row), timeout=60)
     r.raise_for_status()
     return r.json()
+
+# --- Money & event helpers ---
+DEFAULT_MAX_PRICE_EUR = Decimal("300.00")
+
+
+def as_money(x) -> Decimal:
+    return Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def log_event(rule_id, status, price=None, ok_dates_count=None, tier=None, reason=None, **extra):
+    payload = {
+        "rule_id": rule_id,
+        "status": status,
+        "ok_dates_count": ok_dates_count,
+        "tier": tier,
+        "reason": reason,
+    }
+    if price is not None:
+        payload["price"] = as_money(price)
+    payload.update(extra)
+    payload = {k: v for k, v in payload.items() if v is not None}
+    try:
+        sb_insert("alert_events", payload)
+    except Exception as e:
+        print(f"[log_event] insert failed rule_id={rule_id} status={status}: {e}")
 
 
 """Utilities for fetching forecasts."""
@@ -651,6 +677,7 @@ def main():
 
         merged, source, _ = _merged_forecast_for_spot(spot)
         if merged.empty:
+            log_event(rule["id"], "forecast_unavailable", reason="marine/weather unavailable and no fresh cache")
             print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
             continue
         start = pd.Timestamp(today_d)
@@ -692,6 +719,7 @@ def main():
         ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
         print(f"[rule] {rule.get('name') or 'Surf Alert'} ok_dates={len(ok_dates)} -> {ok_dates[:6]}{'...' if len(ok_dates)>6 else ''}")
         if not ok_dates:
+            log_event(rule["id"], "no_surf", ok_dates_count=0, reason="no surfable mornings in window")
             continue
 
         # Determine “tier” by farthest ok date
@@ -776,16 +804,26 @@ def main():
         # Price guards
         if price is None:
             print("[skip] no flight price found")
+            log_event(rule["id"], "forecast_unavailable", ok_dates_count=len(ok_dates), tier=tier, reason="flight price unavailable")
             continue
-        # Coerce NULL/empty max_price_eur safely (treat NULL as no cap)
-        max_price = float(rule.get("max_price_eur") or float("inf"))
-        if price > max_price:
-            print(f"[skip] price {price} > max {max_price}")
+        raw_max = rule.get("max_price_eur")
+        max_price = as_money(raw_max) if raw_max is not None else DEFAULT_MAX_PRICE_EUR
+        best_price = as_money(price)
+        if best_price > max_price:
+            print(f"[skip] price {best_price} > max {max_price}")
+            log_event(
+                rule["id"],
+                "too_pricey",
+                price=best_price,
+                ok_dates_count=len(ok_dates),
+                tier=tier,
+                reason="best price exceeds max",
+            )
             continue
 
         # Dedupe & cooldown with alert_events
         dates_str = ", ".join(ok_dates[:7])
-        key = sha(f"{rule['id']}|{spot['id']}|{dates_str}|{price}|{link or ''}")
+        key = sha(f"{rule['id']}|{spot['id']}|{dates_str}|{best_price}|{link or ''}")
 
         # 1) exact duplicate?
         exist = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "summary_hash":"eq."+key}, select="id")
@@ -805,7 +843,7 @@ def main():
             continue
         
         rule_name = rule.get('name') or 'Surf Alert'
-        subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {price}"
+        subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {best_price}"
         window_len = int((end - start).days) + 1
         
         link_html = f' &nbsp;|&nbsp; <a href="{link}">Book</a>' if link else ''
@@ -813,7 +851,7 @@ def main():
             <p><strong>Rule</strong>: {rule_name}</p>
             <p><strong>Spot</strong>: {spot['name']}</p>
             <p><strong>Surfable mornings</strong>: {dates_str}</p>
-            <p><strong>Cheapest roundtrip</strong>: EUR {price}{link_html}</p>
+            <p><strong>Cheapest roundtrip</strong>: EUR {best_price}{link_html}</p>
             <p><strong>Tier</strong>: {tier} (window {window_len}d)</p>
             <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {min_n}-{max_n} nights.</p>
         """
@@ -822,15 +860,17 @@ def main():
         
         if status in (200, 202):
             try:
-                sb_insert("alert_events", {
-                    "rule_id": rule["id"],
-                    "tier": tier,
-                    "summary_hash": key,
-                    "price": price,
-                    "deep_link": link,
-                    "ok_dates": ok_dates,
-                    "sent_at": now.isoformat(),  # ✅ cooldown relies on this
-                })
+                log_event(
+                    rule["id"],
+                    "sent",
+                    price=best_price,
+                    ok_dates_count=len(ok_dates),
+                    tier=tier,
+                    summary_hash=key,
+                    deep_link=link,
+                    ok_dates=ok_dates,
+                    sent_at=now.isoformat(),
+                )
             except Exception as e:
                 print("alert_events insert error:", e)
 # TEMP sanity:
