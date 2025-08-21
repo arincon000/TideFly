@@ -658,8 +658,12 @@ def main():
 
         merged, source, _ = _merged_forecast_for_spot(spot)
         if merged.empty:
-            log_event(sb, rule_id=rule["id"], status="forecast_unavailable",
-                      reason="marine/weather unavailable and no fresh cache")
+            log_event(
+                sb,
+                rule_id=rule["id"],
+                status="forecast_unavailable",
+                reason="marine/weather unavailable and no fresh cache",
+            )
             print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
             continue
         start = pd.Timestamp(today_d)
@@ -701,8 +705,13 @@ def main():
         ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
         print(f"[rule] {rule.get('name') or 'Surf Alert'} ok_dates={len(ok_dates)} -> {ok_dates[:6]}{'...' if len(ok_dates)>6 else ''}")
         if not ok_dates:
-            log_event(sb, rule_id=rule["id"], status="no_surf",
-                      ok_dates_count=0, reason="no surfable mornings in window")
+            log_event(
+                sb,
+                rule_id=rule["id"],
+                status="no_surf",
+                ok_dates_count=0,
+                reason="no surfable mornings in window",
+            )
             continue
 
         # Determine “tier” by farthest ok date
@@ -787,9 +796,15 @@ def main():
         # Price guards
         if price is None:
             print("[skip] no flight price found")
-            log_event(sb, rule_id=rule["id"], status="forecast_unavailable",
-                      ok_dates_count=len(ok_dates), tier=tier,
-                      reason="flight price unavailable")
+            log_event(
+                sb,
+                rule_id=rule["id"],
+                status="forecast_unavailable",
+                ok_dates_count=len(ok_dates),
+                tier=tier,
+                reason="flight price unavailable",
+                ok_dates=ok_dates,
+            )
             continue
         raw_max = rule.get("max_price_eur")
         max_price = as_money(raw_max) if raw_max is not None else DEFAULT_MAX_PRICE_EUR
@@ -804,6 +819,8 @@ def main():
                 ok_dates_count=len(ok_dates),
                 tier=tier,
                 reason="best price exceeds max",
+                ok_dates=ok_dates,
+                deep_link=link,
             )
             continue
 
@@ -812,22 +829,48 @@ def main():
         key = sha(f"{rule['id']}|{spot['id']}|{dates_str}|{best_price}|{link or ''}")
 
         # 1) exact duplicate?
-        exist = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "summary_hash":"eq."+key}, select="id")
+        exist = sb_select(
+            "alert_events",
+            params={"rule_id": "eq." + rule["id"], "summary_hash": "eq." + key},
+            select="id",
+        )
         if exist:
             print("[dedupe] same summary already sent")
-            log_event(sb, rule_id=rule["id"], status="sent",
-                      price=best_price, ok_dates_count=len(ok_dates),
-                      tier=tier, reason="deduped - not re-sent")
+            log_event(
+                sb,
+                rule_id=rule["id"],
+                status="sent",
+                price=best_price,
+                ok_dates_count=len(ok_dates),
+                tier=tier,
+                reason="deduped - not re-sent",
+                deep_link=link,
+                ok_dates=ok_dates,
+                summary_hash=key,
+            )
             continue
 
         # 2) cooldown window?
         since_iso = (now - timedelta(hours=int(rule.get("cooldown_hours") or 24))).isoformat()
-        recent = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "sent_at":"gt."+since_iso}, select="id")
+        recent = sb_select(
+            "alert_events",
+            params={"rule_id": "eq." + rule["id"], "sent_at": "gt." + since_iso},
+            select="id",
+        )
         if recent:
             print("[cooldown] recently notified -> skip")
-            log_event(sb, rule_id=rule["id"], status="sent",
-                      price=best_price, ok_dates_count=len(ok_dates),
-                      tier=tier, reason="deduped - not re-sent")
+            log_event(
+                sb,
+                rule_id=rule["id"],
+                status="sent",
+                price=best_price,
+                ok_dates_count=len(ok_dates),
+                tier=tier,
+                reason="deduped - not re-sent",
+                deep_link=link,
+                ok_dates=ok_dates,
+                summary_hash=key,
+            )
             continue
 
         # Compose and send email
@@ -861,10 +904,9 @@ def main():
                     price=best_price,
                     ok_dates_count=len(ok_dates),
                     tier=tier,
-                    summary_hash=key,
                     deep_link=link,
                     ok_dates=ok_dates,
-                    sent_at=now.isoformat(),
+                    summary_hash=key,
                 )
             except Exception as e:
                 print("alert_events insert error:", e)
