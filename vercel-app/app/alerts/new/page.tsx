@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { WEEKENDS } from "@/lib/days";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
+import { getUserPlan, type Plan } from "@/lib/plan";
 
 type Spot = { id: string; name: string; primary_airport_iata: string | null };
 
@@ -25,14 +26,17 @@ export default function NewAlert() {
   const [daysMask, setDaysMask] = useState<number>(127); // all days
   const [originError, setOriginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [plan, setPlan] = useState<Plan>("free");
+  const [maxPrice, setMaxPrice] = useState<number>(300);
 
   const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
 
   useEffect(() => {
     (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id ?? null;
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id ?? null;
       setUserId(uid);
+      setPlan(getUserPlan(session));
 
       if (uid) {
         const { data: urow } = await supabase.from("users")
@@ -85,7 +89,8 @@ export default function NewAlert() {
         min_nights: minN,
         max_nights: Math.max(minN, maxN),
         days_mask: daysMask,
-        is_active: true
+        is_active: true,
+        max_price_eur: plan === "premium" ? maxPrice : 300
       };
 
       const { error } = await supabase.from("alert_rules").insert(row);
@@ -165,6 +170,21 @@ export default function NewAlert() {
             <input type="number" min={minN} value={maxN} onChange={e => setMaxN(+e.target.value)} />
           </label>
         </div>
+
+        <label> Max price (€)
+          <input
+            type="number"
+            min={50}
+            max={5000}
+            step={0.01}
+            value={maxPrice}
+            onChange={e => setMaxPrice(+e.target.value)}
+            disabled={plan !== "premium"}
+          />
+          {plan !== "premium" && (
+            <div style={{ fontSize: 12 }}><a href="/upgrade">Upgrade</a></div>
+          )}
+        </label>
 
         <button
           type="submit"
