@@ -1,6 +1,7 @@
 import time
 import concurrent.futures
 import requests
+from decimal import Decimal, ROUND_HALF_UP
 
 
 def call_with_budget(fn, budget_seconds=35):
@@ -33,3 +34,13 @@ def call_with_budget(fn, budget_seconds=35):
         elapsed = time.time() - start
         print(f"[budget] error after {elapsed:.2f}s: {e}")
         return None
+
+
+def as_money(x) -> Decimal:
+    return Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def to_json_number(x):
+    if x is None:
+        return None
+    return float(as_money(x))

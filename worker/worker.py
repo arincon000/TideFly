@@ -3,10 +3,12 @@ from datetime import datetime, timedelta, date, timezone
 import requests, pandas as pd
 import time
 import re
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
+from supabase import create_client, Client
 from net import get as http_get
-from utils import call_with_budget
+from utils import call_with_budget, as_money
+from events import log_event
 from db import load_recent_forecast_from_cache
 
 def _is_iata(x: str) -> bool:
@@ -97,28 +99,6 @@ def sb_insert(table, row):
 
 # --- Money & event helpers ---
 DEFAULT_MAX_PRICE_EUR = Decimal("300.00")
-
-
-def as_money(x) -> Decimal:
-    return Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-
-def log_event(rule_id, status, price=None, ok_dates_count=None, tier=None, reason=None, **extra):
-    payload = {
-        "rule_id": rule_id,
-        "status": status,
-        "ok_dates_count": ok_dates_count,
-        "tier": tier,
-        "reason": reason,
-    }
-    if price is not None:
-        payload["price"] = as_money(price)
-    payload.update(extra)
-    payload = {k: v for k, v in payload.items() if v is not None}
-    try:
-        sb_insert("alert_events", payload)
-    except Exception as e:
-        print(f"[log_event] insert failed rule_id={rule_id} status={status}: {e}")
 
 
 """Utilities for fetching forecasts."""
@@ -510,6 +490,7 @@ def main():
         "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
         "Content-Type": "application/json",
     }
+    sb: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     # === NEW: load active alert rules (replaces user_spot_prefs path) ===
     rules = sb_select(
         "api.v1_alert_rules",
@@ -677,7 +658,8 @@ def main():
 
         merged, source, _ = _merged_forecast_for_spot(spot)
         if merged.empty:
-            log_event(rule["id"], "forecast_unavailable", reason="marine/weather unavailable and no fresh cache")
+            log_event(sb, rule_id=rule["id"], status="forecast_unavailable",
+                      reason="marine/weather unavailable and no fresh cache")
             print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
             continue
         start = pd.Timestamp(today_d)
@@ -719,7 +701,8 @@ def main():
         ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
         print(f"[rule] {rule.get('name') or 'Surf Alert'} ok_dates={len(ok_dates)} -> {ok_dates[:6]}{'...' if len(ok_dates)>6 else ''}")
         if not ok_dates:
-            log_event(rule["id"], "no_surf", ok_dates_count=0, reason="no surfable mornings in window")
+            log_event(sb, rule_id=rule["id"], status="no_surf",
+                      ok_dates_count=0, reason="no surfable mornings in window")
             continue
 
         # Determine “tier” by farthest ok date
@@ -804,7 +787,9 @@ def main():
         # Price guards
         if price is None:
             print("[skip] no flight price found")
-            log_event(rule["id"], "forecast_unavailable", ok_dates_count=len(ok_dates), tier=tier, reason="flight price unavailable")
+            log_event(sb, rule_id=rule["id"], status="forecast_unavailable",
+                      ok_dates_count=len(ok_dates), tier=tier,
+                      reason="flight price unavailable")
             continue
         raw_max = rule.get("max_price_eur")
         max_price = as_money(raw_max) if raw_max is not None else DEFAULT_MAX_PRICE_EUR
@@ -812,8 +797,9 @@ def main():
         if best_price > max_price:
             print(f"[skip] price {best_price} > max {max_price}")
             log_event(
-                rule["id"],
-                "too_pricey",
+                sb,
+                rule_id=rule["id"],
+                status="too_pricey",
                 price=best_price,
                 ok_dates_count=len(ok_dates),
                 tier=tier,
@@ -828,13 +814,21 @@ def main():
         # 1) exact duplicate?
         exist = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "summary_hash":"eq."+key}, select="id")
         if exist:
-            print("[dedupe] same summary already sent"); continue
+            print("[dedupe] same summary already sent")
+            log_event(sb, rule_id=rule["id"], status="sent",
+                      price=best_price, ok_dates_count=len(ok_dates),
+                      tier=tier, reason="deduped - not re-sent")
+            continue
 
         # 2) cooldown window?
         since_iso = (now - timedelta(hours=int(rule.get("cooldown_hours") or 24))).isoformat()
         recent = sb_select("alert_events", params={"rule_id":"eq."+rule["id"], "sent_at":"gt."+since_iso}, select="id")
         if recent:
-            print("[cooldown] recently notified -> skip"); continue
+            print("[cooldown] recently notified -> skip")
+            log_event(sb, rule_id=rule["id"], status="sent",
+                      price=best_price, ok_dates_count=len(ok_dates),
+                      tier=tier, reason="deduped - not re-sent")
+            continue
 
         # Compose and send email
         email = (user.get("email") or "").strip()
@@ -861,8 +855,9 @@ def main():
         if status in (200, 202):
             try:
                 log_event(
-                    rule["id"],
-                    "sent",
+                    sb,
+                    rule_id=rule["id"],
+                    status="sent",
                     price=best_price,
                     ok_dates_count=len(ok_dates),
                     tier=tier,
