@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from .utils import to_json_number
+from worker.utils import to_json_number
 
 
 def log_event(supabase, *, rule_id: str, status: str,
