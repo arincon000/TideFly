@@ -51,6 +51,9 @@ def log_event(
             rule_id=rule_id, status=status, ok_dates=ok_dates, price=price, deep_link=deep_link
         )
 
+    ok_list = list(ok_dates) if ok_dates is not None else []
+    count = ok_dates_count if ok_dates_count is not None else len(ok_list)
+
     safe_tier = tier or "info"
 
     payload: Dict[str, Any] = {
@@ -58,11 +61,11 @@ def log_event(
         "summary_hash": summary_hash,
         "status": status,  # uses existing column
         "price": to_json_number(price) if price is not None else None,
-        "ok_dates_count": ok_dates_count,
+        "ok_dates_count": count,
         "tier": safe_tier,
         "reason": reason,
         "deep_link": deep_link,
-        "ok_dates": list(ok_dates) if ok_dates is not None else None,
+        "ok_dates": ok_list,
         # sent_at is DB-managed (default now()); do not set here
     }
     payload = {k: v for k, v in payload.items() if v is not None}
