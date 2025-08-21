@@ -37,6 +37,8 @@ def call_with_budget(fn, budget_seconds=35):
 
 
 def as_money(x) -> Decimal:
+    if x is None:
+        return None
     return Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 

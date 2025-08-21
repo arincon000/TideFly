@@ -1,6 +1,8 @@
-import hashlib, json
+import hashlib
+import json
 from typing import Any, Dict, Iterable, Optional
-from worker.utils import to_json_number  # absolute import (package-ized)
+
+from worker.utils import to_json_number  # absolute import
 
 
 def make_summary_hash(
@@ -10,9 +12,9 @@ def make_summary_hash(
     ok_dates: Optional[Iterable[str]] = None,
     price: Optional[float] = None,
     deep_link: Optional[str] = None,
-    version: str = "v2"
+    version: str = "v2",
 ) -> str:
-    """Deterministic hash for non-sent events (and fallback)."""
+    """Deterministic summary hash for non-sent outcomes and fallback."""
     payload = {
         "v": version,
         "rule_id": rule_id,
@@ -38,32 +40,39 @@ def log_event(
     ok_dates: Optional[Iterable[str]] = None,
     summary_hash: Optional[str] = None,
 ) -> None:
-    """
-    Insert a row into public.alert_events. Ensures JSON-safe price and a non-null summary_hash.
-    - For sent/deduped paths, pass the real email/dedupe summary_hash.
-    - For non-sent paths, auto-generate one via make_summary_hash(...).
+    """Insert/update public.alert_events with robust payload.
+
+    - `tier` falls back to 'info' to satisfy NOT NULL.
+    - `summary_hash` is required; generate if not provided.
+    - Upsert on (rule_id, summary_hash) to avoid duplicate-key errors.
     """
     if summary_hash is None:
         summary_hash = make_summary_hash(
             rule_id=rule_id, status=status, ok_dates=ok_dates, price=price, deep_link=deep_link
         )
 
+    safe_tier = tier or "info"
+
     payload: Dict[str, Any] = {
         "rule_id": rule_id,
-        "summary_hash": summary_hash,            # NOT NULL
-        "status": status,                        # requires your earlier SQL migration
+        "summary_hash": summary_hash,
+        "status": status,  # uses existing column
         "price": to_json_number(price) if price is not None else None,
         "ok_dates_count": ok_dates_count,
-        "tier": tier,
+        "tier": safe_tier,
         "reason": reason,
         "deep_link": deep_link,
         "ok_dates": list(ok_dates) if ok_dates is not None else None,
+        # sent_at is DB-managed (default now()); do not set here
     }
-    # Strip Nones
     payload = {k: v for k, v in payload.items() if v is not None}
 
     try:
-        supabase.table("alert_events").insert(payload).execute()
-        print(f"[log_event] inserted status={status} rule_id={rule_id}")
+        supabase.table("alert_events").upsert(
+            payload,
+            on_conflict="rule_id,summary_hash",
+        ).execute()
+        print(f"[log_event] upserted status={status} rule_id={rule_id}")
     except Exception as e:
-        print(f"[log_event] insert failed rule_id={rule_id} status={status}: {e}")
+        print(f"[log_event] upsert failed rule_id={rule_id} status={status}: {e}")
+
