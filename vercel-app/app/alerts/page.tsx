@@ -43,7 +43,7 @@ export default function AlertsPage() {
   return (
     <>
       <h2>Your alerts</h2>
-      <p style={{ marginTop: -10 }}><a href="/alerts/new">+ New alert</a></p>
+      <p className="-mt-2"><a href="/alerts/new">+ New alert</a></p>
       {rules.length === 0 && <p>No alerts yet.</p>}
       {rules.map((r) => <AlertRow key={r.id} rule={r} status={statusByRule[r.id]} refresh={load} />)}
     </>

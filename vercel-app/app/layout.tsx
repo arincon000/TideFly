@@ -1,9 +1,11 @@
+import "./globals.css";
+
 export const metadata = { title: "TideFly", description: "Surf + flight alerts" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ fontFamily: "ui-sans-serif, system-ui", margin: 0 }}>{children}</body>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
