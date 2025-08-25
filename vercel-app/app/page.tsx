@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabaseClient";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function Home() {
   const router = useRouter();
@@ -23,22 +24,26 @@ export default function Home() {
   }, [router]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <h1 className="text-2xl font-semibold mb-4">TideFly</h1>
-        {/* Primary: email + password. Users can switch to "Sign in" in the UI */}
-        <Auth
-          supabaseClient={supabase}
-          view="sign_up"
-          appearance={{ theme: ThemeSupa }}
-          theme="dark"
-          providers={[]} // add Google/GitHub later
-          redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL || "https://tide-fly.vercel.app"}/reset`}
-        />
-        <p className="text-sm text-zinc-400 mt-3">
-          Already have an account? Use the “Sign in” link in the form.
-        </p>
-      </div>
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">TideFly</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Primary: email + password. Users can switch to "Sign in" in the UI */}
+          <Auth
+            supabaseClient={supabase}
+            view="sign_up"
+            appearance={{ theme: ThemeSupa }}
+            theme="dark"
+            providers={[]}
+            redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL || "https://tide-fly.vercel.app"}/reset`}
+          />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Already have an account? Use the “Sign in” link in the form.
+          </p>
+        </CardContent>
+      </Card>
     </main>
   );
 }

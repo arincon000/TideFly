@@ -1,0 +1,153 @@
+
+/* TideFly Design System - Option 1: Ocean Blue Theme
+All colors MUST be HSL.
+*/
+
+  :root {
+    /* Base colors */
+    --background: 210 100% 98%;
+    --foreground: 215 25% 15%;
+
+    /* Surface colors */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    /* Brand colors - Ocean blue theme */
+    --primary: 210 100% 56%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 210 100% 50%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 25% 25%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 193 95% 68%;
+    --accent-foreground: 215 25% 15%;
+
+    /* Status colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 210 40% 88%;
+    --input: 210 40% 88%;
+    --ring: 210 100% 56%;
+
+    /* Layout */
+    --radius: 0.75rem;
+
+    /* TideFly specific colors */
+    --ocean-primary: 210 100% 56%;
+    --ocean-secondary: 193 95% 68%;
+    --wave-accent: 185 84% 72%;
+    --surf-green: 142 76% 36%;
+
+    /* Gradients */
+    --gradient-ocean: linear-gradient(135deg, hsl(210 100% 56%), hsl(193 95% 68%));
+    --gradient-wave: linear-gradient(180deg, hsl(193 95% 68%), hsl(185 84% 72%));
+    --gradient-hero: linear-gradient(135deg, hsl(210 100% 56%) 0%, hsl(193 95% 68%) 50%, hsl(185 84% 72%) 100%);
+
+    /* Shadows */
+    --shadow-ocean: 0 10px 30px -10px hsl(210 100% 56% / 0.3);
+    --shadow-wave: 0 5px 20px -5px hsl(193 95% 68% / 0.4);
+    --shadow-subtle: 0 2px 10px -2px hsl(210 40% 20% / 0.1);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Base colors - Dark ocean theme */
+    --background: 215 30% 8%;
+    --foreground: 210 40% 95%;
+
+    /* Surface colors */
+    --card: 215 30% 10%;
+    --card-foreground: 210 40% 95%;
+
+    --popover: 215 30% 10%;
+    --popover-foreground: 210 40% 95%;
+
+    /* Brand colors - Dark ocean */
+    --primary: 193 95% 68%;
+    --primary-foreground: 215 30% 8%;
+    --primary-hover: 193 95% 62%;
+
+    --secondary: 215 25% 15%;
+    --secondary-foreground: 210 40% 95%;
+
+    --muted: 215 25% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 185 84% 72%;
+    --accent-foreground: 215 30% 8%;
+
+    /* Status colors */
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 95%;
+
+    --success: 142 76% 40%;
+    --success-foreground: 210 40% 95%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 215 30% 8%;
+
+    /* Borders and inputs */
+    --border: 215 25% 18%;
+    --input: 215 25% 18%;
+    --ring: 193 95% 68%;
+
+    /* Dark theme gradients */
+    --gradient-ocean: linear-gradient(135deg, hsl(193 95% 68%), hsl(185 84% 72%));
+    --gradient-wave: linear-gradient(180deg, hsl(185 84% 72%), hsl(193 95% 68%));
+    --gradient-hero: linear-gradient(135deg, hsl(193 95% 68%) 0%, hsl(185 84% 72%) 50%, hsl(210 100% 56%) 100%);
+
+    /* Dark shadows */
+    --shadow-ocean: 0 10px 30px -10px hsl(193 95% 68% / 0.3);
+    --shadow-wave: 0 5px 20px -5px hsl(185 84% 72% / 0.4);
+    --shadow-subtle: 0 2px 10px -2px hsl(0 0% 0% / 0.3);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }

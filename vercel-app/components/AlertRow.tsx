@@ -2,6 +2,8 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import { StatusPill } from "@/components/StatusPill";
+import { Button } from "@/components/ui/button";
+import { TableRow, TableCell } from "@/components/ui/table";
 
 export type AlertRule = {
   id: string;
@@ -57,15 +59,15 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
   };
 
   return (
-    <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 10, marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ fontWeight: 600 }}>{rule.name ?? "Surf Alert"}</div>
+    <TableRow>
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className="font-semibold">{rule.name ?? "Surf Alert"}</div>
             <StatusPill status={status?.status ?? undefined} />
           </div>
-          <div style={{ fontSize: 13, opacity: 0.75 }}>
-            {rule.origin_iata} → {rule.dest_iata} &nbsp;|&nbsp; spot #{rule.spot_id} &nbsp;|&nbsp; window {rule.forecast_window ?? 5}d
+          <div className="text-sm text-muted-foreground">
+            {rule.origin_iata} → {rule.dest_iata} | spot #{rule.spot_id} | window {rule.forecast_window ?? 5}d
           </div>
           {(() => {
             const parts: string[] = [];
@@ -73,20 +75,26 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             if (status?.price != null) parts.push(`Price: €${status.price.toFixed(2)}`);
             if (status?.ok_dates_count != null) parts.push(`OK: ${status.ok_dates_count}`);
             return parts.length > 0 ? (
-              <div style={{ fontSize: 12, opacity: 0.75 }}>{parts.join(" • ")}</div>
+              <div className="text-xs text-muted-foreground">{parts.join(" • ")}</div>
             ) : null;
           })()}
           {rule.paused_until && (
-            <div style={{ fontSize: 12, color: "#a66" }}>
+            <div className="text-xs text-destructive">
               Snoozed until {new Date(rule.paused_until).toLocaleString()}
             </div>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={toggleActive}>{rule.is_active ? "Pause" : "Resume"}</button>
-          <button onClick={snooze7}>Snooze 7d</button>
+      </TableCell>
+      <TableCell className="w-[1%] whitespace-nowrap">
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={toggleActive}>
+            {rule.is_active ? "Pause" : "Resume"}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={snooze7}>
+            Snooze 7d
+          </Button>
         </div>
-      </div>
-    </div>
+      </TableCell>
+    </TableRow>
   );
 }

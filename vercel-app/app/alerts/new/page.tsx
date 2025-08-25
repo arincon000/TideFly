@@ -5,6 +5,16 @@ import { supabase } from "@/lib/supabaseClient";
 import { WEEKENDS } from "@/lib/days";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
 import { getUserPlan, type Plan } from "@/lib/plan";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 type Spot = { id: string; name: string; primary_airport_iata: string | null };
 
@@ -106,21 +116,31 @@ export default function NewAlert() {
 
   return (
     <>
-      <h2>New alert</h2>
-      <form onSubmit={submit} style={{ display: "grid", gap: 12, maxWidth: 560 }}>
-        <label> Name
-          <input value={name} onChange={e => setName(e.target.value)} required />
-        </label>
+      <h2 className="mb-4 text-xl font-semibold">New alert</h2>
+      <form onSubmit={submit} className="grid max-w-xl gap-4">
+        <div className="grid gap-1">
+          <Label htmlFor="name">Name</Label>
+          <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
+        </div>
 
-        <label> Spot
-          <select value={spotId} onChange={e => onSpotChange(e.target.value)}>
-            <option value="">-- select --</option>
-            {spots.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </label>
+        <div className="grid gap-1">
+          <Label>Spot</Label>
+          <Select value={spotId} onValueChange={onSpotChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="-- select --" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">-- select --</SelectItem>
+              {spots.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Origin (IATA)
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1">
+            <Label>Origin (IATA)</Label>
             <AirportAutocomplete
               value={origin}
               onChange={iata => {
@@ -130,49 +150,62 @@ export default function NewAlert() {
               }}
               placeholder={home || "e.g. LIS"}
             />
-            {originError && <p className="mt-1 text-sm text-red-600">{originError}</p>}
-          </label>
-          <label> Destination (IATA)
-            <input
+            {originError && <p className="mt-1 text-sm text-destructive">{originError}</p>}
+          </div>
+          <div className="grid gap-1">
+            <Label>Destination (IATA)</Label>
+            <Input
               value={dest}
               onChange={e => setDest(e.target.value.toUpperCase().slice(0, 3))}
               placeholder="auto from spot"
               maxLength={3}
             />
-          </label>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Forecast window (days)
-            <input type="number" min={1} max={10} value={forecastWindow} onChange={e => setForecastWindow(+e.target.value)} />
-          </label>
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Days mask</div>
-            <button type="button" onClick={() => setDaysMask(127)}>All days</button>{" "}
-            <button type="button" onClick={weekendsOnly}>Weekends only</button>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Min wave (m)
-            <input type="number" step="0.1" value={minWave} onChange={e => setMinWave(+e.target.value)} />
-          </label>
-          <label> Max wind (km/h)
-            <input type="number" value={maxWind} onChange={e => setMaxWind(+e.target.value)} />
-          </label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1">
+            <Label>Forecast window (days)</Label>
+            <Input type="number" min={1} max={10} value={forecastWindow} onChange={e => setForecastWindow(+e.target.value)} />
+          </div>
+          <div>
+            <div className="mb-2 text-xs text-muted-foreground">Days mask</div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setDaysMask(127)}>
+                All days
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={weekendsOnly}>
+                Weekends only
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Min nights
-            <input type="number" min={1} value={minN} onChange={e => setMinN(+e.target.value)} />
-          </label>
-          <label> Max nights
-            <input type="number" min={minN} value={maxN} onChange={e => setMaxN(+e.target.value)} />
-          </label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1">
+            <Label>Min wave (m)</Label>
+            <Input type="number" step="0.1" value={minWave} onChange={e => setMinWave(+e.target.value)} />
+          </div>
+          <div className="grid gap-1">
+            <Label>Max wind (km/h)</Label>
+            <Input type="number" value={maxWind} onChange={e => setMaxWind(+e.target.value)} />
+          </div>
         </div>
 
-        <label> Max price (€)
-          <input
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1">
+            <Label>Min nights</Label>
+            <Input type="number" min={1} value={minN} onChange={e => setMinN(+e.target.value)} />
+          </div>
+          <div className="grid gap-1">
+            <Label>Max nights</Label>
+            <Input type="number" min={minN} value={maxN} onChange={e => setMaxN(+e.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid gap-1">
+          <Label>Max price (€)</Label>
+          <Input
             type="number"
             min={50}
             max={5000}
@@ -182,17 +215,13 @@ export default function NewAlert() {
             disabled={plan !== "premium"}
           />
           {plan !== "premium" && (
-            <div style={{ fontSize: 12 }}><a href="/upgrade">Upgrade</a></div>
+            <div className="text-xs"><a href="/upgrade">Upgrade</a></div>
           )}
-        </label>
+        </div>
 
-        <button
-          type="submit"
-          disabled={!isIata(origin) || isSubmitting}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-        >
+        <Button type="submit" disabled={!isIata(origin) || isSubmitting}>
           {isSubmitting ? "Saving..." : "Create alert"}
-        </button>
+        </Button>
       </form>
     </>
   );

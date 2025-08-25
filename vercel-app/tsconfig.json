@@ -13,7 +13,8 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
+      ],
+      "@/components/*": ["components/*"]
     },
     "allowJs": false,
     "noEmit": true,
