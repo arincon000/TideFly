@@ -1,4 +1,11 @@
+"use client";
+
+import { useState } from "react";
+import { Bell, Plane, Zap } from "lucide-react";
+
 export default function LandingPage() {
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+
   return (
     <div>
       <nav
@@ -9,7 +16,7 @@ export default function LandingPage() {
           padding: "16px 32px",
         }}
       >
-        <div style={{ fontWeight: 600 }}>TideFly</div>
+        <div style={{ fontWeight: 700, color: "#3b82f6" }}>TideFly</div>
         <div style={{ display: "flex", gap: 24 }}>
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
@@ -103,29 +110,133 @@ export default function LandingPage() {
       </main>
       <section id="features" style={{ padding: "80px 16px" }}>
         <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
-          Features
+          Stay ahead of the swell
         </h2>
-        <p style={{ textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
+        <p
+          style={{
+            textAlign: "center",
+            maxWidth: 600,
+            margin: "0 auto 40px",
+            color: "#555",
+          }}
+        >
           Intelligent swell alerts, travel-friendly recommendations and more to
           keep you on top of the waves.
         </p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 24,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ width: 280, textAlign: "center" }}>
+            <Bell size={40} color="#3b82f6" />
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Real-time alerts</h3>
+            <p style={{ color: "#555" }}>
+              Get notified the moment your favorite spots start firing.
+            </p>
+          </div>
+          <div style={{ width: 280, textAlign: "center" }}>
+            <Plane size={40} color="#3b82f6" />
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Travel friendly</h3>
+            <p style={{ color: "#555" }}>
+              Filter alerts by distance so you can chase swell on the go.
+            </p>
+          </div>
+          <div style={{ width: 280, textAlign: "center" }}>
+            <Zap size={40} color="#3b82f6" />
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Fast setup</h3>
+            <p style={{ color: "#555" }}>
+              Create your profile and start receiving alerts in minutes.
+            </p>
+          </div>
+        </div>
       </section>
       <section id="how" style={{ padding: "80px 16px", background: "#f0f2f4" }}>
         <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
           How it works
         </h2>
-        <p style={{ textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
+        <p
+          style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 40px", color: "#555" }}
+        >
           Set your preferred spots and travel filters, then let TideFly alert you
           when conditions line up.
         </p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 24,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ width: 260, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>1</div>
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Set your spots</h3>
+            <p style={{ color: "#555" }}>
+              Choose favorite breaks and travel preferences.
+            </p>
+          </div>
+          <div style={{ width: 260, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>2</div>
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>We monitor conditions</h3>
+            <p style={{ color: "#555" }}>
+              Our engine watches global swells 24/7.
+            </p>
+          </div>
+          <div style={{ width: 260, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>3</div>
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Catch perfect waves</h3>
+            <p style={{ color: "#555" }}>
+              Get instant alerts when it's time to paddle out.
+            </p>
+          </div>
+        </div>
       </section>
       <section
         id="pricing"
         style={{ padding: "80px 16px", background: "#f9fafb" }}
       >
-        <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 40 }}>
+        <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
           Choose your wave hunting plan
         </h2>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 8,
+            marginBottom: 40,
+          }}
+        >
+          <button
+            onClick={() => setBilling("monthly")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border:
+                billing === "monthly" ? "1px solid #3b82f6" : "1px solid #e5e7eb",
+              background: billing === "monthly" ? "#3b82f6" : "white",
+              color: billing === "monthly" ? "white" : "#333",
+            }}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBilling("yearly")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border:
+                billing === "yearly" ? "1px solid #3b82f6" : "1px solid #e5e7eb",
+              background: billing === "yearly" ? "#3b82f6" : "white",
+              color: billing === "yearly" ? "white" : "#333",
+            }}
+          >
+            Yearly
+          </button>
+        </div>
         <div
           style={{
             display: "flex",
@@ -143,11 +254,26 @@ export default function LandingPage() {
               textAlign: "center",
             }}
           >
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Wave Watcher</h3>
-            <p style={{ marginBottom: 16 }}>Casual beach days</p>
+            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Beach Bum</h3>
+            <p style={{ marginBottom: 16 }}>Up to 2 alerts</p>
             <p style={{ fontSize: 24, fontWeight: 600 }}>
-              $0<span style={{ fontSize: 16 }}>/mo</span>
+              ${billing === "monthly" ? "0" : "0"}
+              <span style={{ fontSize: 16 }}>
+                /{billing === "monthly" ? "mo" : "yr"}
+              </span>
             </p>
+            <ul
+              style={{
+                textAlign: "left",
+                listStyle: "disc",
+                paddingLeft: 20,
+                color: "#555",
+              }}
+            >
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+            </ul>
             <a
               href="/auth"
               style={{
@@ -160,11 +286,12 @@ export default function LandingPage() {
                 textDecoration: "none",
               }}
             >
-              Start watching
+              Choose plan
             </a>
           </div>
           <div
             style={{
+              position: "relative",
               border: "2px solid #3b82f6",
               borderRadius: 8,
               padding: 24,
@@ -172,11 +299,41 @@ export default function LandingPage() {
               textAlign: "center",
             }}
           >
+            <div
+              style={{
+                position: "absolute",
+                top: -16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "#3b82f6",
+                color: "white",
+                padding: "2px 8px",
+                borderRadius: 4,
+                fontSize: 12,
+              }}
+            >
+              Most Popular
+            </div>
             <h3 style={{ fontSize: 20, marginBottom: 8 }}>Surf Seeker</h3>
-            <p style={{ marginBottom: 16 }}>Find better waves</p>
+            <p style={{ marginBottom: 16 }}>Unlimited alerts</p>
             <p style={{ fontSize: 24, fontWeight: 600 }}>
-              $19<span style={{ fontSize: 16 }}>/mo</span>
+              ${billing === "monthly" ? "19" : "190"}
+              <span style={{ fontSize: 16 }}>
+                /{billing === "monthly" ? "mo" : "yr"}
+              </span>
             </p>
+            <ul
+              style={{
+                textAlign: "left",
+                listStyle: "disc",
+                paddingLeft: 20,
+                color: "#555",
+              }}
+            >
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+            </ul>
             <a
               href="/auth"
               style={{
@@ -189,7 +346,7 @@ export default function LandingPage() {
                 textDecoration: "none",
               }}
             >
-              Start seeking
+              Choose plan
             </a>
           </div>
           <div
@@ -202,10 +359,25 @@ export default function LandingPage() {
             }}
           >
             <h3 style={{ fontSize: 20, marginBottom: 8 }}>Pro Rider</h3>
-            <p style={{ marginBottom: 16 }}>Chase the best swells</p>
+            <p style={{ marginBottom: 16 }}>Advanced analytics</p>
             <p style={{ fontSize: 24, fontWeight: 600 }}>
-              $39<span style={{ fontSize: 16 }}>/mo</span>
+              ${billing === "monthly" ? "39" : "390"}
+              <span style={{ fontSize: 16 }}>
+                /{billing === "monthly" ? "mo" : "yr"}
+              </span>
             </p>
+            <ul
+              style={{
+                textAlign: "left",
+                listStyle: "disc",
+                paddingLeft: 20,
+                color: "#555",
+              }}
+            >
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+            </ul>
             <a
               href="/auth"
               style={{
@@ -218,7 +390,7 @@ export default function LandingPage() {
                 textDecoration: "none",
               }}
             >
-              Go pro
+              Choose plan
             </a>
           </div>
         </div>
