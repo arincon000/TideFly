@@ -7,116 +7,65 @@ export default function LandingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   return (
-    <div>
-      <nav
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "16px 32px",
-        }}
-      >
-        <div style={{ fontWeight: 700, color: "#3b82f6" }}>TideFly</div>
-        <div style={{ display: "flex", gap: 24 }}>
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#how">How it works</a>
+    <div className="flex min-h-screen flex-col">
+      <nav className="flex items-center justify-between px-8 py-4">
+        <div className="text-2xl font-bold text-blue-500">TideFly</div>
+        <div className="hidden gap-8 md:flex">
+          <a href="#features" className="text-gray-700 hover:text-blue-500">
+            Features
+          </a>
+          <a href="#pricing" className="text-gray-700 hover:text-blue-500">
+            Pricing
+          </a>
+          <a href="#how" className="text-gray-700 hover:text-blue-500">
+            How it works
+          </a>
         </div>
-        <div style={{ display: "flex", gap: 16 }}>
-          <a href="/auth" style={{ textDecoration: "none" }}>
+        <div className="flex gap-4">
+          <a
+            href="/auth"
+            className="text-sm font-medium text-gray-700 hover:text-blue-500"
+          >
             Sign in
           </a>
           <a
             href="/auth"
-            style={{
-              padding: "8px 16px",
-              background: "#3b82f6",
-              color: "white",
-              borderRadius: 8,
-              textDecoration: "none",
-            }}
+            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
           >
             Start tracking waves
           </a>
         </div>
       </nav>
-      <main
-        style={{
-          textAlign: "center",
-          padding: "80px 16px",
-          background: "linear-gradient(to bottom right,#e0f2fe,#ffffff)",
-          position: "relative",
-        }}
-      >
-        <h1 style={{ fontSize: 48, marginBottom: 16 }}>
-          Never miss the perfect
-          <span
-            style={{
-              background: "linear-gradient(to right,#38bdf8,#2563eb)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            {" "}wave again
+      <main className="relative bg-gradient-to-br from-sky-100 to-white px-4 py-20 text-center">
+        <h1 className="mx-auto mb-4 max-w-3xl text-5xl font-bold tracking-tight">
+          Never miss the perfect{" "}
+          <span className="bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">
+            wave again
           </span>
         </h1>
-        <p
-          style={{
-            maxWidth: 600,
-            margin: "0 auto 32px",
-            color: "#555",
-            fontSize: 18,
-          }}
-        >
+        <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600">
           Get intelligent surf alerts based on wave height, wind conditions, and
           your travel preferences. Tidefly monitors global swell conditions so
           you know when epic sessions await.
         </p>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 16,
-            marginBottom: 40,
-          }}
-        >
+        <div className="mb-10 flex justify-center gap-4">
           <a
             href="/auth"
-            style={{
-              padding: "12px 24px",
-              background: "#3b82f6",
-              color: "white",
-              borderRadius: 8,
-              textDecoration: "none",
-            }}
+            className="rounded-lg bg-blue-500 px-6 py-3 font-medium text-white hover:bg-blue-600"
           >
             Start tracking waves
           </a>
           <a
             href="#"
-            style={{
-              padding: "12px 24px",
-              border: "1px solid #3b82f6",
-              color: "#3b82f6",
-              borderRadius: 8,
-              textDecoration: "none",
-            }}
+            className="rounded-lg border border-blue-500 px-6 py-3 font-medium text-blue-500 hover:bg-blue-50"
           >
             Watch demo
           </a>
         </div>
-        <div
-          style={{
-            maxWidth: 800,
-            margin: "0 auto",
-            aspectRatio: "16 / 9",
-            background: "#000",
-            borderRadius: 8,
-          }}
-        ></div>
+        <div className="mx-auto h-64 max-w-4xl rounded-lg bg-black"></div>
         <svg
           viewBox="0 0 1440 320"
-          style={{ position: "absolute", bottom: 0, left: 0, width: "100%" }}
+          className="absolute bottom-0 left-0 w-full"
         >
           <path
             fill="#ffffff"
@@ -126,95 +75,62 @@ export default function LandingPage() {
       </main>
       <section
         id="features"
-        style={{
-          padding: "80px 16px",
-          background: "linear-gradient(to bottom,#ffffff,#f0f9ff)",
-        }}
+        className="bg-gradient-to-b from-white to-sky-50 px-4 py-20"
       >
-        <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
+        <h2 className="mb-6 text-center text-3xl font-bold">
           Stay ahead of the swell
         </h2>
-        <p
-          style={{
-            textAlign: "center",
-            maxWidth: 600,
-            margin: "0 auto 40px",
-            color: "#555",
-          }}
-        >
+        <p className="mx-auto mb-10 max-w-2xl text-center text-gray-600">
           Intelligent swell alerts, travel-friendly recommendations and more to
           keep you on top of the waves.
         </p>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 24,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ width: 280, textAlign: "center" }}>
-            <Bell size={40} color="#3b82f6" />
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Real-time alerts</h3>
-            <p style={{ color: "#555" }}>
+        <div className="flex flex-wrap justify-center gap-10">
+          <div className="w-64 text-center">
+            <Bell size={40} className="mx-auto mb-4 text-blue-500" />
+            <h3 className="mb-2 text-xl font-semibold">Real-time alerts</h3>
+            <p className="text-gray-600">
               Get notified the moment your favorite spots start firing.
             </p>
           </div>
-          <div style={{ width: 280, textAlign: "center" }}>
-            <Plane size={40} color="#3b82f6" />
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Travel friendly</h3>
-            <p style={{ color: "#555" }}>
+          <div className="w-64 text-center">
+            <Plane size={40} className="mx-auto mb-4 text-blue-500" />
+            <h3 className="mb-2 text-xl font-semibold">Travel friendly</h3>
+            <p className="text-gray-600">
               Filter alerts by distance so you can chase swell on the go.
             </p>
           </div>
-          <div style={{ width: 280, textAlign: "center" }}>
-            <Zap size={40} color="#3b82f6" />
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Fast setup</h3>
-            <p style={{ color: "#555" }}>
+          <div className="w-64 text-center">
+            <Zap size={40} className="mx-auto mb-4 text-blue-500" />
+            <h3 className="mb-2 text-xl font-semibold">Fast setup</h3>
+            <p className="text-gray-600">
               Create your profile and start receiving alerts in minutes.
             </p>
           </div>
         </div>
       </section>
-      <section
-        id="how"
-        style={{ padding: "80px 16px", background: "#f8fafc" }}
-      >
-        <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
-          How it works
-        </h2>
-        <p
-          style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 40px", color: "#555" }}
-        >
+      <section id="how" className="bg-gray-50 px-4 py-20">
+        <h2 className="mb-6 text-center text-3xl font-bold">How it works</h2>
+        <p className="mx-auto mb-10 max-w-2xl text-center text-gray-600">
           Set your preferred spots and travel filters, then let TideFly alert you
           when conditions line up.
         </p>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 24,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ width: 260, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>1</div>
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Set your spots</h3>
-            <p style={{ color: "#555" }}>
+        <div className="flex flex-wrap justify-center gap-10">
+          <div className="w-64 text-center">
+            <div className="mx-auto mb-2 text-3xl font-bold text-blue-500">1</div>
+            <h3 className="mb-2 text-xl font-semibold">Set your spots</h3>
+            <p className="text-gray-600">
               Choose favorite breaks and travel preferences.
             </p>
           </div>
-          <div style={{ width: 260, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>2</div>
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>We monitor conditions</h3>
-            <p style={{ color: "#555" }}>
-              Our engine watches global swells 24/7.
-            </p>
+          <div className="w-64 text-center">
+            <div className="mx-auto mb-2 text-3xl font-bold text-blue-500">2</div>
+            <h3 className="mb-2 text-xl font-semibold">We monitor conditions</h3>
+            <p className="text-gray-600">Our engine watches global swells 24/7.</p>
           </div>
-          <div style={{ width: 260, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>3</div>
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Catch perfect waves</h3>
-            <p style={{ color: "#555" }}>
+          <div className="w-64 text-center">
+            <div className="mx-auto mb-2 text-3xl font-bold text-blue-500">3</div>
+            <h3 className="mb-2 text-xl font-semibold">Catch perfect waves</h3>
+            <p className="text-gray-600">
               Get instant alerts when it's time to paddle out.
             </p>
           </div>
@@ -222,201 +138,88 @@ export default function LandingPage() {
       </section>
       <section
         id="pricing"
-        style={{
-          padding: "80px 16px",
-          background: "linear-gradient(to top,#e0f2fe,#ffffff)",
-        }}
+        className="bg-gradient-to-t from-sky-100 to-white px-4 py-20"
       >
-        <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
+        <h2 className="mb-6 text-center text-3xl font-bold">
           Choose your wave hunting plan
         </h2>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 8,
-            marginBottom: 40,
-          }}
-        >
+        <div className="mb-10 flex justify-center gap-4">
           <button
             onClick={() => setBilling("monthly")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border:
-                billing === "monthly" ? "1px solid #3b82f6" : "1px solid #e5e7eb",
-              background: billing === "monthly" ? "#3b82f6" : "white",
-              color: billing === "monthly" ? "white" : "#333",
-            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${billing === "monthly" ? "bg-blue-500 text-white" : "border border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-500"}`}
           >
             Monthly
           </button>
           <button
             onClick={() => setBilling("yearly")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border:
-                billing === "yearly" ? "1px solid #3b82f6" : "1px solid #e5e7eb",
-              background: billing === "yearly" ? "#3b82f6" : "white",
-              color: billing === "yearly" ? "white" : "#333",
-            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${billing === "yearly" ? "bg-blue-500 text-white" : "border border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-500"}`}
           >
             Yearly
           </button>
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 24,
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-              padding: 24,
-              width: 280,
-              textAlign: "center",
-            }}
-          >
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Beach Bum</h3>
-            <p style={{ marginBottom: 16 }}>Up to 2 alerts</p>
-            <p style={{ fontSize: 24, fontWeight: 600 }}>
+        <div className="flex flex-wrap justify-center gap-10">
+          <div className="w-72 rounded-lg border border-gray-200 p-6 text-center">
+            <h3 className="mb-2 text-xl font-semibold">Beach Bum</h3>
+            <p className="mb-4">Up to 2 alerts</p>
+            <p className="mb-4 text-3xl font-bold">
               ${billing === "monthly" ? "0" : "0"}
-              <span style={{ fontSize: 16 }}>
+              <span className="text-base font-medium">
                 /{billing === "monthly" ? "mo" : "yr"}
               </span>
             </p>
-            <ul
-              style={{
-                textAlign: "left",
-                listStyle: "disc",
-                paddingLeft: 20,
-                color: "#555",
-              }}
-            >
+            <ul className="mb-6 list-disc space-y-1 text-left text-sm text-gray-600">
               <li>Bullet point</li>
               <li>Bullet point</li>
               <li>Bullet point</li>
             </ul>
             <a
               href="/auth"
-              style={{
-                marginTop: 16,
-                display: "inline-block",
-                padding: "8px 16px",
-                background: "#3b82f6",
-                color: "white",
-                borderRadius: 8,
-                textDecoration: "none",
-              }}
+              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
             >
               Choose plan
             </a>
           </div>
-          <div
-            style={{
-              position: "relative",
-              border: "2px solid #3b82f6",
-              borderRadius: 8,
-              padding: 24,
-              width: 280,
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: -16,
-                left: "50%",
-                transform: "translateX(-50%)",
-                background: "#3b82f6",
-                color: "white",
-                padding: "2px 8px",
-                borderRadius: 4,
-                fontSize: 12,
-              }}
-            >
+          <div className="relative w-72 rounded-lg border-2 border-blue-500 p-6 text-center">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white">
               Most Popular
             </div>
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Surf Seeker</h3>
-            <p style={{ marginBottom: 16 }}>Unlimited alerts</p>
-            <p style={{ fontSize: 24, fontWeight: 600 }}>
+            <h3 className="mb-2 text-xl font-semibold">Surf Seeker</h3>
+            <p className="mb-4">Unlimited alerts</p>
+            <p className="mb-4 text-3xl font-bold">
               ${billing === "monthly" ? "19" : "190"}
-              <span style={{ fontSize: 16 }}>
+              <span className="text-base font-medium">
                 /{billing === "monthly" ? "mo" : "yr"}
               </span>
             </p>
-            <ul
-              style={{
-                textAlign: "left",
-                listStyle: "disc",
-                paddingLeft: 20,
-                color: "#555",
-              }}
-            >
+            <ul className="mb-6 list-disc space-y-1 text-left text-sm text-gray-600">
               <li>Bullet point</li>
               <li>Bullet point</li>
               <li>Bullet point</li>
             </ul>
             <a
               href="/auth"
-              style={{
-                marginTop: 16,
-                display: "inline-block",
-                padding: "8px 16px",
-                background: "#3b82f6",
-                color: "white",
-                borderRadius: 8,
-                textDecoration: "none",
-              }}
+              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
             >
               Choose plan
             </a>
           </div>
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-              padding: 24,
-              width: 280,
-              textAlign: "center",
-            }}
-          >
-            <h3 style={{ fontSize: 20, marginBottom: 8 }}>Pro Rider</h3>
-            <p style={{ marginBottom: 16 }}>Advanced analytics</p>
-            <p style={{ fontSize: 24, fontWeight: 600 }}>
+          <div className="w-72 rounded-lg border border-gray-200 p-6 text-center">
+            <h3 className="mb-2 text-xl font-semibold">Pro Rider</h3>
+            <p className="mb-4">Advanced analytics</p>
+            <p className="mb-4 text-3xl font-bold">
               ${billing === "monthly" ? "39" : "390"}
-              <span style={{ fontSize: 16 }}>
+              <span className="text-base font-medium">
                 /{billing === "monthly" ? "mo" : "yr"}
               </span>
             </p>
-            <ul
-              style={{
-                textAlign: "left",
-                listStyle: "disc",
-                paddingLeft: 20,
-                color: "#555",
-              }}
-            >
+            <ul className="mb-6 list-disc space-y-1 text-left text-sm text-gray-600">
               <li>Bullet point</li>
               <li>Bullet point</li>
               <li>Bullet point</li>
             </ul>
             <a
               href="/auth"
-              style={{
-                marginTop: 16,
-                display: "inline-block",
-                padding: "8px 16px",
-                background: "#3b82f6",
-                color: "white",
-                borderRadius: 8,
-                textDecoration: "none",
-              }}
+              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
             >
               Choose plan
             </a>
@@ -426,3 +229,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
