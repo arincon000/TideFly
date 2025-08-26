@@ -1,3 +1,6 @@
+// TEMP: force Tailwind CSS to be included
+import "./globals.css";
+
 "use client";
 
 import { useState } from "react";
