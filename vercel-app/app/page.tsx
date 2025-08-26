@@ -9,7 +9,7 @@ export default function LandingPage() {
           padding: "16px 32px",
         }}
       >
-        <div style={{ fontWeight: 600 }}>TideFly</div>
+        <div style={{ fontWeight: 700, color: "#3b82f6" }}>TideFly</div>
         <div style={{ display: "flex", gap: 24 }}>
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
