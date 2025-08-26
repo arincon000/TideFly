@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
@@ -17,12 +17,14 @@ export default function AuthPage() {
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const view =
+  const initialView =
     (searchParams.get("view") as "sign_in" | "sign_up" | null) || "sign_in";
-  const helperText =
-    view === "sign_in"
-      ? "Don't have an account? Use the \u201cSign up\u201d link in the form."
-      : "Already have an account? Use the \u201cSign in\u201d link in the form.";
+  const [view, setView] = useState<"sign_in" | "sign_up">(initialView);
+
+  const handleViewChange = (next: "sign_in" | "sign_up") => {
+    setView(next);
+    router.replace(`/auth?view=${next}`);
+  };
 
   // If already signed in, go straight to /alerts
   useEffect(() => {
@@ -48,9 +50,32 @@ function AuthContent() {
           appearance={{ theme: ThemeSupa }}
           theme="dark"
           providers={[]} // add Google/GitHub later
+          showLinks={false}
           redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL || "https://tide-fly.vercel.app"}/reset`}
         />
-        <p className="text-sm text-zinc-400 mt-3">{helperText}</p>
+        <p className="text-sm text-zinc-400 mt-3">
+          {view === "sign_in" ? (
+            <>
+              Don't have an account?{" "}
+              <button
+                onClick={() => handleViewChange("sign_up")}
+                className="underline"
+              >
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button
+                onClick={() => handleViewChange("sign_in")}
+                className="underline"
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
       </div>
     </main>
   );
