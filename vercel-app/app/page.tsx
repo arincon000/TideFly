@@ -1,5 +1,4 @@
 "use client";
-import "./globals.css"; // TEMP: force Tailwind while we verify
 import { useState } from "react";
 
 export default function LandingPage() {
