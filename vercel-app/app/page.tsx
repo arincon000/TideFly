@@ -40,7 +40,14 @@ export default function LandingPage() {
           </a>
         </div>
       </nav>
-      <main style={{ textAlign: "center", padding: "60px 16px" }}>
+      <main
+        style={{
+          textAlign: "center",
+          padding: "80px 16px",
+          background: "linear-gradient(to bottom right,#e0f2fe,#ffffff)",
+          position: "relative",
+        }}
+      >
         <h1 style={{ fontSize: 48, marginBottom: 16 }}>
           Never miss the perfect
           <span
@@ -107,8 +114,23 @@ export default function LandingPage() {
             borderRadius: 8,
           }}
         ></div>
+        <svg
+          viewBox="0 0 1440 320"
+          style={{ position: "absolute", bottom: 0, left: 0, width: "100%" }}
+        >
+          <path
+            fill="#ffffff"
+            d="M0,160L60,181.3C120,203,240,245,360,234.7C480,224,600,160,720,128C840,96,960,96,1080,106.7C1200,117,1320,139,1380,149.3L1440,160L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"
+          ></path>
+        </svg>
       </main>
-      <section id="features" style={{ padding: "80px 16px" }}>
+      <section
+        id="features"
+        style={{
+          padding: "80px 16px",
+          background: "linear-gradient(to bottom,#ffffff,#f0f9ff)",
+        }}
+      >
         <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
           Stay ahead of the swell
         </h2>
@@ -154,7 +176,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      <section id="how" style={{ padding: "80px 16px", background: "#f0f2f4" }}>
+      <section
+        id="how"
+        style={{ padding: "80px 16px", background: "#f8fafc" }}
+      >
         <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
           How it works
         </h2>
@@ -197,7 +222,10 @@ export default function LandingPage() {
       </section>
       <section
         id="pricing"
-        style={{ padding: "80px 16px", background: "#f9fafb" }}
+        style={{
+          padding: "80px 16px",
+          background: "linear-gradient(to top,#e0f2fe,#ffffff)",
+        }}
       >
         <h2 style={{ textAlign: "center", fontSize: 32, marginBottom: 24 }}>
           Choose your wave hunting plan
