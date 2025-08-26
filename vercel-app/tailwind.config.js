@@ -1,6 +1,11 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ["./app/**/*.{ts,tsx,js,jsx,mdx}", "./components/**/*.{ts,tsx,js,jsx,mdx}"],
-  theme: { extend: {} },
+export default {
+  content: [
+    "./vercel-app/app/**/*.{ts,tsx,js,jsx,mdx}",
+    "./vercel-app/components/**/*.{ts,tsx,js,jsx,mdx}",
+  ],
+  theme: {
+    extend: {},
+  },
   plugins: [],
 };
