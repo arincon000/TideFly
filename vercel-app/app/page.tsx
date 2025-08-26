@@ -78,6 +78,11 @@ export default function LandingPage() {
           <div className="rounded-lg border border-gray-200 p-6 flex flex-col">
             <h3 className="text-lg font-semibold mb-2">Beach Bum</h3>
             <p className="text-gray-600 mb-4">Up to 2 alerts</p>
+            <ul className="mb-4 list-disc list-inside text-gray-600 space-y-1">
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+            </ul>
             <div className="mt-auto">
               <button className="w-full mt-4 px-4 py-2 bg-gray-100 rounded-md font-medium">
                 Choose plan
@@ -88,6 +93,11 @@ export default function LandingPage() {
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-xs px-2 py-1 rounded-full">Most Popular</span>
             <h3 className="text-lg font-semibold mb-2">Surf Seeker</h3>
             <p className="text-gray-600 mb-4">Unlimited alerts</p>
+            <ul className="mb-4 list-disc list-inside text-gray-600 space-y-1">
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+            </ul>
             <div className="mt-auto">
               <button className="w-full mt-4 px-4 py-2 bg-sky-500 text-white rounded-md font-medium">
                 Choose plan
@@ -97,6 +107,11 @@ export default function LandingPage() {
           <div className="rounded-lg border border-gray-200 p-6 flex flex-col">
             <h3 className="text-lg font-semibold mb-2">Pro Rider</h3>
             <p className="text-gray-600 mb-4">Advanced analytics</p>
+            <ul className="mb-4 list-disc list-inside text-gray-600 space-y-1">
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+              <li>Bullet point</li>
+            </ul>
             <div className="mt-auto">
               <button className="w-full mt-4 px-4 py-2 bg-gray-100 rounded-md font-medium">
                 Choose plan
