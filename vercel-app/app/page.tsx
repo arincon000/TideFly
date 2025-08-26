@@ -1,8 +1,5 @@
-// TEMP: force Tailwind CSS to be included
-import "./globals.css";
-
 "use client";
-
+import "./globals.css"; // TEMP: force Tailwind while we verify
 import { useState } from "react";
 
 export default function LandingPage() {
