@@ -23,11 +23,11 @@ export default function LandingPage() {
           <a href="#how">How it works</a>
         </div>
         <div style={{ display: "flex", gap: 16 }}>
-          <a href="/auth" style={{ textDecoration: "none" }}>
+          <a href="/auth?view=sign_in" style={{ textDecoration: "none" }}>
             Sign in
           </a>
           <a
-            href="/auth"
+            href="/auth?view=sign_up"
             style={{
               padding: "8px 16px",
               background: "#3b82f6",
@@ -81,7 +81,7 @@ export default function LandingPage() {
           }}
         >
           <a
-            href="/auth"
+            href="/auth?view=sign_up"
             style={{
               padding: "12px 24px",
               background: "#3b82f6",
@@ -303,7 +303,7 @@ export default function LandingPage() {
               <li>Bullet point</li>
             </ul>
             <a
-              href="/auth"
+              href="/auth?view=sign_up"
               style={{
                 marginTop: 16,
                 display: "inline-block",
@@ -363,7 +363,7 @@ export default function LandingPage() {
               <li>Bullet point</li>
             </ul>
             <a
-              href="/auth"
+              href="/auth?view=sign_up"
               style={{
                 marginTop: 16,
                 display: "inline-block",
@@ -407,7 +407,7 @@ export default function LandingPage() {
               <li>Bullet point</li>
             </ul>
             <a
-              href="/auth"
+              href="/auth?view=sign_up"
               style={{
                 marginTop: 16,
                 display: "inline-block",
