@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = { title: "TideFly", description: "Surf + flight alerts" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
