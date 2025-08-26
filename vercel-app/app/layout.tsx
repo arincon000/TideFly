@@ -5,7 +5,7 @@ export const metadata = { title: "TideFly", description: "Surf + flight alerts" 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ fontFamily: "ui-sans-serif, system-ui", margin: 0 }}>{children}</body>
+      <body className="m-0 font-sans">{children}</body>
     </html>
   );
 }
