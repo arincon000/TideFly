@@ -48,7 +48,7 @@ function AuthContent() {
           appearance={{ theme: ThemeSupa }}
           theme="dark"
           providers={[]} // add Google/GitHub later
-          redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL || "https://tide-fly.vercel.app"}/reset`}
+          redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL || `https://${process.env.VERCEL_URL}`}/reset`}
         />
         <p className="text-sm text-zinc-400 mt-3">{helperText}</p>
       </div>
