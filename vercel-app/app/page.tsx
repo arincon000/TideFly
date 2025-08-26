@@ -16,7 +16,7 @@ export default function LandingPage() {
           <a href="#how">How it works</a>
         </div>
         <div style={{ display: "flex", gap: 16 }}>
-          <a href="/auth" style={{ textDecoration: "none" }}>
+          <a href="/auth?view=sign-in" style={{ textDecoration: "none" }}>
             Sign in
           </a>
           <a
