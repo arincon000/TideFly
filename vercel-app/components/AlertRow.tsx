@@ -57,34 +57,69 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
   };
 
   return (
-    <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 10, marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ fontWeight: 600 }}>{rule.name ?? "Surf Alert"}</div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between">
+        {/* Left side - Alert details */}
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="text-xl font-bold text-slate-900">{rule.name ?? "Surf Alert"}</h3>
             <StatusPill status={status?.status ?? undefined} />
           </div>
-          <div style={{ fontSize: 13, opacity: 0.75 }}>
-            {rule.origin_iata} → {rule.dest_iata} &nbsp;|&nbsp; spot #{rule.spot_id} &nbsp;|&nbsp; window {rule.forecast_window ?? 5}d
+          
+          <div className="space-y-2 text-sm text-slate-600">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400" aria-hidden>📍</span>
+              <span>{rule.origin_iata} → {rule.dest_iata}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400" aria-hidden>🌊</span>
+              <span>spot #{rule.spot_id}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400" aria-hidden>⏰</span>
+              <span>window {rule.forecast_window ?? 5}d</span>
+            </div>
+            {status?.sent_at && (
+              <div className="text-xs text-slate-500">
+                Last checked: {relTime(status.sent_at)}
+              </div>
+            )}
           </div>
-          {(() => {
-            const parts: string[] = [];
-            if (status?.sent_at) parts.push(`Last checked: ${relTime(status.sent_at)}`);
-            if (status?.price != null) parts.push(`Price: €${status.price.toFixed(2)}`);
-            if (status?.ok_dates_count != null) parts.push(`OK: ${status.ok_dates_count}`);
-            return parts.length > 0 ? (
-              <div style={{ fontSize: 12, opacity: 0.75 }}>{parts.join(" • ")}</div>
-            ) : null;
-          })()}
+
           {rule.paused_until && (
-            <div style={{ fontSize: 12, color: "#a66" }}>
+            <div className="mt-3 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
               Snoozed until {new Date(rule.paused_until).toLocaleString()}
             </div>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={toggleActive}>{rule.is_active ? "Pause" : "Resume"}</button>
-          <button onClick={snooze7}>Snooze 7d</button>
+
+        {/* Right side - Value and actions */}
+        <div className="flex flex-col items-end gap-4">
+          <div className="text-right">
+            <div className="text-2xl font-bold text-slate-900">
+              €{(status?.price ?? 0).toFixed(2)}
+            </div>
+            <div className="text-sm text-slate-500">
+              OK: {status?.ok_dates_count ?? 0}
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={toggleActive}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+            >
+              <span className="text-slate-400" aria-hidden>⏸</span>
+              {rule.is_active ? "Pause" : "Resume"}
+            </button>
+            <button
+              onClick={snooze7}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+            >
+              <span className="text-slate-400" aria-hidden>🔄</span>
+              Snooze 7d
+            </button>
+          </div>
         </div>
       </div>
     </div>

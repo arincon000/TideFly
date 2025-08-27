@@ -19,15 +19,15 @@ export default function NewAlert() {
   const [origin, setOrigin] = useState<string>("");
   const [dest, setDest] = useState<string>("");
   const [forecastWindow, setForecastWindow] = useState<number>(5);
-  const [minWave, setMinWave] = useState<number>(0.8);
+  const [minWave, setMinWave] = useState<number>(1.2);
   const [maxWind, setMaxWind] = useState<number>(25);
   const [minN, setMinN] = useState<number>(2);
-  const [maxN, setMaxN] = useState<number>(5);
+  const [maxN, setMaxN] = useState<number>(14);
   const [daysMask, setDaysMask] = useState<number>(127); // all days
   const [originError, setOriginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [plan, setPlan] = useState<Plan>("free");
-  const [maxPrice, setMaxPrice] = useState<number>(300);
+  const [maxPrice, setMaxPrice] = useState<number>(800);
 
   const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
 
@@ -105,95 +105,268 @@ export default function NewAlert() {
   };
 
   return (
-    <>
-      <h2>New alert</h2>
-      <form onSubmit={submit} style={{ display: "grid", gap: 12, maxWidth: 560 }}>
-        <label> Name
-          <input value={name} onChange={e => setName(e.target.value)} required />
-        </label>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <a
+          href="/alerts"
+          className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 transition-colors duration-200 ease-out mb-4"
+        >
+          ← Back to alerts
+        </a>
+        <h1 className="text-3xl font-bold text-slate-900">Create new surf alert</h1>
+        <p className="mt-2 text-lg text-slate-600">
+          Set up intelligent notifications for perfect surf conditions and travel deals
+        </p>
+      </div>
 
-        <label> Spot
-          <select value={spotId} onChange={e => onSpotChange(e.target.value)}>
-            <option value="">-- select --</option>
-            {spots.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </label>
+      {/* Form */}
+      <form onSubmit={submit} className="space-y-6">
+        {/* Alert Details Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-2xl" aria-hidden>🌊</span>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Alert Details</h2>
+              <p className="text-slate-600">Give your alert a name and select your target surf spot.</p>
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-semibold text-slate-900 mb-2">
+                Alert Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                placeholder="e.g., Pipeline Winter Sessions"
+              />
+            </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Origin (IATA)
-            <AirportAutocomplete
-              value={origin}
-              onChange={iata => {
-                const upper = iata.toUpperCase();
-                setOrigin(upper);
-                setOriginError(isIata(upper) ? null : "Please enter a valid 3-letter IATA code (e.g., BOG).");
-              }}
-              placeholder={home || "e.g. LIS"}
-            />
-            {originError && <p className="mt-1 text-sm text-red-600">{originError}</p>}
-          </label>
-          <label> Destination (IATA)
-            <input
-              value={dest}
-              onChange={e => setDest(e.target.value.toUpperCase().slice(0, 3))}
-              placeholder="auto from spot"
-              maxLength={3}
-            />
-          </label>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Forecast window (days)
-            <input type="number" min={1} max={10} value={forecastWindow} onChange={e => setForecastWindow(+e.target.value)} />
-          </label>
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Days mask</div>
-            <button type="button" onClick={() => setDaysMask(127)}>All days</button>{" "}
-            <button type="button" onClick={weekendsOnly}>Weekends only</button>
+            <div>
+              <label htmlFor="spot" className="block text-sm font-semibold text-slate-900 mb-2">
+                Surf Spot
+              </label>
+              <select
+                id="spot"
+                value={spotId}
+                onChange={e => onSpotChange(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              >
+                <option value="">Select surf spot</option>
+                {spots.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Min wave (m)
-            <input type="number" step="0.1" value={minWave} onChange={e => setMinWave(+e.target.value)} />
-          </label>
-          <label> Max wind (km/h)
-            <input type="number" value={maxWind} onChange={e => setMaxWind(+e.target.value)} />
-          </label>
+        {/* Travel Preferences Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-2xl" aria-hidden>📍</span>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Travel Preferences</h2>
+              <p className="text-slate-600">Configure your departure location and trip duration.</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="origin" className="block text-sm font-semibold text-slate-900 mb-2">
+                Origin Airport (IATA)
+              </label>
+              <AirportAutocomplete
+                value={origin}
+                onChange={iata => {
+                  const upper = iata.toUpperCase();
+                  setOrigin(upper);
+                  setOriginError(isIata(upper) ? null : "Please enter a valid 3-letter IATA code (e.g., BOG).");
+                }}
+                placeholder={home || "e.g., LAX"}
+              />
+              {originError && <p className="mt-1 text-sm text-red-600">{originError}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="dest" className="block text-sm font-semibold text-slate-900 mb-2">
+                Destination Airport (IATA)
+              </label>
+              <input
+                id="dest"
+                type="text"
+                value={dest}
+                onChange={e => setDest(e.target.value.toUpperCase().slice(0, 3))}
+                placeholder="auto from spot"
+                maxLength={3}
+                disabled
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-500 bg-slate-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="minNights" className="block text-sm font-semibold text-slate-900 mb-2">
+                Min Nights
+              </label>
+              <input
+                id="minNights"
+                type="number"
+                min={1}
+                value={minN}
+                onChange={e => setMinN(+e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="maxNights" className="block text-sm font-semibold text-slate-900 mb-2">
+                Max Nights
+              </label>
+              <input
+                id="maxNights"
+                type="number"
+                min={minN}
+                value={maxN}
+                onChange={e => setMaxN(+e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label htmlFor="maxPrice" className="block text-sm font-semibold text-slate-900 mb-2">
+                Max Price (€)
+              </label>
+              <input
+                id="maxPrice"
+                type="number"
+                min={50}
+                max={5000}
+                step={0.01}
+                value={maxPrice}
+                onChange={e => setMaxPrice(+e.target.value)}
+                disabled={plan !== "premium"}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:bg-slate-50 disabled:text-slate-500"
+              />
+              {plan !== "premium" && (
+                <p className="mt-1 text-sm text-slate-600">
+                  <a href="/upgrade" className="text-blue-600 hover:text-blue-700">Upgrade to premium</a> to set custom price limits
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label> Min nights
-            <input type="number" min={1} value={minN} onChange={e => setMinN(+e.target.value)} />
-          </label>
-          <label> Max nights
-            <input type="number" min={minN} value={maxN} onChange={e => setMaxN(+e.target.value)} />
-          </label>
+        {/* Surf Conditions Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-2xl" aria-hidden>🌊</span>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Surf Conditions</h2>
+              <p className="text-slate-600">Define your ideal wave and weather conditions.</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label htmlFor="forecastWindow" className="block text-sm font-semibold text-slate-900 mb-2">
+                Forecast Window (days)
+              </label>
+              <input
+                id="forecastWindow"
+                type="number"
+                min={1}
+                max={10}
+                value={forecastWindow}
+                onChange={e => setForecastWindow(+e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="minWave" className="block text-sm font-semibold text-slate-900 mb-2">
+                Min Wave Height (m)
+              </label>
+              <input
+                id="minWave"
+                type="number"
+                step="0.1"
+                value={minWave}
+                onChange={e => setMinWave(+e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="maxWind" className="block text-sm font-semibold text-slate-900 mb-2">
+                Max Wind Speed (km/h)
+              </label>
+              <input
+                id="maxWind"
+                type="number"
+                value={maxWind}
+                onChange={e => setMaxWind(+e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <label className="block text-sm font-semibold text-slate-900 mb-3">Days Preference</label>
+            <div className="inline-flex rounded-full border border-slate-200 p-1">
+              <button
+                type="button"
+                onClick={() => setDaysMask(127)}
+                className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
+                  daysMask === 127 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                All days
+              </button>
+              <button
+                type="button"
+                onClick={weekendsOnly}
+                className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
+                  daysMask === WEEKENDS 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Weekends only
+              </button>
+            </div>
+          </div>
         </div>
 
-        <label> Max price (€)
-          <input
-            type="number"
-            min={50}
-            max={5000}
-            step={0.01}
-            value={maxPrice}
-            onChange={e => setMaxPrice(+e.target.value)}
-            disabled={plan !== "premium"}
-          />
-          {plan !== "premium" && (
-            <div style={{ fontSize: 12 }}><a href="/upgrade">Upgrade</a></div>
-          )}
-        </label>
-
-        <button
-          type="submit"
-          disabled={!isIata(origin) || isSubmitting}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-        >
-          {isSubmitting ? "Saving..." : "Create alert"}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-4 pt-6">
+          <a
+            href="/alerts"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-6 py-3 text-slate-700 font-semibold hover:bg-slate-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          >
+            Cancel
+          </a>
+          <button
+            type="submit"
+            disabled={!isIata(origin) || isSubmitting}
+            className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          >
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Creating...
+              </div>
+            ) : (
+              "Create Alert"
+            )}
+          </button>
+        </div>
       </form>
-    </>
+    </div>
   );
 }

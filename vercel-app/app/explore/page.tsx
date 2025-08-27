@@ -1,13 +1,8 @@
 "use client";
 
 import RequireAuth from "@/components/RequireAuth";
-import SignOutButton from "@/components/SignOutButton";
 
-export default function AlertsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ExplorePage() {
   return (
     <RequireAuth>
       <div className="min-h-screen bg-white">
@@ -45,14 +40,39 @@ export default function AlertsLayout({
               >
                 Dashboard
               </a>
-              <SignOutButton />
             </div>
           </div>
         </header>
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          {children}
+          <div className="space-y-8">
+            {/* Header */}
+            <div>
+              <a
+                href="/alerts"
+                className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 transition-colors duration-200 ease-out mb-4"
+              >
+                ← Back to alerts
+              </a>
+              <h1 className="text-3xl font-bold text-slate-900">Explore Spots</h1>
+              <p className="mt-2 text-lg text-slate-600">
+                Discover amazing surf spots around the world
+              </p>
+            </div>
+
+            {/* Placeholder Content */}
+            <div className="text-center py-12">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-sky-100 grid place-items-center">
+                <span className="text-2xl" aria-hidden>📍</span>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Coming Soon</h3>
+              <p className="text-slate-600">
+                The explore spots feature is currently under development. 
+                You'll be able to discover and explore surf spots from around the world.
+              </p>
+            </div>
+          </div>
         </main>
       </div>
     </RequireAuth>
