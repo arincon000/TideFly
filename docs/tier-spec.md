@@ -34,7 +34,7 @@ Beginner: 0.8–1.5 m, ≤25 km/h
 Intermediate: 1.2–2.5 m, ≤30 km/h
 
 Advanced: 2.0–4.0 m, ≤35 km/h
-Notes: each spot stores skill_level; worker prefers spot overrides if present.
+Notes: each spot stores `skill_level`; worker prefers spot overrides if present.
 
 3) Forecast Window Categories (inclusive)
 
