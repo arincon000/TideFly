@@ -1,4 +1,5 @@
 TideFly Tier Spec (Phase 0)
+Status: FROZEN (Phase 0) — changes require a PR and reviewer approval Frozen date: 2025-09-01
 
 Purpose. Freeze behavior for Free vs Pro so DB rules, UI gating, and worker logic are consistent at launch (Explore = sneak peek only).
 
