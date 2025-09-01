@@ -1,5 +1,3 @@
----
-
 # Spot metadata (MVP schema & rules)
 
 **Status:** FROZEN (Phase 0) — changes require a PR and reviewer approval
