@@ -43,7 +43,8 @@ Confident: 0–5 days (Free & Pro) — highest skill
 Swell Watch: 6–10 (Pro) — medium confidence
 
 Long Watch (trend-only): 11–16 (Pro) — trend guidance, conservative messaging
-Daytime = 06:00–18:00 in spot’s IANA timezone; all date math uses that timezone.
+Timezone/Daytime: “Daytime” = 06:00–18:00 in the spot’s IANA timezone; all date math uses that timezone.
+
 
 4) Spot Metadata (seed requirements)
 
@@ -148,3 +149,5 @@ Daytime & threshold pinned (06:00–18:00, ≥4 hours).
 Spot metadata: required fields present for ≥90 seeded spots; IANA timezones valid; consistent country naming; deduped; coordinate precision OK; skill_level set (or mapped).
 
 Free/Pro behaviors above are the contract for Phases 1–3.
+
+Worker stamps event notes on each alert: tier, matched (preset/custom), window_category|exact_days, ignored_price_for_free, price_flag, (optional) airports_considered.
