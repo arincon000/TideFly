@@ -86,3 +86,4 @@ Validation checklist (for seeding)
  active true (unless intentionally hidden)
 
 CSV header for seeding (also stored at data/spots.seed.header.csv):
+id,name,country,region_major,latitude,longitude,timezone,primary_airport_iata,secondary_airports_iata,difficulty,skill_level,wave_min_m,wave_max_m,wind_max_kmh,seasonality,season_months,orientation,notes,slug,active,created_at
