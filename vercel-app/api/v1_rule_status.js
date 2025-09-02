@@ -1,12 +1,20 @@
+import { supabase } from '../../lib/supabase/server.js';
+
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).send('Method Not Allowed');
-  const { rule_id } = req.query || {};
-  let url = process.env.SUPABASE_URL + '/rest/v1/api.v1_rule_status';
-  if (rule_id) url += `?rule_id=eq.${encodeURIComponent(rule_id)}`;
-  const r = await fetch(url, { headers: {
-    'apikey': process.env.SUPABASE_SERVICE_KEY,
-    'Authorization': 'Bearer ' + process.env.SUPABASE_SERVICE_KEY
-  }});
-  const data = await r.json();
-  res.status(200).json(data);
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('api.v1_rule_status')
+      .select('*');
+
+    if (error) throw error;
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching rule status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../supabaseClient';
+import { normalizeTier, type Tier } from './normalizeTier';
 
-export type PlanTier = 'free' | 'pro';
+export type PlanTier = Tier;
 
 export type TierMe = {
   id: string;
@@ -47,7 +48,7 @@ export function useTier() {
   };
 
   return { 
-    tier: data?.plan_tier ?? 'free', 
+    tier: normalizeTier(data?.plan_tier), 
     me: data, 
     loading, 
     error,

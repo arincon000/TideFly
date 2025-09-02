@@ -1,4 +1,6 @@
-export type PlanTier = 'free' | 'pro';
+import { type Tier } from '../tier/normalizeTier';
+
+export type PlanTier = Tier;
 
 export type FormValues = {
 	name: string;
