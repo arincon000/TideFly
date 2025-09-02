@@ -66,10 +66,9 @@ export default function ExplorePage() {
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-sky-100 grid place-items-center">
                 <span className="text-2xl" aria-hidden>📍</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Coming Soon</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Sneak Peek</h3>
               <p className="text-slate-600">
-                The explore spots feature is currently under development. 
-                You'll be able to discover and explore surf spots from around the world.
+                Discover surf destinations on a map and let TideFly 'surprise you' within your budget. Pro users get early access.
               </p>
             </div>
           </div>
