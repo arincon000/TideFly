@@ -2,6 +2,8 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import { StatusPill } from "@/components/StatusPill";
+import { useTier } from "@/lib/tier/useTier";
+import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
 
 export type AlertRule = {
   id: string;
@@ -24,7 +26,16 @@ export type RuleStatus = {
 };
 
 export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: RuleStatus; refresh: () => void }) {
+  const { tier } = useTier();
+  const { active, activeMax, atActiveCap } = useAlertUsage(tier);
+
   const toggleActive = async () => {
+    // If trying to resume (activate) and at active cap, show error
+    if (!rule.is_active && atActiveCap) {
+      alert(`You're at your active limit (${active}/${activeMax}) for ${tier}. Pause/delete another alert, or upgrade to Pro.`);
+      return;
+    }
+    
     await supabase.from("alert_rules")
       .update({ is_active: !rule.is_active })
       .eq("id", rule.id);

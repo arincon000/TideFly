@@ -21,7 +21,7 @@ type Spot = {
 
 export default function NewAlert() {
   const { tier, me, loading: tierLoading } = useTier();
-  const { used, cap, atCap, loading: usageLoading } = useAlertUsage(tier);
+  const { created, createdMax, atCreateCap, loading: usageLoading } = useAlertUsage(tier);
   const { categories, loading: categoriesLoading } = useWindowCategories();
   
   const [userId, setUserId] = useState<string | null>(null);
@@ -103,12 +103,12 @@ export default function NewAlert() {
   }
 
   const canSubmit = () => {
-    return selectedSkill && selectedSpot && isIata(origin) && minN > 0 && maxN >= minN && !atCap;
+    return selectedSkill && selectedSpot && isIata(origin) && minN > 0 && maxN >= minN && !atCreateCap;
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (atCap || !canSubmit()) return;
+    if (atCreateCap || !canSubmit()) return;
     
     const originIata = (origin || "").toUpperCase();
     if (!isIata(originIata)) {
@@ -195,7 +195,7 @@ export default function NewAlert() {
       </div>
 
       {/* Usage Banner */}
-      <UsageBanner tier={tier} used={used} cap={cap} atCap={atCap} />
+      <UsageBanner />
 
       {/* Form */}
       <form onSubmit={submit} className="space-y-8">
@@ -490,6 +490,13 @@ export default function NewAlert() {
           </div>
         )}
 
+        {/* Create Cap Error */}
+        {atCreateCap && (
+          <div className="mt-3 text-sm text-red-600">
+            You've reached your created alerts limit ({created}/{createdMax}) for {tier}. Pause or delete one, or upgrade to Pro.
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-6">
           <a
@@ -502,7 +509,7 @@ export default function NewAlert() {
           <div className="flex items-center gap-4">
             <button
               type="submit"
-              disabled={!canSubmit() || isSubmitting || atCap}
+              disabled={!canSubmit() || isSubmitting || atCreateCap}
               className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
             >
               {isSubmitting ? (

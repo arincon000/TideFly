@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { AlertRow, type AlertRule, type RuleStatus } from "@/components/AlertRow";
+import UsageBanner from "@/components/alerts/UsageBanner";
 
 export default function AlertsPage() {
   const [rules, setRules] = useState<AlertRule[] | null>(null);
@@ -80,6 +81,9 @@ export default function AlertsPage() {
           </a>
         </div>
       </div>
+
+      {/* Usage Banner */}
+      <UsageBanner />
 
       {/* Alerts List */}
       <div className="space-y-4">
