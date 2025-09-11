@@ -130,6 +130,7 @@ A date qualifies if **all** true:
 - Worker schedule unchanged; cadence is **per alert** via `alert_rules.cooldown_hours`
 - **Phase 2 defaults:** `FREE_COOLDOWN_HOURS=24`, `PRO_COOLDOWN_HOURS=24`  
   *(We may flip Pro to 12h later via env without code.)*
+- **Worker runs hourly via GitHub Actions. Each alert enforces cooldown_hours=24, so each rule executes at most once per 24h.**
 
 ---
 

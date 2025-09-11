@@ -7,6 +7,7 @@ from typing import Optional, Tuple, List, Dict
 
 import requests
 from supabase import create_client, Client
+import pytz
 
 from dotenv import load_dotenv
 import pathlib
@@ -31,12 +32,130 @@ TP_P_HOTELLOOK = os.getenv("TP_P_HOTELLOOK") or "4115"
 AMADEUS_MODE = (os.getenv("AMADEUS_MODE") or "api").lower()  # "api" | "fake"
 AMADEUS_FAKE_PRICE = float(os.getenv("AMADEUS_FAKE_PRICE") or 199.0)
 DRY_RUN = (os.getenv("DRY_RUN") or "false").lower() == "true"
+
+# Forecast checking
+ENABLE_FORECAST_CHECK = os.getenv("ENABLE_FORECAST_CHECK", "true").lower() == "true"
+WAVE_KEY = os.getenv("FORECAST_WAVE_KEY", "p50_m")
+WIND_KEY = os.getenv("FORECAST_WIND_KEY", "p50_kmh")
 # keep your existing AMADEUS_ENV logic as-is (defaults to test)
 
 # --------- Helpers ---------
 
 def _now_utc() -> datetime:
 	return datetime.now(timezone.utc)
+
+
+def _dow_mask_allows(d: date, tzname: str, days_mask: int) -> bool:
+	"""
+	days_mask uses 0=Sun..6=Sat. We treat forecast_cache.date as local date for the spot.
+	If you prefer strict tz handling, convert midnight local; for daily data it's equivalent.
+	"""
+	# Python weekday(): Monday=0..Sunday=6; we need Sunday=0..Saturday=6
+	# Map: Mon(0)->1, Tue(1)->2, ..., Sat(5)->6, Sun(6)->0
+	mon0 = d.weekday()
+	sun0 = (mon0 + 1) % 7
+	return (days_mask & (1 << sun0)) != 0
+
+
+def _extract_number(j: dict | None, preferred_key: str, fallbacks: tuple[str, ...]) -> float | None:
+	if not isinstance(j, dict):
+		return None
+	if preferred_key in j and isinstance(j[preferred_key], (int, float)):
+		return float(j[preferred_key])
+	for k in fallbacks:
+		v = j.get(k)
+		if isinstance(v, (int, float)):
+			return float(v)
+	return None
+
+
+def fetch_forecast_days(supabase: Client, spot_id: str, start_date: date, end_date: date):
+	"""Fetch forecast data for a spot within date range."""
+	try:
+		res = supabase.table("forecast_cache").select(
+			"date, morning_ok, wave_stats, wind_stats"
+		).eq("spot_id", spot_id).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).order("date", desc=False).execute()
+		return res.data or []
+	except Exception as e:
+		print(f"[forecast] fetch error spot_id={spot_id}: {e}")
+		return []
+
+
+def get_spot_timezone(supabase: Client, spot_id: str) -> str:
+	"""Get timezone for a spot."""
+	try:
+		res = supabase.table("spots").select("timezone").eq("id", spot_id).single().execute()
+		return res.data.get("timezone") if res.data else "UTC"
+	except Exception as e:
+		print(f"[forecast] timezone error spot_id={spot_id}: {e}")
+		return "UTC"
+
+
+def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
+	"""Return True if ANY day in the window matches wave/wind constraints & day mask."""
+	if not ENABLE_FORECAST_CHECK:
+		return True
+
+	wm = rule.get("wave_min_m")
+	wM = rule.get("wave_max_m")
+	vK = rule.get("wind_max_kmh")
+	# If no pro filters set, nothing to enforce
+	if wm is None and wM is None and vK is None:
+		return True
+
+	spot_id = rule.get("spot_id")
+	if not spot_id:
+		print(f"[forecast] rule_id={rule.get('id')} has no spot_id, skipping forecast check")
+		return True  # Skip forecast check if no spot_id
+	
+	window_days = int(rule.get("forecast_window") or 5)
+
+	today_utc = datetime.now(timezone.utc).date()
+	end_date = today_utc + timedelta(days=window_days)
+
+	rows = fetch_forecast_days(supabase, spot_id=spot_id, start_date=today_utc, end_date=end_date)
+	if not rows:
+		return False  # no data => don't notify
+
+	tzname = get_spot_timezone(supabase, spot_id)
+	days_mask = int(rule.get("days_mask") or 0b1111111)
+
+	# keys we'll try if preferred ones aren't present
+	# waves in meters
+	wave_fallbacks = ("p90_m", "max_m", "mean_m", "avg_m", "median_m", "p50", "max", "mean")
+	# wind in km/h
+	wind_fallbacks = ("p90_kmh", "max_kmh", "mean_kmh", "avg_kmh", "median_kmh", "p50", "max", "mean")
+
+	for r in rows:
+		try:
+			d = datetime.fromisoformat(str(r["date"])).date()
+		except Exception:
+			continue
+			
+		if not _dow_mask_allows(d, tzname, days_mask):
+			continue
+
+		wv = _extract_number(r.get("wave_stats"), WAVE_KEY, wave_fallbacks)
+		wd = _extract_number(r.get("wind_stats"), WIND_KEY, wind_fallbacks)
+
+		wave_ok = True
+		if wm is not None:
+			wave_ok = (wv is not None and wv >= float(wm))
+		if wave_ok and wM is not None:
+			wave_ok = (wv is not None and wv <= float(wM))
+
+		wind_ok = True
+		if vK is not None:
+			wind_ok = (wd is not None and wd <= float(vK))
+
+		# If your upstream computed morning_ok as an all-in-one flag, we can require it too:
+		# morning_ok is optional; default True if absent
+		morning_ok = bool(r.get("morning_ok", True))
+
+		if morning_ok and wave_ok and wind_ok:
+			return True
+
+	return False
 
 
 def _with_backoff(fn, *a, **kw):
@@ -356,6 +475,27 @@ def main():
 	errors = 0
 	for a in eligible:
 		try:
+			# Check forecast conditions before processing
+			if not forecast_ok_daily(sb, a):
+				print(f"[forecast] rule_id={a['id']} skipped - forecast conditions not met")
+				# Log the skip event (use "sent" status to avoid constraint issues)
+				try:
+					sb.table("alert_events").insert({
+						"rule_id": a["id"],
+						"sent_at": _now_utc().isoformat(),
+						"tier": a.get("tier") or "unknown",
+						"summary_hash": hashlib.sha1(f"forecast_skip_{a['id']}".encode("utf-8")).hexdigest()[:16],
+						"status": "sent",
+						"reason": "forecast:not_ok",
+						"ok_dates": [],
+						"ok_dates_count": 0
+					}).execute()
+				except Exception as log_err:
+					print(f"[forecast] log error: {log_err}")
+				# Update last_checked_at
+				sb.table("alert_rules").update({"last_checked_at": _now_utc().isoformat()}).eq("id", a["id"]).execute()
+				continue
+			
 			ok, f_url, h_url = process_alert(sb, a)
 			matched += 1 if ok else 0
 			emailed += 1 if ok else 0
