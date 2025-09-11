@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { WEEKENDS } from "@/lib/days";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
 import { useTier, type Tier } from "@/lib/tier/useTier";
 import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
-import { useWindowCategories } from "@/lib/forecast/useWindowCategories";
+import { useWindowCategories, DAYS_PREFS, daysMask } from "@/lib/alerts/useWindowCategories";
 import SkillChips, { type SkillLevel } from "@/components/alerts/SkillChips";
 import WindowRadios from "@/components/alerts/WindowRadios";
 import UsageBanner from "@/components/alerts/UsageBanner";
@@ -23,7 +22,7 @@ export default function NewAlert() {
   const { tier, loading: tierLoading } = useTier();
   const { created, createdMax, atCreateCap, loading: usageLoading } = useAlertUsage(tier);
   const isPro = tier === 'pro';
-  const { categories, loading: categoriesLoading } = useWindowCategories();
+  const { options: windowOptions, defaultValue: defaultWindow } = useWindowCategories(tier);
   
   const [userId, setUserId] = useState<string | null>(null);
   const [home, setHome] = useState<string>("");
@@ -33,12 +32,12 @@ export default function NewAlert() {
   // Form state
   const [selectedSkill, setSelectedSkill] = useState<SkillLevel | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
-  const [forecastWindow, setForecastWindow] = useState<number>(5);
+  const [forecastWindow, setForecastWindow] = useState<number>(defaultWindow);
   const [name, setName] = useState("Surf Alert");
   const [origin, setOrigin] = useState<string>("");
   const [minN, setMinN] = useState<number>(2);
   const [maxN, setMaxN] = useState<number>(14);
-  const [daysMask, setDaysMask] = useState<number>(127); // all days
+  const [daysMask, setDaysMask] = useState<number>(DAYS_PREFS.all.mask); // all days
   
   // Pro-only fields
   const [minWave, setMinWave] = useState<number>(1.2);
@@ -51,7 +50,7 @@ export default function NewAlert() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
-  const isLoading = tierLoading || usageLoading || categoriesLoading;
+  const isLoading = tierLoading || usageLoading;
 
   useEffect(() => {
     (async () => {
@@ -86,17 +85,11 @@ export default function NewAlert() {
     }
   }, [selectedSkill, spots]);
 
-  // Set default forecast window when categories load
+  // Update forecast window when tier changes
   useEffect(() => {
-    if (categories.length > 0 && !isPro) {
-      const confidentCategory = categories.find(c => c.key === 'confident');
-      if (confidentCategory) {
-        setForecastWindow(confidentCategory.value);
-      }
-    }
-  }, [categories, isPro]);
+    setForecastWindow(defaultWindow);
+  }, [defaultWindow]);
 
-  const weekendsOnly = () => setDaysMask(WEEKENDS);
 
   function onSpotChange(id: string) {
     const spot = spots.find(x => x.id === id);
@@ -272,7 +265,7 @@ export default function NewAlert() {
           
           <WindowRadios
             tier={tier}
-            categories={categories}
+            categories={windowOptions}
             value={forecastWindow}
             onChange={setForecastWindow}
           />
@@ -373,25 +366,25 @@ export default function NewAlert() {
               <div className="inline-flex rounded-full border border-slate-200 p-1">
                 <button
                   type="button"
-                  onClick={() => setDaysMask(127)}
+                  onClick={() => setDaysMask(DAYS_PREFS.all.mask)}
                   className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
-                    daysMask === 127 
+                    daysMask === DAYS_PREFS.all.mask 
                       ? 'bg-blue-600 text-white' 
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  All days
+                  {DAYS_PREFS.all.label}
                 </button>
                 <button
                   type="button"
-                  onClick={weekendsOnly}
+                  onClick={() => setDaysMask(DAYS_PREFS.weekends.mask)}
                   className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 ${
-                    daysMask === WEEKENDS 
+                    daysMask === DAYS_PREFS.weekends.mask 
                       ? 'bg-blue-600 text-white' 
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  Weekends only
+                  {DAYS_PREFS.weekends.label}
                 </button>
               </div>
             </div>

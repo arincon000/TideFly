@@ -1,5 +1,5 @@
 import { Tier } from '@/lib/tier/useTier';
-import { WindowCategory } from '@/lib/forecast/useWindowCategories';
+import { WindowCategory } from '@/lib/alerts/useWindowCategories';
 
 interface WindowRadiosProps {
   tier: Tier;
@@ -22,11 +22,11 @@ export default function WindowRadios({ tier, categories, value, onChange }: Wind
       
       <div className="space-y-3">
         {categories.map((category) => {
-          const isDisabled = !category.freeAllowed && tier === 'free';
+          const isDisabled = category.proOnly && tier === 'free';
           const isSelected = value === category.value;
           
           return (
-            <div key={category.key} className="relative">
+            <div key={category.id} className="relative">
               <label
                 className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                   isSelected
@@ -57,7 +57,7 @@ export default function WindowRadios({ tier, categories, value, onChange }: Wind
                       <div className={`text-sm ${
                         isDisabled ? 'text-slate-400' : 'text-slate-600'
                       }`}>
-                        {category.range[0]}–{category.range[1]} days
+                        {category.subtitle}
                       </div>
                     </div>
                     
