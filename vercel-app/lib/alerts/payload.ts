@@ -1,6 +1,4 @@
-import { type Tier } from '../tier/normalizeTier';
-
-export type PlanTier = Tier;
+import { type Tier } from '../tier/useTier';
 
 export type FormValues = {
 	name: string;
@@ -18,7 +16,7 @@ export type FormValues = {
 	maxPrice?: number;
 };
 
-export function buildAlertPayload(values: FormValues, tier: PlanTier) {
+export function buildAlertPayload(values: FormValues, tier: Tier) {
 	const base: Record<string, any> = {
 		mode: 'spot',
 		name: values.name || 'Surf Alert',
@@ -33,9 +31,9 @@ export function buildAlertPayload(values: FormValues, tier: PlanTier) {
 	};
 
 	if (tier === 'pro') {
-		if (values.waveMin != null) base.min_wave_m = values.waveMin;  // correct key
-		if (values.waveMax != null) base.wave_max_m = values.waveMax;  // correct key
-		if (values.windMax != null) base.max_wind_kmh = values.windMax;  // correct key
+		if (values.waveMin != null) base.wave_min_m = Number(values.waveMin) ?? null;
+		if (values.waveMax != null) base.wave_max_m = Number(values.waveMax) ?? null;
+		if (values.windMax != null) base.wind_max_kmh = Number(values.windMax) ?? null;
 		if (values.maxPrice != null) base.max_price_eur = values.maxPrice;
 	}
 	// Free: do not attach pro-only keys; trigger also enforces.

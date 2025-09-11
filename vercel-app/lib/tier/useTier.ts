@@ -1,57 +1,27 @@
+'use client';
 import { useEffect, useState } from 'react';
-import { api } from '../supabaseClient';
-import { normalizeTier, type Tier } from './normalizeTier';
+import { supabase } from '@/lib/supabase/client';
 
-export type PlanTier = Tier;
+export type Tier = 'free' | 'pro';
+type TierState = { tier: Tier; loading: boolean; error?: string | null };
 
-export type TierMe = {
-  id: string;
-  email: string | null;
-  home_airport: string | null;
-  plan_tier: PlanTier;
-  plan_expires_at: string | null;
-  created_at: string;
-};
-
-export function useTier() {
-  const [data, setData] = useState<TierMe | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchTier = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const { data: tierData, error: tierError } = await api()
-        .from('v_tier_me')
-        .select('*')
-        .single();
-      
-      if (tierError) throw tierError;
-      
-      setData(tierData);
-    } catch (err) {
-      setError(err as Error);
-      console.error('Error fetching tier:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+export function useTier(): TierState {
+  const [state, setState] = useState<TierState>({ tier: 'free', loading: true, error: null });
 
   useEffect(() => {
-    fetchTier();
+    const sb = supabase;
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await sb.schema('api').from('v_tier_me').select('*').single();
+      if (cancelled) return;
+      if (error) return setState({ tier: 'free', loading: false, error: error.message });
+      const tier = (data?.tier as Tier) ?? 'free';
+      setState({ tier, loading: false, error: null });
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
-  const refresh = () => {
-    fetchTier();
-  };
-
-  return { 
-    tier: normalizeTier(data?.plan_tier), 
-    me: data, 
-    loading, 
-    error,
-    refresh 
-  };
+  return state;
 }

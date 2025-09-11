@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { StatusPill } from "@/components/StatusPill";
 import { useTier } from "@/lib/tier/useTier";
 import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
+import { useRouter } from 'next/navigation';
 
 export type AlertRule = {
   id: string;
@@ -28,6 +29,7 @@ export type RuleStatus = {
 export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: RuleStatus; refresh: () => void }) {
   const { tier } = useTier();
   const { active, activeMax, atActiveCap } = useAlertUsage(tier);
+  const router = useRouter();
 
   const toggleActive = async () => {
     // If trying to resume (activate) and at active cap, show error
@@ -47,6 +49,17 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     await supabase.from("alert_rules")
       .update({ paused_until: until })
       .eq("id", rule.id);
+    refresh();
+  };
+
+  const onDelete = async () => {
+    if (!confirm('Delete this alert?')) return;
+    const { error } = await supabase.from('alert_rules').delete().eq('id', rule.id);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    router.refresh();
     refresh();
   };
 
@@ -129,6 +142,13 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             >
               <span className="text-slate-400" aria-hidden>🔄</span>
               Snooze 7d
+            </button>
+            <button
+              onClick={onDelete}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+            >
+              <span className="text-red-400" aria-hidden>🗑️</span>
+              Delete
             </button>
           </div>
         </div>

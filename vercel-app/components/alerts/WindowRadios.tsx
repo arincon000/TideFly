@@ -1,8 +1,8 @@
-import { PlanTier } from '@/lib/tier/useTier';
+import { Tier } from '@/lib/tier/useTier';
 import { WindowCategory } from '@/lib/forecast/useWindowCategories';
 
 interface WindowRadiosProps {
-  tier: PlanTier;
+  tier: Tier;
   categories: WindowCategory[];
   value: number;
   onChange: (value: number) => void;

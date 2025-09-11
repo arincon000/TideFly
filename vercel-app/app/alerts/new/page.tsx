@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { WEEKENDS } from "@/lib/days";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
-import { useTier, type PlanTier } from "@/lib/tier/useTier";
+import { useTier, type Tier } from "@/lib/tier/useTier";
 import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
 import { useWindowCategories } from "@/lib/forecast/useWindowCategories";
 import SkillChips, { type SkillLevel } from "@/components/alerts/SkillChips";
@@ -20,8 +20,9 @@ type Spot = {
 };
 
 export default function NewAlert() {
-  const { tier, me, loading: tierLoading } = useTier();
+  const { tier, loading: tierLoading } = useTier();
   const { created, createdMax, atCreateCap, loading: usageLoading } = useAlertUsage(tier);
+  const isPro = tier === 'pro';
   const { categories, loading: categoriesLoading } = useWindowCategories();
   
   const [userId, setUserId] = useState<string | null>(null);
@@ -87,13 +88,13 @@ export default function NewAlert() {
 
   // Set default forecast window when categories load
   useEffect(() => {
-    if (categories.length > 0 && tier === 'free') {
+    if (categories.length > 0 && !isPro) {
       const confidentCategory = categories.find(c => c.key === 'confident');
       if (confidentCategory) {
         setForecastWindow(confidentCategory.value);
       }
     }
-  }, [categories, tier]);
+  }, [categories, isPro]);
 
   const weekendsOnly = () => setDaysMask(WEEKENDS);
 
@@ -133,15 +134,15 @@ export default function NewAlert() {
         minNights: minN,
         maxNights: Math.max(minN, maxN),
         daysMask,
-        windowDays: (tier === 'free' ? 5 : (forecastWindow as 5 | 10 | 16)),
+        windowDays: (!isPro ? 5 : (forecastWindow as 5 | 10 | 16)),
         // Pro optional vals
-        waveMin: tier === 'pro' ? minWave : undefined,
-        waveMax: tier === 'pro' ? maxWave : undefined,
-        windMax: tier === 'pro' ? maxWind : undefined,
-        maxPrice: tier === 'pro' ? maxPrice : undefined,
+        waveMin: isPro ? minWave : undefined,
+        waveMax: isPro ? maxWave : undefined,
+        windMax: isPro ? maxWind : undefined,
+        maxPrice: isPro ? maxPrice : undefined,
       };
 
-      const payload = buildAlertPayload(formValues, tier as PlanTier);
+      const payload = buildAlertPayload(formValues, tier);
 
       const { error } = await supabase.from("alert_rules").insert([payload]);
       if (error) throw error;
@@ -396,7 +397,7 @@ export default function NewAlert() {
             </div>
 
             {/* Pro-only custom fields */}
-            {tier === 'pro' && (
+            {isPro && (
               <div className="border-t border-slate-200 pt-6">
                 <h3 className="text-lg font-semibold text-slate-900 mb-4">Custom Conditions (Pro)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -460,7 +461,7 @@ export default function NewAlert() {
             )}
 
             {/* Free plan note */}
-            {tier === 'free' && (
+            {!isPro && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
                   <strong>Free plan note:</strong> Free plan ignores flight budget; we'll pick a reasonable fare.
@@ -522,7 +523,7 @@ export default function NewAlert() {
               )}
             </button>
             
-            {tier === 'free' && (
+            {!isPro && (
               <a
                 href="/upgrade"
                 className="inline-flex items-center justify-center rounded-xl bg-teal-600 px-6 py-3 text-white font-semibold hover:bg-teal-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2"

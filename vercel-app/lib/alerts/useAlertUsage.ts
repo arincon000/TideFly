@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LIMITS, Tier } from '@/lib/tier/limits';
+import { TIER_LIMITS, Tier } from '@/lib/tier/limits';
 
 // ---- SELECT ONE of these imports depending on what exists in the repo ----
 // A) Split client file pattern:
@@ -37,8 +37,8 @@ export function useAlertUsage(tier: Tier): Usage {
   const [state, setState] = useState<Usage>({
     created: 0,
     active: 0,
-    createdMax: LIMITS[tier].createdMax,
-    activeMax: LIMITS[tier].activeMax,
+    createdMax: TIER_LIMITS[tier].createdMax,
+    activeMax: TIER_LIMITS[tier].activeMax,
     atCreateCap: false,
     atActiveCap: false,
     loading: true,
@@ -62,7 +62,7 @@ export function useAlertUsage(tier: Tier): Usage {
 
       const created = data?.created_count ?? 0;
       const active = data?.active_count ?? 0;
-      const { createdMax, activeMax } = LIMITS[tier];
+      const { createdMax, activeMax } = TIER_LIMITS[tier];
 
       setState({
         created,
