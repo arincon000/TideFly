@@ -15,10 +15,19 @@ export default function AlertsPage() {
     if (!uid) { setRules([]); return; }
     const { data: rdata } = await supabase
       .from("alert_rules")
-      .select("id,name,spot_id,origin_iata,dest_iata,is_active,paused_until,forecast_window,max_price_eur")
+      .select(`
+        id,name,spot_id,origin_iata,dest_iata,is_active,paused_until,forecast_window,max_price_eur,
+        wave_min_m,wave_max_m,wind_max_kmh,depart_date,return_date,
+        spots!inner(name,country)
+      `)
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
-    const rules = rdata ?? [];
+    const rules = (rdata ?? []).map(rule => ({
+      ...rule,
+      spot_name: rule.spots?.[0]?.name || null,
+      spot_country: rule.spots?.[0]?.country || null,
+      spots: undefined // Remove the nested object
+    }));
     setRules(rules);
 
     const ids = rules.map(r => r.id);

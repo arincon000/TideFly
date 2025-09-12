@@ -16,6 +16,16 @@ export type AlertRule = {
   paused_until: string | null;
   forecast_window: number | null;
   max_price_eur?: number | null;
+  // Pro-only fields
+  wave_min_m?: number | null;
+  wave_max_m?: number | null;
+  wind_max_kmh?: number | null;
+  // Date fields
+  depart_date?: string | null;
+  return_date?: string | null;
+  // Spot data (joined)
+  spot_name?: string | null;
+  spot_country?: string | null;
 };
 
 export type RuleStatus = {
@@ -63,95 +73,233 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     refresh();
   };
 
-  const relTime = (d: string) => {
-    const date = new Date(d);
-    const diff = (Date.now() - date.getTime()) / 1000;
-    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-    const steps = [
-      { sec: 86400, unit: "day" },
-      { sec: 3600, unit: "hour" },
-      { sec: 60, unit: "minute" },
-      { sec: 1, unit: "second" },
-    ] as const;
-    for (const s of steps) {
-      const v = Math.floor(diff / s.sec);
-      if (Math.abs(v) >= 1) return rtf.format(-v, s.unit);
+  // Helper functions
+  const getStatusBadge = () => {
+    if (rule.paused_until) {
+      const untilDate = new Date(rule.paused_until).toLocaleDateString();
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
+          ⏰ Snoozed until {untilDate}
+        </span>
+      );
     }
-    return "just now";
+    if (status?.status === 'sent') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+          Hit sent
+        </span>
+      );
+    }
+    if (!rule.is_active) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
+          Paused
+        </span>
+      );
+    }
+    return null;
   };
 
+  const buildFlightUrl = () => {
+    if (!rule.origin_iata || !rule.dest_iata || !rule.depart_date) {
+      return null;
+    }
+    // This would be the actual flight URL building logic
+    // For now, return a placeholder
+    return `https://aviasales.com/search/${rule.origin_iata}${rule.depart_date}${rule.dest_iata}`;
+  };
+
+  const buildHotelUrl = () => {
+    if (!rule.return_date || !rule.dest_iata) {
+      return null;
+    }
+    // This would be the actual hotel URL building logic
+    // For now, return a placeholder
+    return `https://hotellook.com/search?destination=${rule.dest_iata}`;
+  };
+
+  const getSpotDisplay = () => {
+    if (rule.spot_name) {
+      return `${rule.spot_name}${rule.spot_country ? ` – ${rule.spot_country}` : ''}`;
+    }
+    return '—';
+  };
+
+  const getSurfableDates = () => {
+    // For now, show fallback until backend summary is implemented
+    return '—';
+  };
+
+  const getWaveDisplay = () => {
+    if (rule.wave_min_m !== null && rule.wave_max_m !== null) {
+      return `${rule.wave_min_m}–${rule.wave_max_m} m`;
+    }
+    if (rule.wave_min_m !== null) {
+      return `≥ ${rule.wave_min_m} m`;
+    }
+    return '—';
+  };
+
+  const getWindDisplay = () => {
+    if (rule.wind_max_kmh !== null) {
+      return `≤ ${rule.wind_max_kmh} km/h`;
+    }
+    return '—';
+  };
+
+  const getWindowDisplay = () => {
+    const window = rule.forecast_window || 5;
+    return `Searching next ${window} days`;
+  };
+
+  const flightUrl = buildFlightUrl();
+  const hotelUrl = buildHotelUrl();
+
+  // Helper to check if we should show spot row
+  const shouldShowSpot = rule.spot_name && rule.spot_name !== '—';
+  
+  // Helper to check if we should show surfable dates row
+  const shouldShowSurfableDates = getSurfableDates() !== '—';
+
+  // Build detail items array for auto-fill grid
+  const detailItems = [];
+  
+  if (shouldShowSpot) {
+    detailItems.push({
+      emoji: '🏄',
+      label: 'Spot',
+      value: getSpotDisplay(),
+      title: getSpotDisplay()
+    });
+  }
+  
+  if (shouldShowSurfableDates) {
+    detailItems.push({
+      emoji: '🗓️',
+      label: 'Surfable dates',
+      value: getSurfableDates()
+    });
+  }
+  
+  detailItems.push({
+    emoji: '🌊',
+    label: 'Wave',
+    value: getWaveDisplay()
+  });
+  
+  detailItems.push({
+    emoji: '💨',
+    label: 'Wind',
+    value: getWindDisplay()
+  });
+  
+  detailItems.push({
+    emoji: '⏳',
+    label: 'Window',
+    value: getWindowDisplay()
+  });
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start justify-between">
-        {/* Left side - Alert details */}
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-3">
-            <h3 className="text-xl font-bold text-slate-900">{rule.name ?? "Surf Alert"}</h3>
-            <StatusPill status={status?.status ?? undefined} />
-          </div>
-          
-          <div className="space-y-2 text-sm text-slate-600">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400" aria-hidden>📍</span>
-              <span>{rule.origin_iata} → {rule.dest_iata}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400" aria-hidden>🌊</span>
-              <span>spot #{rule.spot_id}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400" aria-hidden>⏰</span>
-              <span>window {rule.forecast_window ?? 5}d</span>
-            </div>
-            {status?.sent_at && (
-              <div className="text-xs text-slate-500">
-                Last checked: {relTime(status.sent_at)}
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" style={{ lineHeight: '1.4' }}>
+      {/* Top row - Essentials */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="text-lg font-semibold text-slate-900 truncate" style={{ fontSize: '18px' }}>
+            {rule.name ?? "Surf Alert"}
+          </h3>
+          {getStatusBadge()}
+        </div>
+        {status?.price && (
+          <div className="text-lg font-semibold text-slate-700 ml-2" style={{ fontSize: '18px' }}>
+            €{status.price.toFixed(2)}
               </div>
             )}
           </div>
 
-          {rule.paused_until && (
-            <div className="mt-3 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-              Snoozed until {new Date(rule.paused_until).toLocaleString()}
+      {/* Links row - Chips */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {flightUrl ? (
+          <a
+            href={flightUrl}
+            target="_blank"
+            rel="nofollow sponsored noopener"
+            className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200 transition-colors"
+            style={{ fontSize: '15px' }}
+          >
+            ✈️ Flight: {rule.origin_iata} → {rule.dest_iata}
+          </a>
+        ) : (
+          <div
+            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 font-medium text-gray-500 cursor-not-allowed"
+            title="Set dates to enable flight link"
+            style={{ fontSize: '15px' }}
+          >
+            ✈️ Flight: {rule.origin_iata} → {rule.dest_iata}
             </div>
           )}
+        
+        {hotelUrl && (
+          <a
+            href={hotelUrl}
+            target="_blank"
+            rel="nofollow sponsored noopener"
+            className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200 transition-colors"
+            style={{ fontSize: '15px' }}
+          >
+            🏨 Hotel: your stay in {rule.dest_iata}
+          </a>
+        )}
         </div>
 
-        {/* Right side - Value and actions */}
-        <div className="flex flex-col items-end gap-4">
-          <div className="text-right">
-            <div className="text-2xl font-bold text-slate-900">
-              €{(status?.price ?? 0).toFixed(2)}
-            </div>
-            <div className="text-sm text-slate-500">
-              OK: {status?.ok_dates_count ?? 0}
-            </div>
+      {/* Details grid - Auto-fill */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        {detailItems.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <span className="text-slate-400" aria-hidden style={{ fontSize: '15px' }}>
+              {item.emoji}
+            </span>
+            <span 
+              className="text-slate-600 truncate" 
+              title={item.title}
+              style={{ fontSize: '15px' }}
+            >
+              <span className="text-slate-500">{item.label}:</span>{' '}
+              <span className="text-slate-700 font-medium">{item.value}</span>
+            </span>
+          </div>
+        ))}
           </div>
           
-          <div className="flex gap-2">
+      {/* Actions row - Right-aligned */}
+      <div className="flex items-center justify-end gap-2">
             <button
               onClick={toggleActive}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-            >
-              <span className="text-slate-400" aria-hidden>⏸</span>
-              {rule.is_active ? "Pause" : "Resume"}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          style={{ fontSize: '15px' }}
+        >
+          <span className="text-slate-400" aria-hidden>
+            {rule.is_active ? '⏸' : '▶️'}
+          </span>
+          {rule.is_active ? 'Pause' : 'Resume'}
             </button>
+        
             <button
               onClick={snooze7}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          style={{ fontSize: '15px' }}
             >
-              <span className="text-slate-400" aria-hidden>🔄</span>
+          <span className="text-slate-400" aria-hidden>🛌</span>
               Snooze 7d
             </button>
-            <button
-              onClick={onDelete}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
-            >
-              <span className="text-red-400" aria-hidden>🗑️</span>
-              Delete
-            </button>
-          </div>
-        </div>
+        
+        <button
+          onClick={onDelete}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-500 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+          style={{ fontSize: '15px' }}
+        >
+          <span className="text-slate-400" aria-hidden>🗑️</span>
+          Delete
+        </button>
       </div>
     </div>
   );
