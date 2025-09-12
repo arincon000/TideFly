@@ -12,6 +12,7 @@ export type AlertRule = {
   spot_id: string | null;
   origin_iata: string | null;
   dest_iata: string | null;
+  destination_iata?: string | null;
   is_active: boolean | null;
   paused_until: string | null;
   forecast_window: number | null;
@@ -33,6 +34,12 @@ export type RuleStatus = {
   status: string | null;
   price: number | null;
   ok_dates_count: number | null;
+  ok_dates?: string[] | null;
+  snapped_depart_date?: string | null;
+  snapped_return_date?: string | null;
+  first_ok?: string | null;
+  last_ok?: string | null;
+  ok_count?: number | null;
   sent_at: string | null;
 };
 
@@ -100,22 +107,30 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     return null;
   };
 
+  // UI must match email: default to worker-snapped window
+  const departYMD = status?.snapped_depart_date ?? rule.depart_date ?? undefined;
+  const returnYMD = status?.snapped_return_date ?? rule.return_date ?? undefined;
+  const destIata = rule.dest_iata ?? rule.destination_iata;
+
   const buildFlightUrl = () => {
-    if (!rule.origin_iata || !rule.dest_iata || !rule.depart_date) {
+    if (!rule.origin_iata || !destIata || !departYMD) {
       return null;
     }
     // This would be the actual flight URL building logic
     // For now, return a placeholder
-    return `https://aviasales.com/search/${rule.origin_iata}${rule.depart_date}${rule.dest_iata}`;
+    return `https://aviasales.com/search/${rule.origin_iata}${departYMD}${destIata}`;
   };
 
   const buildHotelUrl = () => {
-    if (!rule.return_date || !rule.dest_iata) {
+    if (!returnYMD || !destIata) {
       return null;
     }
+    const checkoutYMD = returnYMD
+      ? new Date(new Date(returnYMD + 'T00:00:00Z').getTime() + 86400000).toISOString().slice(0,10)
+      : undefined;
     // This would be the actual hotel URL building logic
     // For now, return a placeholder
-    return `https://hotellook.com/search?destination=${rule.dest_iata}`;
+    return `https://hotellook.com/search?destination=${destIata}&checkin=${departYMD}&checkout=${checkoutYMD}`;
   };
 
   const getSpotDisplay = () => {
@@ -226,7 +241,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200 transition-colors"
             style={{ fontSize: '15px' }}
           >
-            ✈️ Flight: {rule.origin_iata} → {rule.dest_iata}
+            ✈️ Flight: {rule.origin_iata} → {destIata}
           </a>
         ) : (
           <div
@@ -234,11 +249,11 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             title="Set dates to enable flight link"
             style={{ fontSize: '15px' }}
           >
-            ✈️ Flight: {rule.origin_iata} → {rule.dest_iata}
+            ✈️ Flight: {rule.origin_iata} → {destIata}
             </div>
           )}
         
-        {hotelUrl && (
+        {hotelUrl ? (
           <a
             href={hotelUrl}
             target="_blank"
@@ -246,8 +261,16 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200 transition-colors"
             style={{ fontSize: '15px' }}
           >
-            🏨 Hotel: your stay in {rule.dest_iata}
+            🏨 Hotel: your stay in {destIata}
           </a>
+        ) : (
+          <div
+            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 font-medium text-gray-500 cursor-not-allowed"
+            title={status?.snapped_depart_date ? "Need both start & end to build hotel link" : "No surfable days yet"}
+            style={{ fontSize: '15px' }}
+          >
+            🏨 Hotel: your stay in {destIata}
+          </div>
         )}
         </div>
 

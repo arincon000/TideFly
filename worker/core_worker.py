@@ -39,6 +39,95 @@ WAVE_KEY = os.getenv("FORECAST_WAVE_KEY", "p50_m")
 WIND_KEY = os.getenv("FORECAST_WIND_KEY", "p50_kmh")
 # keep your existing AMADEUS_ENV logic as-is (defaults to test)
 
+# --- Surfable summary helpers ---
+FORECAST_WAVE_KEY = os.getenv("FORECAST_WAVE_KEY", "h_max_m")   # stored in wave_stats
+FORECAST_WIND_KEY = os.getenv("FORECAST_WIND_KEY", "max")       # stored in wind_stats
+FORECAST_WIND_UNIT = os.getenv("FORECAST_WIND_UNIT", "kmh")     # 'kmh' or 'ms'
+
+def _to_float(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return None
+
+def _wind_as_kmh(val):
+    v = _to_float(val)
+    if v is None:
+        return None
+    return v * 3.6 if FORECAST_WIND_UNIT.lower() in ("ms", "m/s", "meter_per_second", "mps") else v
+
+def compute_ok_dates_from_cache(sb, spot_id, depart_date, return_date, wave_min_m, wave_max_m, wind_max_kmh, days_mask):
+    """
+    Accepts depart/return as date/datetime or 'YYYY-MM-DD' strings.
+    Returns ISO 'YYYY-MM-DD' strings that meet thresholds AND days_mask.
+    Safe: returns [] on any error.
+    """
+    try:
+        def _as_ymd(x):
+            if x is None:
+                return None
+            if isinstance(x, str):
+                # assume already 'YYYY-MM-DD'
+                return x
+            if isinstance(x, datetime):
+                return x.date().isoformat()
+            if isinstance(x, date):
+                return x.isoformat()
+            # numbers or other types → string
+            return str(x)
+
+        start = _as_ymd(depart_date) or date.today().isoformat()
+        end   = _as_ymd(return_date) or start
+
+        # ensure mask is a 7-char string (Mon..Sun)
+        mask = str(days_mask or "1111111")
+        if len(mask) < 7:
+            mask = mask.ljust(7, "0")
+
+        res = sb.table("forecast_cache").select("date,wave_stats,wind_stats") \
+            .eq("spot_id", str(spot_id)).gte("date", start).lte("date", end).execute()
+
+        ok = []
+        for row in (res.data or []):
+            d = date.fromisoformat(row["date"])
+            if mask[d.isoweekday() - 1] != "1":  # Mon=1..Sun=7 -> mask[0..6]
+                continue
+            ws = row.get("wave_stats") or {}
+            vs = row.get("wind_stats") or {}
+            wave = _to_float(ws.get(FORECAST_WAVE_KEY)) or _to_float(ws.get("wave_height_max")) or _to_float(ws.get("h_mean_m"))
+            wind_kmh = _wind_as_kmh(vs.get(FORECAST_WIND_KEY)) or _to_float(vs.get("max_kmh"))
+            if wave is None or wind_kmh is None:
+                continue
+            if (wave_min_m is not None and wave < float(wave_min_m)) or \
+               (wave_max_m is not None and wave > float(wave_max_m)) or \
+               (wind_max_kmh is not None and wind_kmh > float(wind_max_kmh)):
+                continue
+            ok.append(d.isoformat())
+        return ok
+    except Exception as e:
+        print("[summary] compute_ok_dates_from_cache error:", e)
+        return []
+
+def best_block(ok_dates):
+    """Pick best contiguous block from ISO dates. Returns (start, end) or (None, None)."""
+    if not ok_dates:
+        return None, None
+    d = sorted(ok_dates)
+    best_s = cur_s = d[0]; best_e = cur_e = d[0]; best_len = cur_len = 1
+    def plus1(s):
+        t = datetime.fromisoformat(s) + timedelta(days=1)
+        return t.date().isoformat()
+    for x in d[1:]:
+        if x == plus1(cur_e):
+            cur_e = x; cur_len += 1
+        else:
+            if cur_len > best_len:
+                best_s, best_e, best_len = cur_s, cur_e, cur_len
+            cur_s = cur_e = x; cur_len = 1
+    if cur_len > best_len:
+        best_s, best_e = cur_s, cur_e
+    return best_s, best_e
+
 # --------- Helpers ---------
 
 def _now_utc() -> datetime:
@@ -396,25 +485,42 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 	# Match logic
 	is_match = price_cap is None or (total is not None and total <= float(price_cap))
 
-	# Build affiliates
+	# NEW: compute forecast-derived ok_dates, snap window, build links from snapped dates
+	ok_dates = compute_ok_dates_from_cache(
+		supabase,
+		alert["spot_id"],
+		alert.get("depart_date"),
+		alert.get("return_date"),
+		alert.get("wave_min_m"),
+		alert.get("wave_max_m"),
+		alert.get("wind_max_kmh"),
+		alert.get("days_mask") or "1111111",
+	)
+	snap_start, snap_end = best_block(ok_dates)
+	departYMD = snap_start or alert.get("depart_date")
+	returnYMD = snap_end   or alert.get("return_date")
+
+	# Build affiliates FROM THESE DATES (email + UI must match)
 	sub_id = f"alert_{alert_id}"
-	flight_url = build_flight_link_aviasales(origin, dest, depart, ret, sub_id) or offer.get("deep_link")
+	dest_iata = alert.get("dest_iata") or alert.get("destination_iata")
+	flight_url = build_flight_link_aviasales(origin, dest_iata, departYMD, returnYMD, sub_id) or offer.get("deep_link")
 	hotel_url = None
-	if ret:
-		city = derive_city_from_iata(dest)
-		hotel_url = build_hotel_link_hotellook(city, depart, ret, sub_id)
+	if returnYMD:
+		city = derive_city_from_iata(dest_iata)
+		checkoutYMD = (date.fromisoformat(returnYMD) + timedelta(days=1)).isoformat()
+		hotel_url = build_hotel_link_hotellook(city, departYMD, checkoutYMD, sub_id)
 
 	# Email on match
 	if is_match and user_email:
 		# safer display values
 		total_disp = 0 if total is None else total
-		route_disp = f"{origin} → {dest or 'TBD'}"
+		route_disp = f"{origin} → {dest_iata or 'TBD'}"
 		subject = f"Deal {route_disp} — ${round(total_disp)}"
 		cta = f'<a href="{flight_url}">Book flight</a>' if flight_url else ""
 		hotel = f' &nbsp;|&nbsp; <a href="{hotel_url}">Hotels</a>' if hotel_url else ""
 		html = (
-			f"<p>Route: {origin} → {dest or 'TBD'}</p>"
-			f"<p>Dates: {depart}{(' → ' + ret) if ret else ''}</p>"
+			f"<p>Route: {origin} → {dest_iata or 'TBD'}</p>"
+			f"<p>Dates: {departYMD}{(' → ' + returnYMD) if returnYMD else ''}</p>"
 			f"<p>Cheapest: ${total_disp:.0f}</p>"
 			f"<p>{cta}{hotel}</p>"
 			"<p style='color:#64748b;font-size:12px'>Links may contain affiliate codes.</p>"
@@ -429,31 +535,46 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 				{"last_checked_at": now.isoformat(), "last_notified_at": now.isoformat()}
 			).eq("id", alert_id).execute()
 
-			# --- Log into public.alert_events (existing table) ---
-			# Required columns: rule_id (uuid), sent_at (timestamptz), tier (text),
-			# summary_hash (text), ok_dates (ARRAY), plus optional: price, deep_link, status, reason, ok_dates_count.
-			ok_dates = [depart] + ([ret] if ret else [])
-			summary_src = f"{alert_id}|{depart}|{ret or ''}|{total_disp}"
+			# Upsert event on (rule_id, summary_hash) so repeats update instead of failing
+			summary_src = f"{alert_id}|{departYMD}|{returnYMD or ''}|{total_disp}"
 			summary_hash = hashlib.sha1(summary_src.encode("utf-8")).hexdigest()[:16]
 
 			# If you track plan tiers elsewhere, swap this placeholder:
 			tier_val = "test"  # or "free"/"pro" if you have that context available
 
 			try:
-				supabase.table("alert_events").insert({
+				event_row = {
 					"rule_id": alert_id,
 					"sent_at": now.isoformat(),
 					"tier": tier_val,
 					"summary_hash": summary_hash,
 					"price": total_disp,
 					"deep_link": flight_url,
-					"ok_dates": ok_dates,                 # date[] or text[] — ISO strings are fine
+					"ok_dates": ok_dates,                 # forecast-derived YYYY-MM-DD[]
 					"ok_dates_count": len(ok_dates),
+					"snapped_depart_date": departYMD,
+					"snapped_return_date": returnYMD,
 					"status": "sent",
 					"reason": "fake_mode" if AMADEUS_MODE == "fake" else "price_match",
+				}
+				# Supabase-py supports on_conflict for PostgREST UPSERT
+				supabase.table("alert_events").upsert(
+					event_row,
+					on_conflict="rule_id,summary_hash"
+				).execute()
+			except Exception as e:
+				print("[alert_events] upsert error:", e)
+
+			# Upsert compact surf summary (non-fatal on error)
+			try:
+				supabase.table("alert_rule_summaries").upsert({
+					"rule_id": alert_id,
+					"first_ok": ok_dates[0] if ok_dates else None,
+					"last_ok": ok_dates[-1] if ok_dates else None,
+					"ok_count": len(ok_dates),
 				}).execute()
 			except Exception as e:
-				print("[alert_events] insert error:", e)
+				print("[summary] upsert error:", e)
 
 			return (True, flight_url, hotel_url)
 
