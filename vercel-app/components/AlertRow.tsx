@@ -5,6 +5,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { useTier } from "@/lib/tier/useTier";
 import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
 import { useRouter } from 'next/navigation';
+import { buildAviasalesLink, buildHotellookLink } from "@/lib/affiliates";
 
 export type AlertRule = {
   id: string;
@@ -116,21 +117,30 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     if (!rule.origin_iata || !destIata || !departYMD) {
       return null;
     }
-    // This would be the actual flight URL building logic
-    // For now, return a placeholder
-    return `https://aviasales.com/search/${rule.origin_iata}${departYMD}${destIata}`;
+    
+    // Flight link: use affiliate builder so dates are DDMM and marker/sub_id are added
+    return buildAviasalesLink({
+      origin: rule.origin_iata,
+      dest: destIata,
+      departYMD: departYMD,           // 'YYYY-MM-DD' → builder converts to DDMM
+      returnYMD: returnYMD ?? undefined,
+      subId: `alert_${rule.id}`,
+    });
   };
 
   const buildHotelUrl = () => {
     if (!returnYMD || !destIata) {
       return null;
     }
-    const checkoutYMD = returnYMD
-      ? new Date(new Date(returnYMD + 'T00:00:00Z').getTime() + 86400000).toISOString().slice(0,10)
-      : undefined;
-    // This would be the actual hotel URL building logic
-    // For now, return a placeholder
-    return `https://hotellook.com/search?destination=${destIata}&checkin=${departYMD}&checkout=${checkoutYMD}`;
+    const checkout = new Date(new Date(`${returnYMD}T00:00:00Z`).getTime() + 86400000)
+      .toISOString()
+      .slice(0, 10);
+    return buildHotellookLink({
+      dest: destIata,
+      checkinYMD: departYMD!,
+      checkoutYMD: checkout,
+      subId: `alert_${rule.id}`,
+    });
   };
 
   const getSpotDisplay = () => {

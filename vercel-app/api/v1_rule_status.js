@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   try {
     const { data, error } = await supabase
-      .from('api.v1_rule_status')
+      .from('api.v1_rule_status_new')
       .select('*');
 
     if (error) throw error;

@@ -16,7 +16,7 @@ export default function AlertsPage() {
     const { data: rdata } = await supabase
       .from("alert_rules")
       .select(`
-        id,name,spot_id,origin_iata,dest_iata,is_active,paused_until,forecast_window,max_price_eur,
+        id,name,spot_id,origin_iata,dest_iata,destination_iata,is_active,paused_until,forecast_window,max_price_eur,
         wave_min_m,wave_max_m,wind_max_kmh,depart_date,return_date,
         spots!inner(name,country)
       `)
@@ -34,7 +34,7 @@ export default function AlertsPage() {
     if (ids.length > 0) {
       const { data: sdata } = await supabase
         .schema('api')
-        .from('v1_rule_status')
+        .from('v1_rule_status_new')
         .select('*')
         .in('rule_id', ids);
       const map: Record<string, RuleStatus> = Object.fromEntries((sdata ?? []).map(s => [s.rule_id, s]));

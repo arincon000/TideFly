@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const provider = (url.searchParams.get("provider") || undefined) as any;
 
   const flight = buildAviasalesLink({ origin, dest, departYMD: depart, returnYMD: ret || undefined, subId: sub });
-  const hotel  = buildHotelLink({ city, checkinYMD: depart, checkoutYMD: ret || depart, subId: sub }, provider);
+  const hotel  = buildHotelLink({ dest: city, checkinYMD: depart, checkoutYMD: ret || depart, subId: sub }, provider);
 
   return NextResponse.json({
     ok: true,
