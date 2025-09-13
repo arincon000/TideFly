@@ -166,3 +166,32 @@ Run the worker from the repository root:
 ```
 python -u -m worker.worker
 ```
+
+## Email (Resend)
+
+The worker sends surf alert emails via Resend using a custom domain.
+
+### Setup
+
+1. **Verify domain in Resend** (done: tideflysurfalerts.com / subdomain: send)
+2. **Set required environment variables**:
+   ```bash
+   # Email (worker)
+   RESEND_API_KEY=re_***
+   EMAIL_FROM=alerts@tideflysurfalerts.com
+   EMAIL_TO=you@example.com  # optional test override
+   DRY_RUN=false
+   ```
+
+### Test Command
+
+Windows PowerShell example:
+```powershell
+$env:RESEND_API_KEY="re_***"
+$env:EMAIL_FROM="alerts@tideflysurfalerts.com"
+$env:EMAIL_TO="arincon000@gmail.com"
+$env:DRY_RUN="false"
+python -m worker.core_worker
+```
+
+Note that `DRY_RUN=true` logs the email content without sending.

@@ -17,7 +17,8 @@ load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env.local", override
 # --------- ENV ---------
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+# Email configuration
+EMAIL_FROM = os.getenv("EMAIL_FROM", "alerts@tidefly.app")
 AMADEUS_CLIENT_ID = os.getenv("AMADEUS_CLIENT_ID")
 AMADEUS_CLIENT_SECRET = os.getenv("AMADEUS_CLIENT_SECRET")
 AMADEUS_ENV = (os.getenv("AMADEUS_ENV") or "test").lower()
@@ -266,7 +267,9 @@ def _with_backoff(fn, *a, **kw):
 def fetch_eligible_alerts(supabase: Client) -> List[Dict]:
 	"""Fetch active rules and filter in Python per eligibility spec."""
 	now = _now_utc()
-	res = supabase.schema("api").table("v1_alert_rules").select("*").execute()
+	# For now, query the public alert_rules table directly
+	# TODO: Create api.v1_alert_rules view in the database
+	res = supabase.from_("alert_rules").select("*").execute()
 	rows = res.data or []
 	eligible: List[Dict] = []
 	for r in rows:
@@ -441,21 +444,10 @@ def derive_city_from_iata(iata: str) -> str:
 	return _IATA_CITY.get(iata.upper(), iata.upper())
 
 
-# --------- Email via SendGrid ---------
+# --------- Email via Resend ---------
 
-def send_email_sendgrid(to_email: str, subject: str, html: str) -> None:
-	if DRY_RUN:
-		print(f"[dry-run email] to={to_email} :: {subject}")
-		return
-	if not SENDGRID_API_KEY:
-		print(f"[dry-email] {to_email} :: {subject}")
-		return
-	from sendgrid import SendGridAPIClient
-	from sendgrid.helpers.mail import Mail
-	sender = os.getenv("EMAIL_FROM", "alerts@tidefly.app")
-	SendGridAPIClient(SENDGRID_API_KEY).send(
-		Mail(from_email=sender, to_emails=to_email, subject=subject, html_content=html)
-	)
+# Import the Resend emailer
+from .emailer_resend import send_email_resend
 
 
 # --------- Per-alert processing ---------
@@ -526,7 +518,12 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 			"<p style='color:#64748b;font-size:12px'>Links may contain affiliate codes.</p>"
 		)
 		try:
-			send_email_sendgrid(user_email, subject, html)
+			send_email_resend(
+				to_email=user_email,
+				subject=subject,
+				html=html,
+				dry_run=DRY_RUN
+			)
 		except Exception as e:
 			print("[email] error:", e)
 		else:

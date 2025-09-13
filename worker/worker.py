@@ -34,7 +34,8 @@ def _with_backoff(fn, *a, **kw):
 # --- ENV ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+# Email configuration
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "alerts@tidefly.app")
 AMADEUS_CLIENT_ID = os.environ.get("AMADEUS_CLIENT_ID")
 AMADEUS_CLIENT_SECRET = os.environ.get("AMADEUS_CLIENT_SECRET")
 AMADEUS_ENV = (os.environ.get("AMADEUS_ENV") or "test").lower()  # "test" or "prod"
@@ -442,16 +443,21 @@ def amadeus_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, ma
 
     return best
 
-# --- Email (SendGrid) ---
+# --- Email (Resend) ---
+from .emailer_resend import send_email_resend
+
 def send_email(to_email, subject, html):
-    if not SENDGRID_API_KEY:
-        print(f"[dry-run email] {subject}\n{html[:200]}...")
-        return 200
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
-    sender = os.environ.get("EMAIL_FROM", "alerts@example.com")
-    resp = SendGridAPIClient(SENDGRID_API_KEY).send(Mail(from_email=sender, to_emails=to_email, subject=subject, html_content=html))
-    return resp.status_code
+    try:
+        msg_id = send_email_resend(
+            to_email=to_email,
+            subject=subject,
+            html=html,
+            dry_run=DRY_RUN
+        )
+        return 200 if msg_id else 200  # Resend success
+    except Exception as e:
+        print(f"[email] error: {e}")
+        return 500
 
 def sha(s): return hashlib.sha256(s.encode()).hexdigest()
 
@@ -479,7 +485,7 @@ def main():
     require_env("SUPABASE_URL")
     require_env("SUPABASE_SERVICE_KEY")
     # Optional:
-    # require_env("SENDGRID_API_KEY"); require_env("AMADEUS_CLIENT_ID"); require_env("AMADEUS_CLIENT_SECRET")
+    # require_env("RESEND_API_KEY"); require_env("AMADEUS_CLIENT_ID"); require_env("AMADEUS_CLIENT_SECRET")
     
     # Rehydrate globals from the (now-validated) environment
     global SUPABASE_URL, SUPABASE_SERVICE_KEY, HEADERS
