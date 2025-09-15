@@ -49,5 +49,32 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -r worker/requirements.txt
 
+      - name: Validate required env vars (no values printed)
+        run: |
+          set -e
+          missing=()
+          req=(SUPABASE_URL SUPABASE_SERVICE_KEY EMAIL_FROM)
+          if [ "${DRY_RUN}" != "true" ]; then
+            req+=(RESEND_API_KEY)
+          fi
+          for v in "${req[@]}"; do
+            if [ -z "${!v}" ]; then
+              missing+=("$v")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "❌ Missing required env vars: ${missing[*]}"
+            exit 1
+          fi
+          echo "✅ Env check passed"
+
+      - name: Safety: auto-enable DRY_RUN if no RESEND_API_KEY
+        run: |
+          if [ -z "${RESEND_API_KEY}" ]; then
+            echo "RESEND_API_KEY is empty; forcing DRY_RUN=true to prevent real sends"
+            echo "DRY_RUN=true" >> $GITHUB_ENV
+          fi
+
       - name: Run worker (unbuffered)
         run: python -u -m worker.core_worker
+
