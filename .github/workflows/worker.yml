@@ -2,33 +2,38 @@ name: Surf Flight Worker
 
 on:
   schedule:
-    - cron: "5 * * * *"   # hourly at :05 UTC
+    - cron: "5 * * * *"  # hourly at :05 UTC
   workflow_dispatch:
 
 jobs:
   run:
     runs-on: ubuntu-latest
 
-    # prevent overlapping runs
     concurrency:
       group: surf-flight-worker-${{ github.ref }}
       cancel-in-progress: true
 
-    # auto-cancel if job hangs
     timeout-minutes: 20
 
-    # least-privilege token (optional)
     permissions:
       contents: read
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      ENABLE_AFFILIATES: ${{ secrets.ENABLE_AFFILIATES }}
+      AVIA_AFFILIATE_ID: ${{ secrets.AVIA_AFFILIATE_ID }}
+      ENABLE_HOTEL_CTA: ${{ secrets.ENABLE_HOTEL_CTA }}
+      TP_P_HOTELLOOK: ${{ secrets.TP_P_HOTELLOOK }}
+      AMADEUS_ENV: ${{ secrets.AMADEUS_ENV }}
+      AMADEUS_MODE: ${{ secrets.AMADEUS_MODE }}
+      AMADEUS_FAKE_PRICE: ${{ secrets.AMADEUS_FAKE_PRICE }}
       AMADEUS_CLIENT_ID: ${{ secrets.AMADEUS_CLIENT_ID }}
       AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
-      AMADEUS_ENV: test
+      ENABLE_FORECAST_CHECK: ${{ secrets.ENABLE_FORECAST_CHECK }}
+      DRY_RUN: ${{ secrets.DRY_RUN }}
       PYTHONUNBUFFERED: '1'
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
 
@@ -46,4 +51,3 @@ jobs:
 
       - name: Run worker (unbuffered)
         run: python -u -m worker.core_worker
-
