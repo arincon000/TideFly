@@ -1,15 +1,47 @@
-name: Worker
+name: Surf Flight Worker
 
 on:
+  schedule:
+    - cron: "5 * * * *"         # hourly at :05 UTC
+  workflow_dispatch:            # allow manual runs from the UI
   push:
-    branches: [ main ]
+    branches: [ main ]          # optional
   pull_request:
-    branches: [ main ]
+    branches: [ main ]          # optional
 
 jobs:
-  worker:
+  run:
     runs-on: ubuntu-latest
-    
+
+    # avoid overlapping runs
+    concurrency:
+      group: surf-flight-worker-${{ github.ref }}
+      cancel-in-progress: true
+
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    # 🔑 Map GitHub secrets into environment for all steps
+    env:
+      SUPABASE_URL:            ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY:    ${{ secrets.SUPABASE_SERVICE_KEY }}
+      RESEND_API_KEY:          ${{ secrets.RESEND_API_KEY }}
+      EMAIL_FROM:              ${{ secrets.EMAIL_FROM }}
+      ENABLE_AFFILIATES:       ${{ secrets.ENABLE_AFFILIATES }}
+      AVIA_AFFILIATE_ID:       ${{ secrets.AVIA_AFFILIATE_ID }}
+      ENABLE_HOTEL_CTA:        ${{ secrets.ENABLE_HOTEL_CTA }}
+      TP_P_HOTELLOOK:          ${{ secrets.TP_P_HOTELLOOK }}
+      AMADEUS_ENV:             ${{ secrets.AMADEUS_ENV }}
+      AMADEUS_MODE:            ${{ secrets.AMADEUS_MODE }}
+      AMADEUS_FAKE_PRICE:      ${{ secrets.AMADEUS_FAKE_PRICE }}
+      AMADEUS_CLIENT_ID:       ${{ secrets.AMADEUS_CLIENT_ID }}
+      AMADEUS_CLIENT_SECRET:   ${{ secrets.AMADEUS_CLIENT_SECRET }}
+      ENABLE_FORECAST_CHECK:   ${{ secrets.ENABLE_FORECAST_CHECK }}
+      DRY_RUN:                 ${{ secrets.DRY_RUN }}
+      PYTHONUNBUFFERED:        '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+
     steps:
       - uses: actions/checkout@v4
 
@@ -19,24 +51,37 @@ jobs:
           cache: "pip"
           cache-dependency-path: worker/requirements.txt
 
-      # Normalize secrets to remove accidental CR/LF
-      - name: Normalize secrets (strip CR/LF)
+      # 🧹 Strip CR/LF and trim quotes/spaces that can break HTTP headers/URL parsing
+      - name: Normalize secrets (strip CR/LF + trim)
         shell: bash
         run: |
-          echo "SUPABASE_URL=$(printf %s \"$SUPABASE_URL\" | tr -d '\r\n')" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_KEY=$(printf %s \"$SUPABASE_SERVICE_KEY\" | tr -d '\r\n')" >> $GITHUB_ENV
-          echo "RESEND_API_KEY=$(printf %s \"$RESEND_API_KEY\" | tr -d '\r\n')" >> $GITHUB_ENV
+          norm() { printf %s "$1" \
+            | tr -d '\r\n' \
+            | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+                  -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"; }
+          echo "SUPABASE_URL=$(norm "$SUPABASE_URL")" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_KEY=$(norm "$SUPABASE_SERVICE_KEY")" >> $GITHUB_ENV
+          echo "RESEND_API_KEY=$(norm "$RESEND_API_KEY")" >> $GITHUB_ENV
 
-      # Fail fast if a critical secret is missing
+      # ✅ Safe sanity check (doesn't leak secrets)
       - name: Sanity check required secrets
         shell: bash
         run: |
-          test -n "$SUPABASE_URL" || { echo "SUPABASE_URL missing"; exit 1; }
-          test -n "$SUPABASE_SERVICE_KEY" || { echo "SUPABASE_SERVICE_KEY missing"; exit 1; }
+          python - <<'PY'
+          import os, urllib.parse as u
+          url = os.getenv("SUPABASE_URL","")
+          key = os.getenv("SUPABASE_SERVICE_KEY","")
+          p = u.urlparse(url)
+          print("URL present:", bool(url))
+          print("URL head repr:", repr(url[:16]))
+          print("scheme:", p.scheme, "netloc_ok:", bool(p.netloc), "is_supabase:", ("supabase." in p.netloc))
+          print("SERVICE_KEY length:", len(key))
+          assert p.scheme == "https" and p.netloc, "Bad SUPABASE_URL"
+          assert key, "Missing SUPABASE_SERVICE_KEY"
+          PY
 
       - run: python -m pip install --upgrade pip
       - run: pip install -r worker/requirements.txt
 
       - name: Run worker (unbuffered)
         run: python -u -m worker.core_worker
-
