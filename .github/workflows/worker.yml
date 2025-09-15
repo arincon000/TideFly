@@ -11,37 +11,32 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Normalize secrets (strip CR/LF)
-      shell: bash
-      run: |
-        for k in SUPABASE_URL SUPABASE_SERVICE_KEY RESEND_API_KEY; do
-          v=$(printf %s "${!k}" | tr -d '\r\n')
-          echo "$k=$v" >> "$GITHUB_ENV"
-        done
-    
-    - name: Sanity check required secrets (safe)
-      shell: bash
-      run: |
-        [[ "${SUPABASE_URL}" == https://* ]] || { echo "SUPABASE_URL not https://"; exit 1; }
-        [[ "${SUPABASE_URL}" == *supabase.* ]] || { echo "SUPABASE_URL not a supabase domain"; exit 1; }
-        [[ -n "${SUPABASE_SERVICE_KEY}" ]] || { echo "SUPABASE_SERVICE_KEY empty"; exit 1; }
-        echo "SUPABASE_URL length: ${#SUPABASE_URL}"
-        echo "SERVICE_KEY length: ${#SUPABASE_SERVICE_KEY}"
-    
-    - run: python -m pip install --upgrade pip
-    
-    - run: pip install -r worker/requirements.txt
-    
-    - name: Run worker (unbuffered)
-      run: python -u -m worker.core_worker
-      env:
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: worker/requirements.txt
+
+      # Normalize secrets to remove accidental CR/LF
+      - name: Normalize secrets (strip CR/LF)
+        shell: bash
+        run: |
+          echo "SUPABASE_URL=$(printf %s \"$SUPABASE_URL\" | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_KEY=$(printf %s \"$SUPABASE_SERVICE_KEY\" | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "RESEND_API_KEY=$(printf %s \"$RESEND_API_KEY\" | tr -d '\r\n')" >> $GITHUB_ENV
+
+      # Fail fast if a critical secret is missing
+      - name: Sanity check required secrets
+        shell: bash
+        run: |
+          test -n "$SUPABASE_URL" || { echo "SUPABASE_URL missing"; exit 1; }
+          test -n "$SUPABASE_SERVICE_KEY" || { echo "SUPABASE_SERVICE_KEY missing"; exit 1; }
+
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r worker/requirements.txt
+
+      - name: Run worker (unbuffered)
+        run: python -u -m worker.core_worker
+
