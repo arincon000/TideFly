@@ -11,7 +11,11 @@ import pytz
 
 from dotenv import load_dotenv
 import pathlib
-load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env.local", override=True)
+# Let CI (GitHub Actions) env win; only use .env.local for local dev
+load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env.local", override=False)
+# Alternatively (equivalent):
+# if os.getenv("CI") != "true":
+#     load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env.local", override=True)
 
 
 # --------- ENV ---------
