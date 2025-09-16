@@ -595,11 +595,14 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 	).strip()
 
 	# Cheapest flight
+	print(f"[flight] Searching flights: {origin} → {dest} on {depart} - {ret}")
 	offer = amadeus_cheapest_roundtrip(origin, dest, depart, ret, currency="USD")
 	if not offer:
+		print(f"[flight] No flight offers found for {origin} → {dest}")
 		# Write back last_checked_at regardless
 		supabase.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", alert_id).execute()
 		return (False, None, None)
+	print(f"[flight] Found flight: ${offer.get('price', 'N/A')} - {offer.get('deep_link', 'No link')}")
 	total = float(offer["total_usd"]) if offer.get("total_usd") is not None else None
 
 	# Match logic
@@ -645,6 +648,8 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 			f"<p>{cta}{hotel}</p>"
 			"<p style='color:#64748b;font-size:12px'>Links may contain affiliate codes.</p>"
 		)
+		print(f"[email] Sending to: {user_email}")
+		print(f"[email] Subject: {subject}")
 		try:
 			send_email_resend(
 				to_email=user_email,
@@ -652,6 +657,7 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 				html=html,
 				dry_run=DRY_RUN
 			)
+			print(f"[email] Sent successfully to {user_email}")
 		except Exception as e:
 			print("[email] error:", e)
 		else:
