@@ -593,6 +593,10 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 		os.getenv("EMAIL_TO")  # override for testing
 		or (alert.get("user_email") or alert.get("email") or "")
 	).strip()
+	print(f"[email] User email: '{user_email}' (from EMAIL_TO env or alert data)")
+	print(f"[email] EMAIL_TO env: '{os.getenv('EMAIL_TO', 'NOT_SET')}'")
+	print(f"[email] Alert user_email: '{alert.get('user_email', 'NOT_SET')}'")
+	print(f"[email] Alert email: '{alert.get('email', 'NOT_SET')}'")
 
 	# Cheapest flight
 	print(f"[flight] Searching flights: {origin} → {dest} on {depart} - {ret}")
@@ -637,6 +641,7 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 		hotel_url = build_hotel_link_hotellook(city, departYMD, checkoutYMD, sub_id)
 
 	# Email on match
+	print(f"[email] Checking conditions: is_match={is_match}, user_email='{user_email}', will_send={bool(is_match and user_email)}")
 	if is_match and user_email:
 		# safer display values
 		total_disp = 0 if total is None else total
