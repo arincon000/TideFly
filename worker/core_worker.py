@@ -37,6 +37,7 @@ TP_P_HOTELLOOK = os.getenv("TP_P_HOTELLOOK") or "4115"
 AMADEUS_MODE = (os.getenv("AMADEUS_MODE") or "api").lower()  # "api" | "fake"
 AMADEUS_FAKE_PRICE = float(os.getenv("AMADEUS_FAKE_PRICE") or 199.0)
 DRY_RUN = (os.getenv("DRY_RUN") or "false").lower() == "true"
+DEBUG_BYPASS_COOLDOWN = (os.getenv("DEBUG_BYPASS_COOLDOWN") or "false").lower() == "true"
 
 # Forecast checking
 ENABLE_FORECAST_CHECK = os.getenv("ENABLE_FORECAST_CHECK", "true").lower() == "true"
@@ -169,7 +170,19 @@ def fetch_forecast_days(supabase: Client, spot_id: str, start_date: date, end_da
 		res = supabase.table("forecast_cache").select(
 			"date, morning_ok, wave_stats, wind_stats"
 		).eq("spot_id", spot_id).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).order("date", desc=False).execute()
-		return res.data or []
+		data = res.data or []
+		
+		# Debug: show raw data structure
+		if data:
+			print(f"🔍 RAW FORECAST DATA (first 2 days):")
+			for i, row in enumerate(data[:2]):
+				print(f"   Day {i+1}: {row}")
+				if i == 1:  # Show only first 2 to avoid spam
+					break
+			if len(data) > 2:
+				print(f"   ... and {len(data)-2} more days")
+		
+		return data
 	except Exception as e:
 		print(f"[forecast] fetch error spot_id={spot_id}: {e}")
 		return []
@@ -188,31 +201,73 @@ def get_spot_timezone(supabase: Client, spot_id: str) -> str:
 def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 	"""Return True if ANY day in the window matches wave/wind constraints & day mask."""
 	if not ENABLE_FORECAST_CHECK:
+		print(f"[forecast] ENABLE_FORECAST_CHECK=False, skipping check")
 		return True
 
+	rule_id = rule.get('id')
 	wm = rule.get("wave_min_m")
 	wM = rule.get("wave_max_m")
 	vK = rule.get("wind_max_kmh")
+	
+	# Print user preferences clearly
+	print(f"\n{'='*60}")
+	print(f"[FORECAST CHECK] Rule ID: {rule_id}")
+	print(f"{'='*60}")
+	print(f"📋 USER PREFERENCES:")
+	print(f"   Wave Height: {wm}m ≤ waves ≤ {wM}m" if wM else f"   Wave Height: ≥ {wm}m" if wm else "   Wave Height: no limit")
+	print(f"   Wind Speed:  ≤ {vK} km/h" if vK else "   Wind Speed:  no limit")
+	
 	# If no pro filters set, nothing to enforce
 	if wm is None and wM is None and vK is None:
+		print(f"✅ No constraints set - allowing all conditions")
 		return True
 
 	spot_id = rule.get("spot_id")
 	if not spot_id:
-		print(f"[forecast] rule_id={rule.get('id')} has no spot_id, skipping forecast check")
+		print(f"⚠️  No spot_id - skipping forecast check")
 		return True  # Skip forecast check if no spot_id
 	
 	window_days = int(rule.get("forecast_window") or 5)
-
 	today_utc = datetime.now(timezone.utc).date()
 	end_date = today_utc + timedelta(days=window_days)
+	
+	print(f"📍 Spot ID: {spot_id}")
+	print(f"📅 Forecast Window: {window_days} days ({today_utc} to {end_date})")
 
 	rows = fetch_forecast_days(supabase, spot_id=spot_id, start_date=today_utc, end_date=end_date)
 	if not rows:
+		print(f"❌ No forecast data found for spot_id={spot_id}")
 		return False  # no data => don't notify
 
 	tzname = get_spot_timezone(supabase, spot_id)
 	days_mask = int(rule.get("days_mask") or 0b1111111)
+	
+	print(f"🌍 Timezone: {tzname}")
+	print(f"📆 Days Allowed: {days_mask:07b} (bit 0=Mon, bit 6=Sun)")
+	print(f"📊 Found {len(rows)} forecast days")
+	
+	# Show OpenMeteo data structure
+	print(f"\n🌊 OPENMETEO DATA STRUCTURE:")
+	print(f"   Wave Key Used: {WAVE_KEY}")
+	print(f"   Wind Key Used: {WIND_KEY}")
+	if rows:
+		# Show the structure of the first day's data
+		first_row = rows[0]
+		wave_stats = first_row.get("wave_stats")
+		wind_stats = first_row.get("wind_stats")
+		
+		print(f"   Sample Wave Stats: {wave_stats}")
+		print(f"   Sample Wind Stats: {wind_stats}")
+		
+		# Show what keys are available in the data
+		if isinstance(wave_stats, dict):
+			wave_keys = list(wave_stats.keys())
+			print(f"   Available Wave Keys: {wave_keys}")
+		if isinstance(wind_stats, dict):
+			wind_keys = list(wind_stats.keys())
+			print(f"   Available Wind Keys: {wind_keys}")
+	else:
+		print(f"   No data available to show structure")
 
 	# keys we'll try if preferred ones aren't present
 	# waves in meters
@@ -220,36 +275,83 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 	# wind in km/h
 	wind_fallbacks = ("p90_kmh", "max_kmh", "mean_kmh", "avg_kmh", "median_kmh", "p50", "max", "mean")
 
+	# Create a summary table
+	print(f"\n📈 FORECAST DATA SUMMARY:")
+	print(f"{'Date':<12} {'Day':<4} {'Wave(m)':<8} {'Wind(km/h)':<11} {'Morning':<8} {'Wave OK':<8} {'Wind OK':<8} {'Result'}")
+	print(f"{'-'*80}")
+	
+	any_passed = False
+	day_count = 0
 	for r in rows:
 		try:
 			d = datetime.fromisoformat(str(r["date"])).date()
 		except Exception:
 			continue
 			
+		# Check day of week
 		if not _dow_mask_allows(d, tzname, days_mask):
+			day_name = d.strftime("%a")
+			print(f"{d}     {day_name:<4} {'N/A':<8} {'N/A':<11} {'N/A':<8} {'N/A':<8} {'N/A':<8} ❌ Day not allowed")
 			continue
 
 		wv = _extract_number(r.get("wave_stats"), WAVE_KEY, wave_fallbacks)
 		wd = _extract_number(r.get("wind_stats"), WIND_KEY, wind_fallbacks)
-
+		morning_ok = bool(r.get("morning_ok", True))
+		
+		# Debug: show extraction details for first few days
+		if day_count < 2:  # Show details for first 2 days
+			print(f"   🔍 Data Extraction for {d}:")
+			print(f"      Wave Stats Raw: {r.get('wave_stats')}")
+			print(f"      Wind Stats Raw: {r.get('wind_stats')}")
+			print(f"      Extracted Wave: {wv} (using key '{WAVE_KEY}')")
+			print(f"      Extracted Wind: {wd} (using key '{WIND_KEY}')")
+			print(f"      Morning OK: {morning_ok}")
+		
+		day_count += 1
+		
+		# Check conditions
 		wave_ok = True
+		wave_reason = ""
 		if wm is not None:
 			wave_ok = (wv is not None and wv >= float(wm))
+			if not wave_ok:
+				wave_reason = f"< {wm}m"
 		if wave_ok and wM is not None:
 			wave_ok = (wv is not None and wv <= float(wM))
+			if not wave_ok:
+				wave_reason = f"> {wM}m"
 
 		wind_ok = True
+		wind_reason = ""
 		if vK is not None:
 			wind_ok = (wd is not None and wd <= float(vK))
+			if not wind_ok:
+				wind_reason = f"> {vK} km/h"
 
-		# If your upstream computed morning_ok as an all-in-one flag, we can require it too:
-		# morning_ok is optional; default True if absent
-		morning_ok = bool(r.get("morning_ok", True))
-
+		day_name = d.strftime("%a")
+		wave_str = f"{wv:.1f}" if wv is not None else "N/A"
+		wind_str = f"{wd:.1f}" if wd is not None else "N/A"
+		morning_str = "✅" if morning_ok else "❌"
+		wave_ok_str = "✅" if wave_ok else f"❌ {wave_reason}"
+		wind_ok_str = "✅" if wind_ok else f"❌ {wind_reason}"
+		
 		if morning_ok and wave_ok and wind_ok:
-			return True
+			result = "🎯 PASS"
+			any_passed = True
+		else:
+			result = "❌ FAIL"
 
-	return False
+		print(f"{d}     {day_name:<4} {wave_str:<8} {wind_str:<11} {morning_str:<8} {wave_ok_str:<8} {wind_ok_str:<8} {result}")
+
+	print(f"{'-'*80}")
+	if any_passed:
+		print(f"🎉 RESULT: At least one day passed all conditions!")
+	else:
+		print(f"😞 RESULT: No days passed all conditions")
+		print(f"💡 Check if your wave/wind thresholds are too strict for current conditions")
+	print(f"{'='*60}\n")
+	
+	return any_passed
 
 
 def _with_backoff(fn, *a, **kw):
@@ -275,10 +377,16 @@ def fetch_eligible_alerts(supabase: Client) -> List[Dict]:
 	# TODO: Create api.v1_alert_rules view in the database
 	res = supabase.from_("alert_rules").select("*").execute()
 	rows = res.data or []
+	print(f"[eligibility] found {len(rows)} total rules")
 	eligible: List[Dict] = []
 	for r in rows:
+		rule_id = r.get("id")
+		print(f"[eligibility] checking rule_id={rule_id}")
+		
 		if not r.get("is_active"):
+			print(f"[eligibility] rule_id={rule_id} not active")
 			continue
+			
 		pu = r.get("paused_until")
 		if pu:
 			try:
@@ -286,18 +394,30 @@ def fetch_eligible_alerts(supabase: Client) -> List[Dict]:
 			except Exception:
 				pu_dt = None
 			if pu_dt and pu_dt > now:
+				print(f"[eligibility] rule_id={rule_id} paused until {pu_dt}")
 				continue
+				
 		last_checked = r.get("last_checked_at")
 		try:
 			last_checked_dt = datetime.fromisoformat(str(last_checked).replace("Z", "+00:00")) if last_checked else datetime.fromtimestamp(0, tz=timezone.utc)
 		except Exception:
 			last_checked_dt = datetime.fromtimestamp(0, tz=timezone.utc)
 		cool = int(r.get("cooldown_hours") or 24)
-		if last_checked_dt + timedelta(hours=cool) > now:
-			continue
+		cooldown_until = last_checked_dt + timedelta(hours=cool)
+		print(f"[eligibility] rule_id={rule_id} last_checked={last_checked_dt}, cooldown_hours={cool}, cooldown_until={cooldown_until}")
+		
+		if cooldown_until > now:
+			if DEBUG_BYPASS_COOLDOWN:
+				print(f"[eligibility] rule_id={rule_id} in cooldown until {cooldown_until} (BYPASSED for debugging)")
+			else:
+				print(f"[eligibility] rule_id={rule_id} in cooldown until {cooldown_until}")
+				continue
+			
+		print(f"[eligibility] rule_id={rule_id} ELIGIBLE")
 		eligible.append(r)
 	# Order by created_at asc (best-effort)
 	eligible.sort(key=lambda x: str(x.get("created_at") or ""))
+	print(f"[eligibility] final eligible count: {len(eligible)}")
 	return eligible
 
 
@@ -589,6 +709,22 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 def main():
 	assert SUPABASE_URL and SUPABASE_SERVICE_KEY, "Missing Supabase envs"
 	sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+	# Debug: Check what forecast data exists (only in debug mode)
+	if DEBUG_BYPASS_COOLDOWN:
+		print(f"\n🔍 DEBUGGING: Checking available forecast data...")
+		try:
+			forecast_data = sb.table("forecast_cache").select("spot_id, date, wave_stats, wind_stats").limit(5).execute()
+			if forecast_data.data:
+				print(f"   Found {len(forecast_data.data)} forecast records:")
+				for i, row in enumerate(forecast_data.data[:3]):
+					print(f"   Record {i+1}: spot_id={row.get('spot_id')}, date={row.get('date')}")
+					print(f"      Wave Stats: {row.get('wave_stats')}")
+					print(f"      Wind Stats: {row.get('wind_stats')}")
+			else:
+				print(f"   No forecast data found in database")
+		except Exception as e:
+			print(f"   Error checking forecast data: {e}")
 
 	eligible = fetch_eligible_alerts(sb)
 	print(f"[core] eligible: {len(eligible)}")
