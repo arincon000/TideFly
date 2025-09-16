@@ -28,6 +28,7 @@ jobs:
       SUPABASE_SERVICE_KEY:    ${{ secrets.SUPABASE_SERVICE_KEY }}
       RESEND_API_KEY:          ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM:              ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO:                ${{ secrets.EMAIL_TO }}
       ENABLE_AFFILIATES:       ${{ secrets.ENABLE_AFFILIATES }}
       AVIA_AFFILIATE_ID:       ${{ secrets.AVIA_AFFILIATE_ID }}
       ENABLE_HOTEL_CTA:        ${{ secrets.ENABLE_HOTEL_CTA }}
@@ -63,6 +64,7 @@ jobs:
           echo "SUPABASE_URL=$(norm "$SUPABASE_URL")" >> $GITHUB_ENV
           echo "SUPABASE_SERVICE_KEY=$(norm "$SUPABASE_SERVICE_KEY")" >> $GITHUB_ENV
           echo "RESEND_API_KEY=$(norm "$RESEND_API_KEY")" >> $GITHUB_ENV
+          echo "EMAIL_TO=$(norm "$EMAIL_TO")" >> $GITHUB_ENV
 
       # ✅ Safe sanity check (doesn't leak secrets)
       - name: Sanity check required secrets
