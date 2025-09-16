@@ -602,11 +602,14 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 		# Write back last_checked_at regardless
 		supabase.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", alert_id).execute()
 		return (False, None, None)
-	print(f"[flight] Found flight: ${offer.get('price', 'N/A')} - {offer.get('deep_link', 'No link')}")
+	# Handle both fake and real API response formats
+	price_display = offer.get('price') or offer.get('total_usd') or 'N/A'
+	print(f"[flight] Found flight: ${price_display} - {offer.get('deep_link', 'No link')}")
 	total = float(offer["total_usd"]) if offer.get("total_usd") is not None else None
 
 	# Match logic
 	is_match = price_cap is None or (total is not None and total <= float(price_cap))
+	print(f"[price] Price cap: {price_cap}, Flight price: {total}, Match: {is_match}")
 
 	# NEW: compute forecast-derived ok_dates, snap window, build links from snapped dates
 	ok_dates = compute_ok_dates_from_cache(
