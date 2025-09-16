@@ -34,7 +34,7 @@ export default function AlertsPage() {
     if (ids.length > 0) {
       const { data: sdata } = await supabase
         .schema('api')
-        .from('v1_rule_status_new')
+        .from('v1_rule_status')
         .select('*')
         .in('rule_id', ids);
       const map: Record<string, RuleStatus> = Object.fromEntries((sdata ?? []).map(s => [s.rule_id, s]));

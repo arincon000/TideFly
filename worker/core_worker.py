@@ -42,8 +42,8 @@ BYPASS_COOLDOWN = (os.getenv("BYPASS_COOLDOWN") or "false").lower() == "true"
 
 # Forecast checking
 ENABLE_FORECAST_CHECK = os.getenv("ENABLE_FORECAST_CHECK", "true").lower() == "true"
-WAVE_KEY = os.getenv("FORECAST_WAVE_KEY", "p50_m")
-WIND_KEY = os.getenv("FORECAST_WIND_KEY", "p50_kmh")
+WAVE_KEY = os.getenv("FORECAST_WAVE_KEY", "avg")  # Use avg for wave planning (realistic expectations)
+WIND_KEY = os.getenv("FORECAST_WIND_KEY", "max")  # Use max for wind (conservative, wind ruins surf)
 # keep your existing AMADEUS_ENV logic as-is (defaults to test)
 
 # --- Surfable summary helpers ---
@@ -275,9 +275,9 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 
 	# keys we'll try if preferred ones aren't present
 	# waves in meters
-	wave_fallbacks = ("p90_m", "max_m", "mean_m", "avg_m", "median_m", "p50", "max", "mean")
+	wave_fallbacks = ("p90_m", "max_m", "mean_m", "avg_m", "median_m", "p50", "max", "mean", "min", "avg")
 	# wind in km/h
-	wind_fallbacks = ("p90_kmh", "max_kmh", "mean_kmh", "avg_kmh", "median_kmh", "p50", "max", "mean")
+	wind_fallbacks = ("p90_kmh", "max_kmh", "mean_kmh", "avg_kmh", "median_kmh", "p50", "max", "mean", "min", "avg")
 
 	# Create a summary table
 	print(f"\n📈 FORECAST DATA SUMMARY:")
@@ -640,6 +640,10 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 		checkoutYMD = (date.fromisoformat(returnYMD) + timedelta(days=1)).isoformat()
 		hotel_url = build_hotel_link_hotellook(city, departYMD, checkoutYMD, sub_id)
 
+	# Cache price data for future quick checks
+	if total is not None:
+		cache_price_data(supabase, alert, offer, total, now)
+	
 	# Email on match
 	print(f"[email] Checking conditions: is_match={is_match}, user_email='{user_email}', will_send={bool(is_match and user_email)}")
 	if is_match and user_email:
@@ -761,8 +765,8 @@ def main():
 						"sent_at": _now_utc().isoformat(),
 						"tier": a.get("tier") or "unknown",
 						"summary_hash": hashlib.sha1(f"forecast_skip_{a['id']}".encode("utf-8")).hexdigest()[:16],
-						"status": "sent",
-						"reason": "forecast:not_ok",
+						"status": "no_surf",
+						"reason": "forecast conditions not met",
 						"ok_dates": [],
 						"ok_dates_count": 0
 					}).execute()
@@ -781,7 +785,55 @@ def main():
 			errors += 1
 			print("[alert] error:", e)
 
+	# Cost monitoring
+	amadeus_calls = 0
+	email_sends = 0
+	for alert in eligible:
+		if alert.get("spot_id"):  # Only count if we actually process the alert
+			amadeus_calls += 1
+		if status and status.get("status") == "sent":
+			email_sends += 1
+	
 	print(f"[core] done — eligible={len(eligible)} matched={matched} emailed={emailed} errors={errors}")
+	print(f"[cost] Amadeus calls: {amadeus_calls}, Email sends: {email_sends}")
+	print(f"[cost] Estimated cost: ${amadeus_calls * 0.01:.2f} (Amadeus) + ${email_sends * 0.001:.3f} (Email)")
+
+
+def cache_price_data(supabase: Client, alert: dict, offer: dict, total: float, now: datetime):
+	"""Cache price data for future quick checks"""
+	try:
+		spot_id = alert.get("spot_id")
+		if not spot_id:
+			print("[cache] No spot_id - skipping price cache")
+			return
+		
+		origin = alert.get("origin_iata", "")
+		dest = alert.get("dest_iata", "")
+		affiliate_link = offer.get("deep_link", "")
+		
+		# Convert USD to EUR (rough conversion)
+		price_eur = total * 0.85  # Approximate USD to EUR conversion
+		
+		# Cache the price data
+		cache_data = {
+			"spot_id": spot_id,
+			"origin_iata": origin,
+			"dest_iata": dest,
+			"price_eur": price_eur,
+			"affiliate_link": affiliate_link,
+			"cached_at": now.isoformat(),
+			"expires_at": (now + timedelta(hours=24)).isoformat()
+		}
+		
+		print(f"[cache] Caching price data: {origin}→{dest} €{price_eur:.2f}")
+		
+		# Upsert price cache (replace existing data for this spot)
+		supabase.table("price_cache").upsert(cache_data, on_conflict="spot_id,origin_iata,dest_iata").execute()
+		
+		print(f"[cache] Price data cached successfully")
+		
+	except Exception as e:
+		print(f"[cache] Error caching price data: {e}")
 
 
 if __name__ == "__main__":

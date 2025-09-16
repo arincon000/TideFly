@@ -41,16 +41,45 @@ interface ForecastDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   ruleId: string;
+  alertRule: {
+    spot_id: string | null;
+    wave_min_m: number | null;
+    wave_max_m: number | null;
+    wind_max_kmh: number | null;
+    forecast_window: number | null;
+    planning_logic?: string;
+  };
 }
 
-export function ForecastDetailsModal({ isOpen, onClose, ruleId }: ForecastDetailsModalProps) {
+interface QuickForecastResult {
+  conditionsGood: boolean;
+  priceDataAvailable: boolean;
+  priceFreshness: 'fresh' | 'stale' | 'none';
+  shouldTriggerWorker: boolean;
+  forecastSummary: {
+    goodDays: number;
+    totalDays: number;
+    bestDay?: string;
+  };
+  priceData?: {
+    price: number | null;
+    affiliateLink: string | null;
+    cachedAt: string | null;
+    warning?: string;
+  };
+}
+
+export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: ForecastDetailsModalProps) {
   const [forecastData, setForecastData] = useState<ForecastDetails | null>(null);
+  const [quickCheckResult, setQuickCheckResult] = useState<QuickForecastResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [triggeringWorker, setTriggeringWorker] = useState(false);
 
   useEffect(() => {
     if (isOpen && ruleId) {
       fetchForecastData();
+      fetchQuickCheck();
     }
   }, [isOpen, ruleId]);
 
@@ -59,16 +88,90 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId }: ForecastDetail
     setError(null);
     
     try {
-      const response = await fetch(`/api/forecast-details?ruleId=${ruleId}`);
+      console.log('Modal: Fetching forecast data for ruleId:', ruleId);
+      console.log('Modal: Sending alertRule:', alertRule);
+      
+      const response = await fetch(`/api/forecast-details?ruleId=${ruleId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(alertRule),
+      });
+      
+      console.log('Modal: Response status:', response.status);
+      console.log('Modal: Response ok:', response.ok);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch forecast data');
+        const errorText = await response.text();
+        console.error('Modal: Response error:', errorText);
+        throw new Error(`Failed to fetch forecast data: ${response.status} ${errorText}`);
       }
+      
       const data = await response.json();
+      console.log('Modal: Received data:', data);
       setForecastData(data);
     } catch (err) {
+      console.error('Modal: Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQuickCheck = async () => {
+    try {
+      console.log('Modal: Fetching quick check for ruleId:', ruleId);
+      
+      const response = await fetch('/api/quick-forecast-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ruleId,
+          alertRule
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Modal: Quick check result:', data);
+        setQuickCheckResult(data);
+      } else {
+        console.error('Modal: Quick check failed:', response.status);
+      }
+    } catch (err) {
+      console.error('Modal: Quick check error:', err);
+    }
+  };
+
+  const triggerWorker = async () => {
+    setTriggeringWorker(true);
+    try {
+      const response = await fetch('/api/trigger-worker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ruleId,
+          reason: 'user_request'
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Modal: Worker triggered:', data);
+        // Refresh quick check after a delay
+        setTimeout(() => {
+          fetchQuickCheck();
+        }, 5000);
+      }
+    } catch (err) {
+      console.error('Modal: Worker trigger error:', err);
+    } finally {
+      setTriggeringWorker(false);
     }
   };
 
@@ -120,6 +223,101 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId }: ForecastDetail
 
           {forecastData && (
             <div className="space-y-6">
+              {/* Quick Check Results */}
+              {quickCheckResult && (
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-green-800">🏄‍♂️ Quick Forecast Check</h3>
+                    <div className="flex items-center gap-2">
+                      {quickCheckResult.conditionsGood ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                          ✅ Good Conditions
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
+                          ❌ No Good Days
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <p className="text-sm text-green-700">
+                        <span className="font-medium">Good Days:</span> {quickCheckResult.forecastSummary.goodDays} / {quickCheckResult.forecastSummary.totalDays}
+                      </p>
+                      {quickCheckResult.forecastSummary.bestDay && (
+                        <p className="text-xs text-green-600">
+                          Best day: {formatDate(quickCheckResult.forecastSummary.bestDay)}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-green-700">
+                        <span className="font-medium">Price Data:</span> {
+                          quickCheckResult.priceFreshness === 'fresh' ? '✅ Fresh' :
+                          quickCheckResult.priceFreshness === 'stale' ? '⚠️ Stale' :
+                          '❌ None'
+                        }
+                      </p>
+                      {quickCheckResult.priceData && (
+                        <p className="text-xs text-green-600">
+                          {quickCheckResult.priceData.price ? `€${quickCheckResult.priceData.price.toFixed(0)}` : 'No price'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price Data Display */}
+                  {quickCheckResult.priceData && quickCheckResult.priceData.price && (
+                    <div className="mb-3 p-3 bg-white border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            Flight Price: €{quickCheckResult.priceData.price.toFixed(0)}
+                          </p>
+                          {quickCheckResult.priceData.warning && (
+                            <p className="text-xs text-orange-600">{quickCheckResult.priceData.warning}</p>
+                          )}
+                        </div>
+                        {quickCheckResult.priceData.affiliateLink && (
+                          <a
+                            href={quickCheckResult.priceData.affiliateLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                          >
+                            🛫 Book Flight
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Worker Trigger Button */}
+                  {quickCheckResult.shouldTriggerWorker && (
+                    <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800">
+                          {quickCheckResult.priceFreshness === 'none' ? 'No price data available' : 'Price data is stale'}
+                        </p>
+                        <p className="text-xs text-yellow-700">
+                          Trigger worker to get fresh flight prices
+                        </p>
+                      </div>
+                      <button
+                        onClick={triggerWorker}
+                        disabled={triggeringWorker}
+                        className="inline-flex items-center gap-1 rounded-lg bg-yellow-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {triggeringWorker ? '⏳ Triggering...' : '🚀 Get Fresh Prices'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Criteria Summary */}
               <div className="bg-slate-50 rounded-lg p-4">
                 <h3 className="font-semibold text-slate-900 mb-2">Your Alert Criteria</h3>
@@ -137,6 +335,10 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId }: ForecastDetail
                   <div>
                     <span className="text-slate-600">Forecast Window:</span>
                     <span className="ml-2 font-medium">{forecastData.forecastWindow} days</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">Planning Logic:</span>
+                    <span className="ml-2 font-medium capitalize">{alertRule.planning_logic || 'conservative'}</span>
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-slate-500">

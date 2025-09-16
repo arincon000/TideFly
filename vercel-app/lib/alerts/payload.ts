@@ -14,6 +14,7 @@ export type FormValues = {
 	waveMax?: number;
 	windMax?: number;
 	maxPrice?: number;
+	planningLogic?: string;    // conservative, optimistic, aggressive
 };
 
 export function buildAlertPayload(values: FormValues, tier: Tier) {
@@ -35,6 +36,7 @@ export function buildAlertPayload(values: FormValues, tier: Tier) {
 		if (values.waveMax != null) base.wave_max_m = Number(values.waveMax) ?? null;
 		if (values.windMax != null) base.wind_max_kmh = Number(values.windMax) ?? null;
 		if (values.maxPrice != null) base.max_price_eur = values.maxPrice;
+		if (values.planningLogic != null) base.planning_logic = values.planningLogic;
 	}
 	// Free: do not attach pro-only keys; trigger also enforces.
 	return base;

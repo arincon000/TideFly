@@ -13,11 +13,10 @@ create or replace view api.v1_rule_status as
     s.last_ok,
     s.ok_count,
     e.tier,
-    e.reason,
-    e.created_at
+    e.reason
   from public.alert_events e
   left join public.alert_rule_summaries s on s.rule_id = e.rule_id
-  order by e.rule_id, e.created_at desc;
+  order by e.rule_id, e.sent_at desc;
 
 alter view api.v1_rule_status set (security_invoker = true);
 grant usage on schema api to authenticated, anon;

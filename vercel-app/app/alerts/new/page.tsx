@@ -35,8 +35,7 @@ export default function NewAlert() {
   const [forecastWindow, setForecastWindow] = useState<number>(defaultWindow);
   const [name, setName] = useState("Surf Alert");
   const [origin, setOrigin] = useState<string>("");
-  const [minN, setMinN] = useState<number>(2);
-  const [maxN, setMaxN] = useState<number>(14);
+  // Removed minN/maxN - not used in worker logic and can hide good conditions
   const [daysMask, setDaysMask] = useState<number>(DAYS_PREFS.all.mask); // all days
   
   // Pro-only fields
@@ -44,6 +43,8 @@ export default function NewAlert() {
   const [maxWave, setMaxWave] = useState<number>(2.5);
   const [maxWind, setMaxWind] = useState<number>(25);
   const [maxPrice, setMaxPrice] = useState<number>(800);
+  const [planningLogic, setPlanningLogic] = useState<string>("conservative");
+  const [showPlanningHelp, setShowPlanningHelp] = useState<boolean>(false);
   
   const [originError, setOriginError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,7 +98,7 @@ export default function NewAlert() {
   }
 
   const canSubmit = () => {
-    return selectedSkill && selectedSpot && isIata(origin) && minN > 0 && maxN >= minN && !atCreateCap;
+    return selectedSkill && selectedSpot && isIata(origin) && !atCreateCap;
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -124,8 +125,8 @@ export default function NewAlert() {
         spotId: selectedSpot?.id || null,
         originIata: originIata,
         destIata: (selectedSpot?.primary_airport_iata || "").toUpperCase().slice(0, 3) || null,
-        minNights: minN,
-        maxNights: Math.max(minN, maxN),
+        minNights: 2,  // Default minimum nights
+        maxNights: 14, // Default maximum nights
         daysMask,
         windowDays: (!isPro ? 5 : (forecastWindow as 5 | 10 | 16)),
         // Pro optional vals
@@ -133,6 +134,7 @@ export default function NewAlert() {
         waveMax: isPro ? maxWave : undefined,
         windMax: isPro ? maxWind : undefined,
         maxPrice: isPro ? maxPrice : undefined,
+        planningLogic: isPro ? planningLogic : undefined,
       };
 
       const payload = buildAlertPayload(formValues, tier);
@@ -260,6 +262,9 @@ export default function NewAlert() {
             <div>
               <h2 className="text-xl font-bold text-slate-900">3. Forecast window</h2>
               <p className="text-slate-600">Choose how far ahead to look for surf conditions.</p>
+              <p className="text-xs text-slate-500 mt-1">
+                💡 <strong>Tip:</strong> Shorter windows (5 days) = higher confidence. Longer windows (16 days) = more opportunities but less certain.
+              </p>
             </div>
           </div>
           
@@ -331,33 +336,7 @@ export default function NewAlert() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="minNights" className="block text-sm font-semibold text-slate-900 mb-2">
-                  Min Nights
-                </label>
-                <input
-                  id="minNights"
-                  type="number"
-                  min={1}
-                  value={minN}
-                  onChange={e => setMinN(+e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="maxNights" className="block text-sm font-semibold text-slate-900 mb-2">
-                  Max Nights
-                </label>
-                <input
-                  id="maxNights"
-                  type="number"
-                  min={minN}
-                  value={maxN}
-                  onChange={e => setMaxN(+e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                />
-              </div>
+              {/* Removed Min/Max Nights - not used in worker logic and can hide good conditions */}
             </div>
 
             {/* Days Preference */}
@@ -432,6 +411,95 @@ export default function NewAlert() {
                       placeholder="km/h"
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                     />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                      Planning Logic (Pro)
+                    </label>
+                    <p className="text-xs text-slate-600 mb-3">
+                      Choose how we evaluate forecast data against your conditions. 
+                      <button 
+                        type="button"
+                        onClick={() => setShowPlanningHelp(!showPlanningHelp)}
+                        className="text-blue-600 underline ml-1"
+                      >
+                        {showPlanningHelp ? 'Hide details' : 'Show details'}
+                      </button>
+                    </p>
+                    
+                    {showPlanningHelp && (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="text-sm font-medium text-blue-900 mb-2">How Planning Logic Works:</h4>
+                        <div className="text-xs text-blue-800 space-y-1">
+                          <p><strong>Conservative:</strong> Uses average wave height + maximum wind speed. Best for planning trips - avoids disappointment from windy conditions.</p>
+                          <p><strong>Optimistic:</strong> Uses average wave height + average wind speed. More alerts but may include marginal conditions.</p>
+                          <p><strong>Aggressive:</strong> Uses minimum wave height + average wind speed. Maximum alerts but includes very marginal conditions.</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          id="planning-conservative"
+                          name="planning-logic"
+                          value="conservative"
+                          checked={planningLogic === "conservative"}
+                          onChange={e => setPlanningLogic(e.target.value)}
+                          className="mt-1"
+                        />
+                        <div>
+                          <label htmlFor="planning-conservative" className="text-sm font-medium text-slate-900">
+                            Conservative (Recommended)
+                          </label>
+                          <p className="text-xs text-slate-600">
+                            Uses average wave height and maximum wind speed. Best for planning - avoids disappointment from windy conditions.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          id="planning-optimistic"
+                          name="planning-logic"
+                          value="optimistic"
+                          checked={planningLogic === "optimistic"}
+                          onChange={e => setPlanningLogic(e.target.value)}
+                          className="mt-1"
+                        />
+                        <div>
+                          <label htmlFor="planning-optimistic" className="text-sm font-medium text-slate-900">
+                            Optimistic
+                          </label>
+                          <p className="text-xs text-slate-600">
+                            Uses average wave height and average wind speed. More alerts but may include marginal conditions.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          id="planning-aggressive"
+                          name="planning-logic"
+                          value="aggressive"
+                          checked={planningLogic === "aggressive"}
+                          onChange={e => setPlanningLogic(e.target.value)}
+                          className="mt-1"
+                        />
+                        <div>
+                          <label htmlFor="planning-aggressive" className="text-sm font-medium text-slate-900">
+                            Aggressive
+                          </label>
+                          <p className="text-xs text-slate-600">
+                            Uses minimum wave height and average wind speed. Maximum alerts but includes very marginal conditions.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="md:col-span-2">

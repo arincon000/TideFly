@@ -24,6 +24,7 @@ export type AlertRule = {
   wave_min_m?: number | null;
   wave_max_m?: number | null;
   wind_max_kmh?: number | null;
+  planning_logic?: string | null;
   // Date fields
   depart_date?: string | null;
   return_date?: string | null;
@@ -222,9 +223,13 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       return (
         <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
           <p className="text-sm text-orange-800">
-            <span className="font-medium">No surfable conditions found.</span> 
+            <span className="font-medium">No surfable conditions found in the next {rule.forecast_window || 5} days.</span> 
             {' '}Your alert requires waves {waveMin ? `${waveMin}-` : 'up to '}{waveMax}m 
             and wind ≤{windMax}km/h, but current forecast conditions don't match these criteria.
+          </p>
+          <p className="text-xs text-orange-700 mt-2">
+            💡 <strong>Planning logic:</strong> Using average wave height and maximum wind speed for conservative planning.
+            {' '}Click on wave/wind conditions above to see detailed daily breakdown.
           </p>
         </div>
       );
@@ -414,6 +419,15 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
           <span className="text-slate-400" aria-hidden>🛌</span>
               Snooze 7d
             </button>
+            
+            <button
+              onClick={() => window.location.href = `/alerts/new?duplicate=${rule.id}`}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          style={{ fontSize: '15px' }}
+            >
+          <span className="text-slate-400" aria-hidden>📋</span>
+              Duplicate
+            </button>
         
         <button
           onClick={onDelete}
@@ -430,6 +444,14 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
         isOpen={showForecastModal}
         onClose={() => setShowForecastModal(false)}
         ruleId={rule.id}
+        alertRule={{
+          spot_id: rule.spot_id,
+          wave_min_m: rule.wave_min_m,
+          wave_max_m: rule.wave_max_m,
+          wind_max_kmh: rule.wind_max_kmh,
+          forecast_window: rule.forecast_window,
+          planning_logic: rule.planning_logic
+        }}
       />
     </div>
   );

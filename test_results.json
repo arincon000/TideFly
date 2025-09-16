@@ -1,0 +1,80 @@
+[
+  {
+    "test": "Server Availability",
+    "passed": true,
+    "details": "Server responding on http://localhost:3000",
+    "timestamp": "2025-09-16T19:24:36.239001"
+  },
+  {
+    "test": "Server Availability",
+    "passed": true,
+    "details": "Server responding on http://localhost:3000",
+    "timestamp": "2025-09-16T19:24:36.329004"
+  },
+  {
+    "test": "Quick Forecast Check API",
+    "passed": true,
+    "details": "Response time: 0.37s",
+    "timestamp": "2025-09-16T19:24:36.698864"
+  },
+  {
+    "test": "Trigger Worker API",
+    "passed": true,
+    "details": "Worker triggered successfully",
+    "timestamp": "2025-09-16T19:24:36.738099"
+  },
+  {
+    "test": "Cost Monitoring API",
+    "passed": true,
+    "details": "Found 0 total alerts",
+    "timestamp": "2025-09-16T19:24:36.965185"
+  },
+  {
+    "test": "Forecast Details API",
+    "passed": true,
+    "details": "Found 5 forecast days",
+    "timestamp": "2025-09-16T19:24:37.165554"
+  },
+  {
+    "test": "Worker Imports",
+    "passed": true,
+    "details": "All worker modules imported successfully",
+    "timestamp": "2025-09-16T19:24:37.971375"
+  },
+  {
+    "test": "Schema File: create_price_cache_schema.sql",
+    "passed": true,
+    "details": "",
+    "timestamp": "2025-09-16T19:24:37.971375"
+  },
+  {
+    "test": "Schema File: add_planning_logic_column.sql",
+    "passed": true,
+    "details": "",
+    "timestamp": "2025-09-16T19:24:37.971375"
+  },
+  {
+    "test": "Workflow: .github/workflows/worker.yml",
+    "passed": true,
+    "details": "",
+    "timestamp": "2025-09-16T19:24:37.972520"
+  },
+  {
+    "test": "Workflow: .github/workflows/quick-forecast-check.yml",
+    "passed": true,
+    "details": "",
+    "timestamp": "2025-09-16T19:24:37.972520"
+  },
+  {
+    "test": "UI Component: vercel-app/components/ForecastDetailsModal.tsx",
+    "passed": true,
+    "details": "",
+    "timestamp": "2025-09-16T19:24:37.972520"
+  },
+  {
+    "test": "UI Component: vercel-app/components/AlertRow.tsx",
+    "passed": true,
+    "details": "",
+    "timestamp": "2025-09-16T19:24:37.972520"
+  }
+]
