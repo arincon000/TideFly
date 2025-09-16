@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { StatusPill } from "@/components/StatusPill";
 import { useTier } from "@/lib/tier/useTier";
 import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
 import { useRouter } from 'next/navigation';
 import { buildAviasalesLink, buildHotellookLink } from "@/lib/affiliates";
+import { ForecastDetailsModal } from "./ForecastDetailsModal";
 
 export type AlertRule = {
   id: string;
@@ -48,6 +50,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
   const { tier } = useTier();
   const { active, activeMax, atActiveCap } = useAlertUsage(tier);
   const router = useRouter();
+  const [showForecastModal, setShowForecastModal] = useState(false);
 
   const toggleActive = async () => {
     // If trying to resume (activate) and at active cap, show error
@@ -95,6 +98,27 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
           Hit sent
+        </span>
+      );
+    }
+    if (status?.status === 'no_surf' || status?.status === 'forecast:not_ok') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800">
+          No hit
+        </span>
+      );
+    }
+    if (status?.status === 'too_pricey') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
+          Price too high
+        </span>
+      );
+    }
+    if (status?.status === 'forecast_unavailable') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
+          No forecast data
         </span>
       );
     }
@@ -185,6 +209,51 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
   
   // Helper to check if we should show surfable dates row
   const shouldShowSurfableDates = getSurfableDates() !== '—';
+
+  // Helper to get explanation message for failed alerts
+  const getExplanationMessage = () => {
+    if (!status || status.status === 'sent') return null;
+    
+    const waveMin = rule.wave_min_m;
+    const waveMax = rule.wave_max_m;
+    const windMax = rule.wind_max_kmh;
+    
+    if (status.status === 'no_surf' || status.status === 'forecast:not_ok') {
+      return (
+        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="text-sm text-orange-800">
+            <span className="font-medium">No surfable conditions found.</span> 
+            {' '}Your alert requires waves {waveMin ? `${waveMin}-` : 'up to '}{waveMax}m 
+            and wind ≤{windMax}km/h, but current forecast conditions don't match these criteria.
+          </p>
+        </div>
+      );
+    }
+    
+    if (status.status === 'too_pricey') {
+      return (
+        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            <span className="font-medium">Flight price too high.</span> 
+            {' '}Current price is €{status.price?.toFixed(2)} but your alert has a maximum price limit.
+          </p>
+        </div>
+      );
+    }
+    
+    if (status.status === 'forecast_unavailable') {
+      return (
+        <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-sm text-gray-800">
+            <span className="font-medium">No forecast data available.</span> 
+            {' '}We're unable to get current weather conditions for this spot.
+          </p>
+        </div>
+      );
+    }
+    
+    return null;
+  };
 
   // Build detail items array for auto-fill grid
   const detailItems = [];
@@ -286,22 +355,43 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
 
       {/* Details grid - Auto-fill */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-        {detailItems.map((item, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <span className="text-slate-400" aria-hidden style={{ fontSize: '15px' }}>
-              {item.emoji}
-            </span>
-            <span 
-              className="text-slate-600 truncate" 
-              title={item.title}
-              style={{ fontSize: '15px' }}
-            >
-              <span className="text-slate-500">{item.label}:</span>{' '}
-              <span className="text-slate-700 font-medium">{item.value}</span>
-            </span>
+        {detailItems.map((item, index) => {
+          const isClickable = item.label === 'Wave' || item.label === 'Wind';
+          
+          return (
+            <div key={index} className="flex items-center gap-2">
+              <span className="text-slate-400" aria-hidden style={{ fontSize: '15px' }}>
+                {item.emoji}
+              </span>
+              {isClickable ? (
+                <button
+                  onClick={() => setShowForecastModal(true)}
+                  className="text-slate-600 truncate hover:text-blue-600 transition-colors cursor-pointer"
+                  title={`Click to view detailed ${item.label.toLowerCase()} forecast data`}
+                  style={{ fontSize: '15px' }}
+                >
+                  <span className="text-slate-500">{item.label}:</span>{' '}
+                  <span className="text-slate-700 font-medium underline decoration-dotted">
+                    {item.value}
+                  </span>
+                </button>
+              ) : (
+                <span 
+                  className="text-slate-600 truncate" 
+                  title={item.title}
+                  style={{ fontSize: '15px' }}
+                >
+                  <span className="text-slate-500">{item.label}:</span>{' '}
+                  <span className="text-slate-700 font-medium">{item.value}</span>
+                </span>
+              )}
+            </div>
+          );
+        })}
           </div>
-        ))}
-          </div>
+          
+      {/* Explanation message for failed alerts */}
+      {getExplanationMessage()}
           
       {/* Actions row - Right-aligned */}
       <div className="flex items-center justify-end gap-2">
@@ -334,6 +424,13 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
           Delete
         </button>
       </div>
+
+      {/* Forecast Details Modal */}
+      <ForecastDetailsModal
+        isOpen={showForecastModal}
+        onClose={() => setShowForecastModal(false)}
+        ruleId={rule.id}
+      />
     </div>
   );
 }
