@@ -38,6 +38,7 @@ AMADEUS_MODE = (os.getenv("AMADEUS_MODE") or "api").lower()  # "api" | "fake"
 AMADEUS_FAKE_PRICE = float(os.getenv("AMADEUS_FAKE_PRICE") or 199.0)
 DRY_RUN = (os.getenv("DRY_RUN") or "false").lower() == "true"
 DEBUG_BYPASS_COOLDOWN = (os.getenv("DEBUG_BYPASS_COOLDOWN") or "false").lower() == "true"
+BYPASS_COOLDOWN = (os.getenv("BYPASS_COOLDOWN") or "false").lower() == "true"
 
 # Forecast checking
 ENABLE_FORECAST_CHECK = os.getenv("ENABLE_FORECAST_CHECK", "true").lower() == "true"
@@ -407,7 +408,7 @@ def fetch_eligible_alerts(supabase: Client) -> List[Dict]:
 		print(f"[eligibility] rule_id={rule_id} last_checked={last_checked_dt}, cooldown_hours={cool}, cooldown_until={cooldown_until}")
 		
 		if cooldown_until > now:
-			if DEBUG_BYPASS_COOLDOWN:
+			if DEBUG_BYPASS_COOLDOWN or BYPASS_COOLDOWN:
 				print(f"[eligibility] rule_id={rule_id} in cooldown until {cooldown_until} (BYPASSED for debugging)")
 			else:
 				print(f"[eligibility] rule_id={rule_id} in cooldown until {cooldown_until}")
