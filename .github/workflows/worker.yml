@@ -37,7 +37,7 @@ jobs:
       AMADEUS_FAKE_PRICE:      ${{ secrets.AMADEUS_FAKE_PRICE }}
       AMADEUS_CLIENT_ID:       ${{ secrets.AMADEUS_CLIENT_ID }}
       AMADEUS_CLIENT_SECRET:   ${{ secrets.AMADEUS_CLIENT_SECRET }}
-      ENABLE_FORECAST_CHECK:   ${{ secrets.ENABLE_FORECAST_CHECK }}
+      ENABLE_FORECAST_CHECK:   ${{ secrets.ENABLE_FORECAST_CHECK || 'true' }}
       DRY_RUN:                 ${{ secrets.DRY_RUN }}
       BYPASS_COOLDOWN:         ${{ secrets.BYPASS_COOLDOWN }}
       PYTHONUNBUFFERED:        '1'

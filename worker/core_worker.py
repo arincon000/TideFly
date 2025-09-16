@@ -91,6 +91,9 @@ def compute_ok_dates_from_cache(sb, spot_id, depart_date, return_date, wave_min_
         if len(mask) < 7:
             mask = mask.ljust(7, "0")
 
+        if spot_id is None:
+            return []  # No spot_id means no forecast check needed
+        
         res = sb.table("forecast_cache").select("date,wave_stats,wind_stats") \
             .eq("spot_id", str(spot_id)).gte("date", start).lte("date", end).execute()
 
