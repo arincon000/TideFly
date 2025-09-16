@@ -605,7 +605,7 @@ def main():
                 cache_rows.append({
                     "spot_id": sid,
                     "date": str(r["date"].date()),
-                    "morning_ok": False,
+                    "morning_ok": True,
                     "wave_stats": {
                         "min": float(r["min_wave"]),
                         "max": float(r["max_wave"]),
