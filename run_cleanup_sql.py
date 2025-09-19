@@ -46,3 +46,4 @@ except Exception as e:
 
 print("\n✅ Database connection test completed!")
 print("Next step: Run the SQL cleanup script in Supabase SQL editor")
+

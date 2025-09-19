@@ -92,3 +92,4 @@ SELECT '=== FINAL VERIFICATION ===' as info;
 SELECT 'Views that still reference min_nights/max_nights:' as check_type, schemaname, viewname
 FROM pg_views 
 WHERE definition LIKE '%min_nights%' OR definition LIKE '%max_nights%';
+

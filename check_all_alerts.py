@@ -56,3 +56,4 @@ except Exception as e:
     print(f"Error fetching price cache: {e}")
 
 print("\n✅ Database check completed!")
+

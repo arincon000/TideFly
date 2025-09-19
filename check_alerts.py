@@ -14,3 +14,4 @@ result = supabase.table('alert_rules').select('id,name').order('created_at', des
 print('Current alert_rules:')
 for rule in result.data:
     print(f'  {rule["id"]}: {rule["name"]}')
+

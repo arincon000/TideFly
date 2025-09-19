@@ -62,3 +62,4 @@ GRANT SELECT ON api.v1_alert_rules TO authenticated;
 
 -- Step 7: Verify the view works
 SELECT COUNT(*) FROM api.v1_alert_rules;
+

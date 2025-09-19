@@ -71,3 +71,4 @@ FROM pg_policies
 WHERE tablename = 'alert_rules' 
     AND (qual LIKE '%min_nights%' OR qual LIKE '%max_nights%' 
          OR with_check LIKE '%min_nights%' OR with_check LIKE '%max_nights%');
+

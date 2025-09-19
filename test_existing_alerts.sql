@@ -53,3 +53,4 @@ SELECT
 FROM alert_events 
 ORDER BY sent_at DESC 
 LIMIT 10;
+

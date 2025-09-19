@@ -19,3 +19,4 @@ print('\nChecking v1_rule_status view:')
 result2 = supabase.schema('api').table('v1_rule_status').select('*').execute()
 for status in result2.data:
     print(f'  {status["rule_id"]}: {status["status"]} - {status["ok_dates_count"]} days')
+

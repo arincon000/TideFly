@@ -226,3 +226,4 @@ WHERE name LIKE '%🏄‍♂️%'
    OR name LIKE '%💨%' 
    OR name LIKE '%💰%'
 ORDER BY created_at DESC;
+

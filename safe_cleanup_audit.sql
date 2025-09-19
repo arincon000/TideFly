@@ -62,3 +62,4 @@ SELECT
     MIN(min_nights) as min_nights_value,
     MAX(min_nights) as max_nights_value
 FROM alert_rules;
+

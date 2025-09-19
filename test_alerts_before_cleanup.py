@@ -14,3 +14,4 @@ if response.status_code == 200:
         print()
 else:
     print(f'Error fetching alerts: {response.status_code}')
+

@@ -75,3 +75,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.alert_events TO authenticated;
 
 -- 10. Verify setup
 SELECT 'Database setup completed successfully' as status;
+

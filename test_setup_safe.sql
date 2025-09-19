@@ -166,3 +166,4 @@ SELECT
 FROM alert_rules 
 WHERE name LIKE 'Test Alert%'
 ORDER BY name;
+
