@@ -4,12 +4,17 @@ import requests, pandas as pd
 import time
 import re
 from decimal import Decimal
+import pathlib
+from dotenv import load_dotenv
+
+# Load environment variables from .env.local
+load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env.local", override=False)
 
 from supabase import create_client, Client
-from worker.net import get as http_get
-from worker.utils import call_with_budget, as_money
-from worker.events import log_event
-from worker.db import load_recent_forecast_from_cache
+from .net import get as http_get
+from .utils import call_with_budget, as_money
+from .events import log_event
+from .db import load_recent_forecast_from_cache
 
 def _is_iata(x: str) -> bool:
     return bool(re.fullmatch(r"[A-Z]{3}", (x or "")))
@@ -40,6 +45,11 @@ AMADEUS_CLIENT_ID = os.environ.get("AMADEUS_CLIENT_ID")
 AMADEUS_CLIENT_SECRET = os.environ.get("AMADEUS_CLIENT_SECRET")
 AMADEUS_ENV = (os.environ.get("AMADEUS_ENV") or "test").lower()  # "test" or "prod"
 AMADEUS_BASE = "https://api.amadeus.com" if AMADEUS_ENV == "prod" else "https://test.api.amadeus.com"
+
+# Fake price configuration
+AMADEUS_MODE = (os.environ.get("AMADEUS_MODE") or "api").lower()  # "api" | "fake"
+AMADEUS_FAKE_PRICE = float(os.environ.get("AMADEUS_FAKE_PRICE") or 199.0)
+DRY_RUN = (os.environ.get("DRY_RUN") or "false").lower() == "true"
 
 
 HEADERS = {
@@ -82,7 +92,9 @@ def sb_upsert(table, rows, on_conflict=None):
     if schema:
         headers["Content-Profile"] = schema
     url = f"{SUPABASE_URL}/rest/v1/{path}"
-    params = {"on_conflict": on_conflict} if on_conflict else None
+    params = {}
+    if on_conflict:
+        params["on_conflict"] = on_conflict
     r = _with_backoff(requests.post, url, headers=headers, params=params, data=json.dumps(rows), timeout=60)
     r.raise_for_status()
     return r.json()
@@ -116,7 +128,7 @@ def fetch_wave_wind_stats(lat, lon, tz_name, hours, forecast_days=5):
     daily aggregates expected by callers.  On error ``(None, 0)`` is returned.
     """
 
-    forecast_days = min(forecast_days, 10)
+    forecast_days = min(forecast_days, 16)  # Open-Meteo supports up to 16 days for marine forecasts
 
     marine_url = "https://marine-api.open-meteo.com/v1/marine"
     marine_params = {
@@ -414,6 +426,18 @@ def amadeus_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, ma
     Scan a small grid of depart dates in [date_from, date_to] and stay lengths [min_n, max_n].
     Returns {'price': float, 'deep_link': str, 'departure_date': 'YYYY-MM-DD'} or None.
     """
+    # ---- FAKE MODE ----
+    if AMADEUS_MODE == "fake":
+        fake = {
+            "price": AMADEUS_FAKE_PRICE,
+            "deep_link": "https://aviasales.com/search/FAKE?marker=test",
+            "departure_date": date_from.strftime("%Y-%m-%d"),
+            "return_date": (date_from + timedelta(days=min_n)).strftime("%Y-%m-%d"),
+            "links": {"kayak": "https://aviasales.com/search/FAKE?marker=test"}
+        }
+        print(f"[amadeus] FAKE MODE: returning price={AMADEUS_FAKE_PRICE}")
+        return fake
+
     if not (AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET):
         return None
 
@@ -479,7 +503,8 @@ def main():
     args = parser.parse_args()
 
     have_amadeus = bool(os.environ.get("AMADEUS_CLIENT_ID") and os.environ.get("AMADEUS_CLIENT_SECRET"))
-    print(f"[worker] start (amadeus={'on' if have_amadeus else 'off'})")
+    fake_mode = AMADEUS_MODE == "fake"
+    print(f"[worker] start (amadeus={'on' if have_amadeus else 'off'}, fake_mode={'on' if fake_mode else 'off'})")
 
     # Ensure required environment is present (fail fast)
     require_env("SUPABASE_URL")
@@ -499,10 +524,10 @@ def main():
     sb: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     # === NEW: load active alert rules (replaces user_spot_prefs path) ===
     rules = sb_select(
-        "api.v1_alert_rules",
+        "alert_rules",
         params={"is_active": "eq.true"},
         select=("id,user_id,name,mode,spot_id,regions,origin_iata,dest_iata,"
-                "min_wave_m,max_wind_kmh,min_nights,max_nights,max_price_eur,"
+                "wave_min_m,wind_max_kmh,max_price_eur,"
                 "forecast_window,days_mask,date_from,date_to,cooldown_hours,"
                 "paused_until,expires_at")
     )
@@ -556,7 +581,7 @@ def main():
     spot_ids = sorted({r["spot_id"] for r in rules if r.get("mode") == "spot" and r.get("spot_id")})
     spots = {}
     for sid in spot_ids:
-        s = sb_select("api.v1_spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone,nearest_airport_iata")
+        s = sb_select("spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone")
         if s: spots[sid] = s[0]
 
     # Maximum forecast window per spot (for minimal API fetch)
@@ -576,7 +601,7 @@ def main():
             return forecast_cache_mem[sid]
 
         hours = [6, 7, 8, 9, 10, 11, 12]
-        forecast_days = min(spot_window_days.get(sid, 5), 10)
+        forecast_days = min(spot_window_days.get(sid, 5), 16)  # Support up to 16 days for Pro users
         tz = spot.get("timezone") or "UTC"
 
         merged = None
@@ -601,27 +626,38 @@ def main():
             merged_hours = 0
         else:
             cache_rows = []
+            cached_at = datetime.now(timezone.utc).isoformat()
             for _, r in merged.iterrows():
+                # Handle NaN values and ensure all values are JSON serializable
+                def safe_float(val):
+                    if pd.isna(val) or val is None:
+                        return 0.0
+                    return float(val)
+                
                 cache_rows.append({
-                    "spot_id": sid,
+                    "spot_id": str(sid),
                     "date": str(r["date"].date()),
                     "morning_ok": True,
                     "wave_stats": {
-                        "min": float(r["min_wave"]),
-                        "max": float(r["max_wave"]),
-                        "avg": float(r["avg_wave"]),
+                        "min": safe_float(r["min_wave"]),
+                        "max": safe_float(r["max_wave"]),
+                        "avg": safe_float(r["avg_wave"]),
                     },
                     "wind_stats": {
-                        "min": float(r["min_wind"]),
-                        "max": float(r["max_wind"]),
-                        "avg": float(r["avg_wind"]),
+                        "min": safe_float(r["min_wind"]),
+                        "max": safe_float(r["max_wind"]),
+                        "avg": safe_float(r["avg_wind"]),
                     },
+                    "cached_at": str(cached_at),
                 })
             if cache_rows:
                 try:
-                    sb_upsert("forecast_cache", cache_rows, on_conflict="spot_id,date")
+                    # Clear existing data for this spot first, then insert new data
+                    sb.table("forecast_cache").delete().eq("spot_id", sid).execute()
+                    result = sb.table("forecast_cache").insert(cache_rows).execute()
+                    print(f"[cache] inserted {len(result.data)} forecast rows for spot {sid}")
                 except Exception as e:
-                    print("forecast_cache upsert error:", e)
+                    print("forecast_cache insert error:", e)
 
         print(f"[spot] {spot['name']} (id={sid}) rows={len(merged)} source={source}")
         forecast_cache_mem[sid] = (merged, source, merged_hours)
@@ -632,7 +668,7 @@ def main():
         sid = str(args.spot)
         spot = spots.get(sid)
         if not spot:
-            s = sb_select("api.v1_spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone,nearest_airport_iata")
+            s = sb_select("spots", params={"id": "eq."+sid}, select="id,name,latitude,longitude,timezone")
             if not s:
                 print(f"[dry-run] spot {sid} not found")
                 return
@@ -679,8 +715,8 @@ def main():
         end   = start + pd.Timedelta(days=max(0, window_days - 1))
 
         # Clamp nights once (reusable for pricing + email)
-        min_n = max(1, int(rule.get("min_nights") or 2))
-        max_n = max(min_n, int(rule.get("max_nights") or 5))
+        min_n = 2  # Default minimum nights
+        max_n = 5  # Default maximum nights
 
 
         # Respect optional explicit date range (robust to timestamps vs dates)
@@ -706,8 +742,8 @@ def main():
         window = window[window["date"].dt.date.apply(lambda d: weekday_mask_ok(d, mask))]
 
         # Apply surf thresholds (coerce NULLs from DB)
-        min_wave = float(rule.get("min_wave_m") or 0.0)
-        max_wind = float(rule.get("max_wind_kmh") or 999.0)
+        min_wave = float(rule.get("wave_min_m") or 0.0)
+        max_wind = float(rule.get("wind_max_kmh") or 999.0)
         
         ok = window[(window["max_wave"] >= min_wave) & (window["min_wind"] <= max_wind)]
         ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
@@ -770,7 +806,7 @@ def main():
         if not use_cache:
             print("[cache] MISS")
             rr = None
-            if have_amadeus:
+            if fake_mode or have_amadeus:
                 try:
                     rr = amadeus_cheapest_roundtrip(
                         origin, dest,
@@ -782,37 +818,40 @@ def main():
                     print("[amadeus] live search error:", e)
                     rr = None
             else:
-                print("[amadeus] creds missing -> skipping live search")
+                print("[amadeus] creds missing and not in fake mode -> skipping live search")
 
             if rr:
                 price = rr.get("price")
                 link  = (rr.get("links") or {}).get("kayak") or rr.get("deep_link")
                 print(f"[amadeus] result -> price={price} link={'yes' if link else 'no'}")
                 try:
-                    sb_upsert("flight_cache", [{
+                    # Use Supabase client directly for proper upsert handling
+                    result = sb.table("flight_cache").upsert([{
                         "origin_iata": origin,
                         "dest_iata": dest,
                         "date_bucket": str(bucket),
                         "cheapest_price": price,
                         "deep_link": link
-                    }], on_conflict="origin_iata,dest_iata,date_bucket")
+                    }], on_conflict="origin_iata,dest_iata,date_bucket").execute()
+                    print(f"[cache] upserted flight data for {origin}->{dest}")
                 except Exception as e:
                     print("flight_cache upsert error:", e)
             else:
                 price, link = None, None
                 print("[amadeus] result -> no offer")
 
-        # Price guards
+        # Price guards - only log as "sent" when BOTH forecast conditions AND price are satisfied
         if price is None:
             print("[skip] no flight price found")
+            # Log as "no_surf" when forecast is good but no flight price available (using allowed status)
             log_event(
                 sb,
                 rule_id=rule["id"],
-                status="forecast_unavailable",
-                ok_dates=[],
-                ok_dates_count=0,
+                status="no_surf",
+                ok_dates=ok_dates,
+                ok_dates_count=len(ok_dates),
                 tier=tier,
-                reason="flight price unavailable",
+                reason="forecast conditions met but no flight price available",
             )
             continue
         raw_max = rule.get("max_price_eur")
@@ -823,11 +862,11 @@ def main():
             log_event(
                 sb,
                 rule_id=rule["id"],
-                status="too_pricey",
+                status="no_surf",
                 price=best_price,
                 ok_dates_count=len(ok_dates),
                 tier=tier,
-                reason="best price exceeds max",
+                reason=f"price too high: {best_price} > {max_price}",
                 ok_dates=ok_dates,
                 deep_link=link,
             )

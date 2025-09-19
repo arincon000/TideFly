@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 interface TriggerWorkerRequest {
   ruleId: string;
@@ -17,16 +18,75 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // For now, we'll trigger the worker by calling the GitHub Actions API
-    // In a production system, you might want to use a queue system like Redis
+    // Create Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    
+    // Get the alert rule to check cooldown
+    const { data: alertRule, error: alertError } = await supabase
+      .from('alert_rules')
+      .select('created_at, last_checked_at, user_id')
+      .eq('id', ruleId)
+      .single();
+    
+    if (alertError || !alertRule) {
+      console.error('Alert rule not found:', alertError);
+      return NextResponse.json({ error: 'Alert rule not found' }, { status: 404 });
+    }
+    
+    // Calculate cooldown based on user tier and alert age
+    const now = new Date();
+    const createdAt = new Date(alertRule.created_at);
+    const lastCheckedAt = alertRule.last_checked_at ? new Date(alertRule.last_checked_at) : null;
+    
+    // Determine cooldown period
+    let cooldownHours = 6; // Default 6 hours
+    const isNewAlert = (now.getTime() - createdAt.getTime()) < 2 * 60 * 60 * 1000; // 2 hours
+    
+    if (isNewAlert) {
+      cooldownHours = 2; // New alerts: 2 hours from creation
+    }
+    // Note: Pro tier logic removed since tier column doesn't exist yet
+    
+    // Check if we're in cooldown
+    const lastCheckTime = lastCheckedAt || createdAt;
+    const cooldownUntil = new Date(lastCheckTime.getTime() + cooldownHours * 60 * 60 * 1000);
+    
+    if (now < cooldownUntil) {
+      const remainingMinutes = Math.ceil((cooldownUntil.getTime() - now.getTime()) / (1000 * 60));
+      
+      console.log(`Cooldown active: ${remainingMinutes} minutes remaining`);
+      
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Cooldown active',
+        cooldownUntil: cooldownUntil.toISOString(),
+        remainingMinutes,
+        cooldownHours,
+        isNewAlert
+      }, { status: 429 }); // Too Many Requests
+    }
+
+    // Trigger the worker
     const triggerResult = await triggerGitHubAction(ruleId, reason);
     
     if (triggerResult.success) {
+      // Update last_checked_at to start new cooldown
+      await supabase
+        .from('alert_rules')
+        .update({ last_checked_at: now.toISOString() })
+        .eq('id', ruleId);
+      
       return NextResponse.json({
         success: true,
         message: 'Worker triggered successfully',
         runId: triggerResult.runId,
-        estimatedTime: '2-5 minutes'
+        estimatedTime: '2-5 minutes',
+        cooldownUntil: new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString(),
+        cooldownHours,
+        isNewAlert
       });
     } else {
       return NextResponse.json({

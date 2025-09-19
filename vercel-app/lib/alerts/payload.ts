@@ -5,8 +5,6 @@ export type FormValues = {
 	spotId: string | null;
 	originIata: string;
 	destIata: string | null;
-	minNights: number;
-	maxNights: number;
 	daysMask: number;          // e.g. 127
 	windowDays: 5 | 10 | 16;   // radios -> 5/10/16
 	// Pro-only (all optional):
@@ -24,8 +22,6 @@ export function buildAlertPayload(values: FormValues, tier: Tier) {
 		spot_id: values.spotId,
 		origin_iata: values.originIata?.toUpperCase(),
 		dest_iata: values.destIata?.toUpperCase() ?? null,
-		min_nights: values.minNights,
-		max_nights: values.maxNights,
 		days_mask: values.daysMask,
 		forecast_window: values.windowDays,
 		is_active: true,

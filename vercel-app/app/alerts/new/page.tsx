@@ -125,8 +125,6 @@ export default function NewAlert() {
         spotId: selectedSpot?.id || null,
         originIata: originIata,
         destIata: (selectedSpot?.primary_airport_iata || "").toUpperCase().slice(0, 3) || null,
-        minNights: 2,  // Default minimum nights
-        maxNights: 14, // Default maximum nights
         daysMask,
         windowDays: (!isPro ? 5 : (forecastWindow as 5 | 10 | 16)),
         // Pro optional vals

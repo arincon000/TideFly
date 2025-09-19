@@ -17,7 +17,7 @@ export default function AlertsPage() {
       .from("alert_rules")
       .select(`
         id,name,spot_id,origin_iata,dest_iata,destination_iata,is_active,paused_until,forecast_window,max_price_eur,
-        wave_min_m,wave_max_m,wind_max_kmh,depart_date,return_date,
+        wave_min_m,wave_max_m,wind_max_kmh,depart_date,return_date,created_at,last_checked_at,
         spots!inner(name,country)
       `)
       .eq("user_id", uid)
@@ -32,12 +32,72 @@ export default function AlertsPage() {
 
     const ids = rules.map(r => r.id);
     if (ids.length > 0) {
-      const { data: sdata } = await supabase
-        .schema('api')
-        .from('v1_rule_status')
-        .select('*')
-        .in('rule_id', ids);
-      const map: Record<string, RuleStatus> = Object.fromEntries((sdata ?? []).map(s => [s.rule_id, s]));
+      // Get the latest status for each rule directly from alert_events
+      console.log('🔄 [ALERTS PAGE] Fetching status for rule IDs:', ids, 'at', new Date().toISOString());
+      const { data: sdata, error: statusError } = await supabase
+        .from('alert_events')
+        .select('rule_id, status, price, ok_dates_count, ok_dates, snapped_depart_date, snapped_return_date, sent_at, tier, reason')
+        .in('rule_id', ids)
+        .order('sent_at', { ascending: false });
+      
+      if (statusError) {
+        console.error('Error fetching alert events:', statusError);
+      } else {
+        console.log('Alert events data:', sdata);
+      }
+      
+      // Find the most recent worker run timestamp
+      const mostRecentRun = sdata && sdata.length > 0 ? sdata[0].sent_at : null;
+      console.log('Most recent worker run:', mostRecentRun);
+      
+      // Group by rule_id and take the most recent event for each rule (from all events)
+      const statusMap: Record<string, any> = {};
+      for (const event of sdata || []) {
+        if (!statusMap[event.rule_id]) {
+          statusMap[event.rule_id] = event;
+        }
+      }
+      console.log('Status map (most recent event per rule):', statusMap);
+      
+      // Convert to the expected format
+      const map: Record<string, RuleStatus> = {};
+      for (const [ruleId, event] of Object.entries(statusMap)) {
+        map[ruleId] = {
+          rule_id: event.rule_id,
+          status: event.status,
+          price: event.price,
+          ok_dates_count: event.ok_dates_count,
+          ok_dates: event.ok_dates,
+          snapped_depart_date: event.snapped_depart_date,
+          snapped_return_date: event.snapped_return_date,
+          first_ok: event.ok_dates?.[0] || null,
+          last_ok: event.ok_dates?.[event.ok_dates.length - 1] || null,
+          ok_count: event.ok_dates?.length || 0,
+          sent_at: event.sent_at,
+          reason: event.reason,
+        };
+      }
+      
+      // Add "No data" status for rules that have never been processed
+      for (const ruleId of ids) {
+        if (!map[ruleId]) {
+          map[ruleId] = {
+            rule_id: ruleId,
+            status: null, // This will show as "No data" in the UI
+            price: null,
+            ok_dates_count: null,
+            ok_dates: null,
+            snapped_depart_date: null,
+            snapped_return_date: null,
+            first_ok: null,
+            last_ok: null,
+            ok_count: 0,
+            sent_at: null,
+          };
+        }
+      }
+      
+      console.log('Final status map for UI:', map);
       setStatusByRule(map);
     } else {
       setStatusByRule({});

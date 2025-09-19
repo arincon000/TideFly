@@ -8,6 +8,7 @@ from typing import Optional, Tuple, List, Dict
 import requests
 from supabase import create_client, Client
 import pytz
+import pandas as pd
 
 from dotenv import load_dotenv
 import pathlib
@@ -104,8 +105,8 @@ def compute_ok_dates_from_cache(sb, spot_id, depart_date, return_date, wave_min_
                 continue
             ws = row.get("wave_stats") or {}
             vs = row.get("wind_stats") or {}
-            wave = _to_float(ws.get(FORECAST_WAVE_KEY)) or _to_float(ws.get("wave_height_max")) or _to_float(ws.get("h_mean_m"))
-            wind_kmh = _wind_as_kmh(vs.get(FORECAST_WIND_KEY)) or _to_float(vs.get("max_kmh"))
+            wave = _to_float(ws.get(WAVE_KEY)) or _to_float(ws.get("wave_height_max")) or _to_float(ws.get("h_mean_m"))
+            wind_kmh = _wind_as_kmh(vs.get(WIND_KEY)) or _to_float(vs.get("max_kmh"))
             if wave is None or wind_kmh is None:
                 continue
             if (wave_min_m is not None and wave < float(wave_min_m)) or \
@@ -169,14 +170,14 @@ def _extract_number(j: dict | None, preferred_key: str, fallbacks: tuple[str, ..
 
 
 def fetch_forecast_days(supabase: Client, spot_id: str, start_date: date, end_date: date):
-	"""Fetch forecast data for a spot within date range."""
+	"""Fetch forecast data for a spot within date range. If no cached data exists, fetch fresh from Open-Meteo."""
 	try:
 		res = supabase.table("forecast_cache").select(
 			"date, morning_ok, wave_stats, wind_stats"
 		).eq("spot_id", spot_id).gte("date", start_date.isoformat()).lte("date", end_date.isoformat()).order("date", desc=False).execute()
 		data = res.data or []
 		
-		# Debug: show raw data structure
+		# If we have cached data, return it
 		if data:
 			print(f"🔍 RAW FORECAST DATA (first 2 days):")
 			for i, row in enumerate(data[:2]):
@@ -185,8 +186,12 @@ def fetch_forecast_days(supabase: Client, spot_id: str, start_date: date, end_da
 					break
 			if len(data) > 2:
 				print(f"   ... and {len(data)-2} more days")
+			return data
 		
-		return data
+		# No cached data - fetch fresh from Open-Meteo
+		print(f"🔄 No cached data found, fetching fresh from Open-Meteo...")
+		return fetch_fresh_forecast_data(supabase, spot_id, start_date, end_date)
+		
 	except Exception as e:
 		print(f"[forecast] fetch error spot_id={spot_id}: {e}")
 		return []
@@ -202,11 +207,108 @@ def get_spot_timezone(supabase: Client, spot_id: str) -> str:
 		return "UTC"
 
 
-def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
-	"""Return True if ANY day in the window matches wave/wind constraints & day mask."""
+def fetch_fresh_forecast_data(supabase: Client, spot_id: str, start_date: date, end_date: date):
+	"""Fetch fresh forecast data from Open-Meteo and cache it."""
+	try:
+		# Get spot information
+		spot_res = supabase.table("spots").select("id, name, latitude, longitude, timezone").eq("id", spot_id).single().execute()
+		if not spot_res.data:
+			print(f"[fresh] Spot not found: {spot_id}")
+			return []
+		
+		spot = spot_res.data
+		lat, lon, tz = spot["latitude"], spot["longitude"], spot.get("timezone", "UTC")
+		
+		# Calculate forecast days needed
+		forecast_days = (end_date - start_date).days + 1
+		forecast_days = min(forecast_days, 16)  # Open-Meteo supports up to 16 days
+		
+		print(f"[fresh] Fetching {forecast_days} days for {spot['name']} ({lat}, {lon})")
+		
+		# Import the forecast fetching function from the old worker
+		import sys
+		import os
+		sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+		from worker.worker import fetch_wave_wind_stats
+		
+		# Fetch forecast data
+		hours = [6, 7, 8, 9, 10, 11, 12]  # Morning hours
+		merged, merged_hours = fetch_wave_wind_stats(lat, lon, tz, hours, forecast_days)
+		
+		if merged is None or merged.empty:
+			print(f"[fresh] Failed to fetch forecast data for {spot['name']}")
+			return []
+		
+		print(f"[fresh] Successfully fetched {len(merged)} days of forecast data")
+		
+		# Cache the data
+		cache_rows = []
+		cached_at = datetime.now(timezone.utc).isoformat()
+		
+		for _, row in merged.iterrows():
+			def safe_float(val):
+				if pd.isna(val) or val is None:
+					return 0.0
+				return float(val)
+			
+			cache_rows.append({
+				"spot_id": spot_id,
+				"date": str(row["date"].date()),
+				"morning_ok": True,
+				"wave_stats": {
+					"min": safe_float(row["min_wave"]),
+					"max": safe_float(row["max_wave"]),
+					"avg": safe_float(row["avg_wave"]),
+				},
+				"wind_stats": {
+					"min": safe_float(row["min_wind"]),
+					"max": safe_float(row["max_wind"]),
+					"avg": safe_float(row["avg_wind"]),
+				},
+				"cached_at": cached_at,
+			})
+		
+		# Insert into cache
+		try:
+			# Clear existing data for this spot first
+			supabase.table("forecast_cache").delete().eq("spot_id", spot_id).execute()
+			# Insert new data
+			result = supabase.table("forecast_cache").insert(cache_rows).execute()
+			print(f"[fresh] Cached {len(result.data)} forecast rows for {spot['name']}")
+		except Exception as e:
+			print(f"[fresh] Cache insert error: {e}")
+		
+		# Return the data in the expected format
+		return [
+			{
+				"date": row["date"],
+				"morning_ok": True,
+				"wave_stats": {
+					"min": safe_float(row["min_wave"]),
+					"max": safe_float(row["max_wave"]),
+					"avg": safe_float(row["avg_wave"]),
+				},
+				"wind_stats": {
+					"min": safe_float(row["min_wind"]),
+					"max": safe_float(row["max_wind"]),
+					"avg": safe_float(row["avg_wind"]),
+				},
+			}
+			for _, row in merged.iterrows()
+		]
+		
+	except Exception as e:
+		print(f"[fresh] Error fetching fresh forecast data: {e}")
+		import traceback
+		traceback.print_exc()
+		return []
+
+
+def forecast_ok_daily(supabase: Client, rule: dict) -> tuple[bool, list[str]]:
+	"""Return (True/False, list of good days) if ANY day in the window matches wave/wind constraints & day mask."""
 	if not ENABLE_FORECAST_CHECK:
 		print(f"[forecast] ENABLE_FORECAST_CHECK=False, skipping check")
-		return True
+		return True, []
 
 	rule_id = rule.get('id')
 	wm = rule.get("wave_min_m")
@@ -224,12 +326,12 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 	# If no pro filters set, nothing to enforce
 	if wm is None and wM is None and vK is None:
 		print(f"✅ No constraints set - allowing all conditions")
-		return True
+		return True, []
 
 	spot_id = rule.get("spot_id")
 	if not spot_id:
 		print(f"⚠️  No spot_id - skipping forecast check")
-		return True  # Skip forecast check if no spot_id
+		return True, []  # Skip forecast check if no spot_id
 	
 	window_days = int(rule.get("forecast_window") or 5)
 	today_utc = datetime.now(timezone.utc).date()
@@ -241,7 +343,7 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 	rows = fetch_forecast_days(supabase, spot_id=spot_id, start_date=today_utc, end_date=end_date)
 	if not rows:
 		print(f"❌ No forecast data found for spot_id={spot_id}")
-		return False  # no data => don't notify
+		return False, []  # no data => don't notify
 
 	tzname = get_spot_timezone(supabase, spot_id)
 	days_mask = int(rule.get("days_mask") or 0b1111111)
@@ -285,6 +387,7 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 	print(f"{'-'*80}")
 	
 	any_passed = False
+	good_days = []
 	day_count = 0
 	for r in rows:
 		try:
@@ -342,6 +445,7 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 		if morning_ok and wave_ok and wind_ok:
 			result = "🎯 PASS"
 			any_passed = True
+			good_days.append(d.isoformat())
 		else:
 			result = "❌ FAIL"
 
@@ -355,7 +459,7 @@ def forecast_ok_daily(supabase: Client, rule: dict) -> bool:
 		print(f"💡 Check if your wave/wind thresholds are too strict for current conditions")
 	print(f"{'='*60}\n")
 	
-	return any_passed
+	return any_passed, good_days
 
 
 def _with_backoff(fn, *a, **kw):
@@ -524,7 +628,7 @@ def build_flight_link_aviasales(origin: str, dest: str, depart_ymd: str, return_
 		return None
 	out = f"{origin.upper()}{_ddmm(depart_ymd)}{dest.upper()}"
 	rt = _ddmm(return_ymd) if return_ymd else ""
-	url = f"https://aviasales.com/search/{out}{rt}?marker={requests.utils.quote(marker)}"
+	url = f"https://www.aviasales.com/search/{out}{rt}?marker={requests.utils.quote(marker)}"
 	if sub_id:
 		url += f"&sub_id={requests.utils.quote(sub_id)}"
 	return url
@@ -536,26 +640,25 @@ def build_hotel_link_hotellook(city: str, checkin_ymd: str, checkout_ymd: str, s
 	marker = AVIA_AFFILIATE_ID
 	if not (marker and city and checkin_ymd and checkout_ymd):
 		return None
-	h = requests.PreparedRequest()
-	h.prepare_url(
-		"https://search.hotellook.com/",
-		{
-			"destination": city,
-			"checkIn": checkin_ymd,
-			"checkOut": checkout_ymd,
-			"adults": "1",
-			"rooms": "1",
-			"children": "0",
-			"locale": "en",
-			"currency": "USD",
-		},
-	)
-	tp = requests.PreparedRequest()
-	params = {"marker": marker, "p": TP_P_HOTELLOOK, "u": h.url}
+	
+	# Generate direct Hotellook URL with affiliate tracking
+	params = {
+		"destination": city,
+		"checkIn": checkin_ymd,
+		"checkOut": checkout_ymd,
+		"adults": "1",
+		"rooms": "1",
+		"children": "0",
+		"locale": "en",
+		"currency": "USD",
+		"marker": marker
+	}
 	if sub_id:
 		params["sub_id"] = sub_id
-	tp.prepare_url("https://tp.media/r", params)
-	return tp.url
+	
+	h = requests.PreparedRequest()
+	h.prepare_url("https://search.hotellook.com/", params)
+	return h.url
 
 
 # --------- Small helpers ---------
@@ -575,12 +678,15 @@ def derive_city_from_iata(iata: str) -> str:
 # --------- Email via Resend ---------
 
 # Import the Resend emailer
-from .emailer_resend import send_email_resend
+from emailer_resend import send_email_resend
+
+# Import unified date utilities
+from date_utils import generate_affiliate_urls
 
 
 # --------- Per-alert processing ---------
 
-def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], Optional[str]]:
+def process_alert(supabase: Client, alert: dict, good_days: list[str] = None) -> Tuple[bool, Optional[str], Optional[str]]:
 	"""Returns (emailed, flight_url, hotel_url)."""
 	now = _now_utc()
 	alert_id = alert.get("id")
@@ -588,7 +694,7 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 	dest = (alert.get("dest_iata") or "").upper()
 	depart = str(alert.get("depart_date") or "")
 	ret = str(alert.get("return_date") or "") or None
-	price_cap = alert.get("price_max_usd")
+	price_cap = alert.get("max_price_eur")
 	user_email = (
 		os.getenv("EMAIL_TO")  # override for testing
 		or (alert.get("user_email") or alert.get("email") or "")
@@ -606,8 +712,10 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 		# Write back last_checked_at regardless
 		supabase.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", alert_id).execute()
 		return (False, None, None)
+	
 	# Handle both fake and real API response formats
 	price_display = offer.get('price') or offer.get('total_usd') or 'N/A'
+	total_disp = price_display  # Set total_disp for logging
 	print(f"[flight] Found flight: ${price_display} - {offer.get('deep_link', 'No link')}")
 	total = float(offer["total_usd"]) if offer.get("total_usd") is not None else None
 
@@ -615,37 +723,139 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 	is_match = price_cap is None or (total is not None and total <= float(price_cap))
 	print(f"[price] Price cap: {price_cap}, Flight price: {total}, Match: {is_match}")
 
-	# NEW: compute forecast-derived ok_dates, snap window, build links from snapped dates
-	ok_dates = compute_ok_dates_from_cache(
-		supabase,
-		alert["spot_id"],
-		alert.get("depart_date"),
-		alert.get("return_date"),
-		alert.get("wave_min_m"),
-		alert.get("wave_max_m"),
-		alert.get("wind_max_kmh"),
-		alert.get("days_mask") or "1111111",
-	)
-	snap_start, snap_end = best_block(ok_dates)
-	departYMD = snap_start or alert.get("depart_date")
-	returnYMD = snap_end   or alert.get("return_date")
-
-	# Build affiliates FROM THESE DATES (email + UI must match)
-	sub_id = f"alert_{alert_id}"
-	dest_iata = alert.get("dest_iata") or alert.get("destination_iata")
-	flight_url = build_flight_link_aviasales(origin, dest_iata, departYMD, returnYMD, sub_id) or offer.get("deep_link")
-	hotel_url = None
-	if returnYMD:
-		city = derive_city_from_iata(dest_iata)
-		checkoutYMD = (date.fromisoformat(returnYMD) + timedelta(days=1)).isoformat()
-		hotel_url = build_hotel_link_hotellook(city, departYMD, checkoutYMD, sub_id)
+	# Use the good days from forecast processing instead of cache lookup
+	ok_dates = good_days or []
+	# For surf trips, we want to cover all eligible days with a minimum 3-day trip
+	if ok_dates:
+		# Use unified date logic for consistent trip duration
+		sub_id = f"alert_{alert_id}"
+		dest_iata = alert.get("dest_iata") or alert.get("destination_iata")
+		marker = AVIA_AFFILIATE_ID
+		
+		if ENABLE_AFFILIATES and marker and origin and dest_iata:
+			try:
+				# Generate affiliate URLs using unified date logic
+				flight_url, hotel_url, (departYMD, returnYMD, trip_duration) = generate_affiliate_urls(
+					ok_dates, origin, dest_iata, marker, sub_id
+				)
+				print(f"[affiliate] Generated URLs using unified logic: {trip_duration} days ({departYMD} to {returnYMD})")
+			except Exception as e:
+				print(f"[affiliate] Error generating unified URLs: {e}, falling back to old logic")
+				# Fallback to old logic
+				sorted_dates = sorted(ok_dates)
+				departYMD = sorted_dates[0]
+				min_trip_days = 3
+				if len(sorted_dates) >= min_trip_days:
+					returnYMD = sorted_dates[-1]
+				else:
+					start_date = datetime.fromisoformat(departYMD).date()
+					end_date = start_date + timedelta(days=min_trip_days - 1)
+					returnYMD = end_date.isoformat()
+				
+				# Use unified affiliate URL generation (same as chips)
+				flight_url, hotel_url, (departYMD, returnYMD, trip_duration) = generate_affiliate_urls(
+					ok_dates, origin, dest_iata, AVIA_AFFILIATE_ID, f"alert_{alert_id}"
+				)
+		else:
+			# No affiliate setup, use old logic for dates only
+			sorted_dates = sorted(ok_dates)
+			departYMD = sorted_dates[0]
+			min_trip_days = 3
+			if len(sorted_dates) >= min_trip_days:
+				returnYMD = sorted_dates[-1]
+			else:
+				start_date = datetime.fromisoformat(departYMD).date()
+				end_date = start_date + timedelta(days=min_trip_days - 1)
+				returnYMD = end_date.isoformat()
+			
+			flight_url = offer.get("deep_link")
+			hotel_url = None
+	else:
+		departYMD = alert.get("depart_date")
+		returnYMD = alert.get("return_date")
+		flight_url = offer.get("deep_link")
+		hotel_url = None
 
 	# Cache price data for future quick checks
 	if total is not None:
-		cache_price_data(supabase, alert, offer, total, now)
+		cache_price_data(supabase, alert, offer, total, now, departYMD, returnYMD)
 	
-	# Email on match
+	# Email on match - only log as "sent" when BOTH forecast conditions AND price are satisfied
 	print(f"[email] Checking conditions: is_match={is_match}, user_email='{user_email}', will_send={bool(is_match and user_email)}")
+	
+	# Check if we have good forecast conditions
+	has_good_conditions = len(ok_dates) > 0
+	print(f"[forecast] Good conditions: {has_good_conditions} ({len(ok_dates)} days), Price match: {is_match}")
+	
+	# Only log as "sent" when BOTH conditions are met
+	if has_good_conditions and is_match:
+		print(f"[match] Both forecast and price conditions met - logging as 'sent'")
+		# Log the hit event
+		try:
+			summary_src = f"full_match_{alert_id}|{departYMD}|{returnYMD or ''}|{len(ok_dates)}|{total_disp}"
+			summary_hash = hashlib.sha1(summary_src.encode("utf-8")).hexdigest()[:16]
+			
+			event_row = {
+				"rule_id": alert_id,
+				"sent_at": now.isoformat(),
+				"tier": "test",
+				"summary_hash": summary_hash,
+				"price": total_disp if total is not None else None,
+				"deep_link": flight_url,
+				"ok_dates": ok_dates,
+				"ok_dates_count": len(ok_dates),
+				"snapped_depart_date": departYMD,
+				"snapped_return_date": returnYMD,
+				"status": "sent",
+				"reason": "forecast_and_price_match",
+			}
+			supabase.table("alert_events").upsert(
+				event_row,
+				on_conflict="rule_id,summary_hash"
+			).execute()
+			print(f"[log_event] upserted status=sent rule_id={alert_id}")
+		except Exception as e:
+			print(f"[log_event] upsert error: {e}")
+		
+		# Update summary
+		try:
+			supabase.table("alert_rule_summaries").upsert({
+				"rule_id": alert_id,
+				"first_ok": ok_dates[0] if ok_dates else None,
+				"last_ok": ok_dates[-1] if ok_dates else None,
+				"ok_count": len(ok_dates),
+			}).execute()
+		except Exception as e:
+			print(f"[summary] upsert error: {e}")
+	elif has_good_conditions and not is_match:
+		print(f"[no_match] Good forecast conditions but price too high - logging as 'too_pricey'")
+		# Log as "too_pricey" when forecast is good but price doesn't match
+		try:
+			summary_src = f"no_price_{alert_id}|{departYMD}|{returnYMD or ''}|{len(ok_dates)}|{total_disp}|{price_cap}"
+			summary_hash = hashlib.sha1(summary_src.encode("utf-8")).hexdigest()[:16]
+			
+			event_row = {
+				"rule_id": alert_id,
+				"sent_at": now.isoformat(),
+				"tier": "test",
+				"summary_hash": summary_hash,
+				"price": total_disp if total is not None else None,
+				"deep_link": flight_url,
+				"ok_dates": ok_dates,
+				"ok_dates_count": len(ok_dates),
+				"snapped_depart_date": departYMD,
+				"snapped_return_date": returnYMD,
+				"status": "too_pricey",
+				"reason": f"price too high: ${total_disp} > ${price_cap}" if price_cap else "no price cap set",
+			}
+			supabase.table("alert_events").upsert(
+				event_row,
+				on_conflict="rule_id,summary_hash"
+			).execute()
+			print(f"[log_event] upserted status=too_pricey rule_id={alert_id}")
+		except Exception as e:
+			print(f"[log_event] upsert error: {e}")
+	
 	if is_match and user_email:
 		# safer display values
 		total_disp = 0 if total is None else total
@@ -721,7 +931,36 @@ def process_alert(supabase: Client, alert: dict) -> Tuple[bool, Optional[str], O
 
 			return (True, flight_url, hotel_url)
 
-	# Not matched: only last_checked_at
+	# Not matched: log as "no_surf" if no good conditions found
+	if not has_good_conditions:
+		print(f"[forecast] No good conditions found - logging as 'no_surf'")
+		try:
+			summary_src = f"no_surf_{alert_id}|{now.isoformat()}"
+			summary_hash = hashlib.sha1(summary_src.encode("utf-8")).hexdigest()[:16]
+			
+			event_row = {
+				"rule_id": alert_id,
+				"sent_at": now.isoformat(),
+				"tier": "test",
+				"summary_hash": summary_hash,
+				"price": None,
+				"deep_link": None,
+				"ok_dates": [],
+				"ok_dates_count": 0,
+				"snapped_depart_date": None,
+				"snapped_return_date": None,
+				"status": "no_surf",
+				"reason": "no surfable mornings in window",
+			}
+			supabase.table("alert_events").upsert(
+				event_row,
+				on_conflict="rule_id,summary_hash"
+			).execute()
+			print(f"[log_event] upserted status=no_surf rule_id={alert_id}")
+		except Exception as e:
+			print(f"[log_event] upsert error: {e}")
+	
+	# Update last_checked_at
 	supabase.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", alert_id).execute()
 	return (False, flight_url, hotel_url)
 
@@ -756,7 +995,8 @@ def main():
 	for a in eligible:
 		try:
 			# Check forecast conditions before processing
-			if not forecast_ok_daily(sb, a):
+			forecast_ok, good_days = forecast_ok_daily(sb, a)
+			if not forecast_ok:
 				print(f"[forecast] rule_id={a['id']} skipped - forecast conditions not met")
 				# Log the skip event (use "sent" status to avoid constraint issues)
 				try:
@@ -776,7 +1016,7 @@ def main():
 				sb.table("alert_rules").update({"last_checked_at": _now_utc().isoformat()}).eq("id", a["id"]).execute()
 				continue
 			
-			ok, f_url, h_url = process_alert(sb, a)
+			ok, f_url, h_url = process_alert(sb, a, good_days)
 			matched += 1 if ok else 0
 			emailed += 1 if ok else 0
 			if ok:
@@ -791,15 +1031,15 @@ def main():
 	for alert in eligible:
 		if alert.get("spot_id"):  # Only count if we actually process the alert
 			amadeus_calls += 1
-		if status and status.get("status") == "sent":
-			email_sends += 1
+	# Email sends are tracked by the 'emailed' variable
+	email_sends = emailed
 	
 	print(f"[core] done — eligible={len(eligible)} matched={matched} emailed={emailed} errors={errors}")
 	print(f"[cost] Amadeus calls: {amadeus_calls}, Email sends: {email_sends}")
 	print(f"[cost] Estimated cost: ${amadeus_calls * 0.01:.2f} (Amadeus) + ${email_sends * 0.001:.3f} (Email)")
 
 
-def cache_price_data(supabase: Client, alert: dict, offer: dict, total: float, now: datetime):
+def cache_price_data(supabase: Client, alert: dict, offer: dict, total: float, now: datetime, depart_date: str, return_date: str):
 	"""Cache price data for future quick checks"""
 	try:
 		spot_id = alert.get("spot_id")
@@ -809,10 +1049,23 @@ def cache_price_data(supabase: Client, alert: dict, offer: dict, total: float, n
 		
 		origin = alert.get("origin_iata", "")
 		dest = alert.get("dest_iata", "")
-		affiliate_link = offer.get("deep_link", "")
+		
+		# Skip caching if essential data is missing
+		if not depart_date or not return_date:
+			print(f"[cache] Missing dates - skipping price cache (depart: {depart_date}, return: {return_date})")
+			return
+		
+		# Use Aviasales for flight bookings (not Amadeus direct link)
+		# Generate Aviasales URL with proper affiliate tracking (DDMM format)
+		depart_ddmm = f"{depart_date.split('-')[2]}{depart_date.split('-')[1]}"  # DDMM
+		return_ddmm = f"{return_date.split('-')[2]}{return_date.split('-')[1]}"  # DDMM
+		affiliate_link = f"https://aviasales.com/search/{origin}{depart_ddmm}{dest}{return_ddmm}?marker=670448&sub_id=alert_{alert.get('id', 'unknown')}"
 		
 		# Convert USD to EUR (rough conversion)
 		price_eur = total * 0.85  # Approximate USD to EUR conversion
+		
+		# Generate Hotellook URL for hotel bookings (direct affiliate link)
+		hotel_url = f"https://search.hotellook.com/?destination={dest}&checkIn={depart_date}&checkOut={return_date}&adults=1&rooms=1&children=0&locale=en&currency=USD&marker=670448&sub_id=alert_{alert.get('id', 'unknown')}"
 		
 		# Cache the price data
 		cache_data = {
@@ -821,14 +1074,19 @@ def cache_price_data(supabase: Client, alert: dict, offer: dict, total: float, n
 			"dest_iata": dest,
 			"price_eur": price_eur,
 			"affiliate_link": affiliate_link,
+			"hotel_link": hotel_url,
 			"cached_at": now.isoformat(),
 			"expires_at": (now + timedelta(hours=24)).isoformat()
 		}
 		
 		print(f"[cache] Caching price data: {origin}→{dest} €{price_eur:.2f}")
 		
-		# Upsert price cache (replace existing data for this spot)
-		supabase.table("price_cache").upsert(cache_data, on_conflict="spot_id,origin_iata,dest_iata").execute()
+		# Insert price cache data (simple insert for now)
+		try:
+			supabase.table("price_cache").insert(cache_data).execute()
+		except Exception as insert_error:
+			print(f"[cache] Insert failed: {insert_error}")
+			return
 		
 		print(f"[cache] Price data cached successfully")
 		
