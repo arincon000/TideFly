@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { generateAffiliateUrls } from '@/lib/dateUtils';
 
 interface QuickForecastCheckRequest {
   ruleId: string;
   alertRule: {
     spot_id: string | null;
-    origin_iata?: string | null;
-    dest_iata?: string | null;
     wave_min_m: number | null;
     wave_max_m: number | null;
     wind_max_kmh: number | null;
@@ -29,7 +26,6 @@ interface QuickForecastResult {
   priceData?: {
     price: number | null;
     affiliateLink: string | null;
-    hotelLink: string | null;
     cachedAt: string | null;
     warning?: string;
   };
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
     console.log('Quick Check: Forecast result:', forecastResult);
 
     // Step 2: Check price data availability and freshness
-    const priceResult = await checkPriceData(supabase, alertRule, ruleId);
+    const priceResult = await checkPriceData(supabase, alertRule);
     console.log('Quick Check: Price result:', priceResult);
 
     // Step 3: Determine if worker should be triggered
@@ -76,7 +72,6 @@ export async function POST(request: NextRequest) {
       priceData: priceResult.freshness !== 'none' ? {
         price: priceResult.price,
         affiliateLink: priceResult.affiliateLink,
-        hotelLink: priceResult.hotelLink,
         cachedAt: priceResult.cachedAt,
         warning: priceResult.warning
       } : undefined
@@ -143,12 +138,111 @@ async function checkForecastConditions(supabase: any, alertRule: any) {
 
   // Check if we have enough days in the cached data
   if (allForecastData.length < forecastWindow) {
-    console.log(`Quick Check: Cached data has ${allForecastData.length} days, but need ${forecastWindow} days. Using cached data for now.`);
-    // For quick check, we'll use whatever data we have rather than fetching fresh data
-    // This keeps the quick check fast and free
+    console.log(`Quick Check: Cached data has ${allForecastData.length} days, but need ${forecastWindow} days. Fetching fresh data...`);
+    
+    // Fallback: Fetch fresh data from Open-Meteo API (same logic as forecast-details API)
+    try {
+      // Get spot information from database
+      const { data: spotData, error: spotError } = await supabase
+        .from('spots')
+        .select('id, name, latitude, longitude, timezone')
+        .eq('id', alertRule.spot_id)
+        .single();
+
+      if (spotError || !spotData) {
+        console.error('Quick Check: Failed to fetch spot data:', spotError);
+        return {
+          conditionsGood: false,
+          summary: { goodDays: 0, totalDays: 0 }
+        };
+      }
+
+      // Import the Open-Meteo function
+      const { fetchWaveWindStats } = await import('@/lib/openmeteo');
+      
+      const spot = {
+        id: spotData.id,
+        name: spotData.name,
+        latitude: spotData.latitude,
+        longitude: spotData.longitude,
+        timezone: spotData.timezone || 'UTC'
+      };
+
+      // Fetch fresh forecast data from Open-Meteo
+      const freshForecastData = await fetchWaveWindStats(spot, forecastWindow);
+      
+      if (!freshForecastData || freshForecastData.length === 0) {
+        console.error('Quick Check: Failed to fetch fresh forecast data from Open-Meteo');
+        return {
+          conditionsGood: false,
+          summary: { goodDays: 0, totalDays: 0 }
+        };
+      }
+
+      console.log(`Quick Check: Successfully fetched ${freshForecastData.length} days of fresh forecast data`);
+      
+      // Process the fresh data using the same logic as cached data
+      const isFreshData = true; // This is fresh data from Open-Meteo API
+      const planningLogic = alertRule.planning_logic || 'conservative';
+      let goodDays = 0;
+      let bestDay: string | undefined;
+
+      for (const day of freshForecastData) {
+        const waveStats = day.wave_stats || {};
+        const windStats = day.wind_stats || {};
+        
+        const waveMin = alertRule.wave_min_m || 0;
+        const waveMax = alertRule.wave_max_m || 100;
+        const windMax = alertRule.wind_max_kmh || 100;
+        
+        // Apply planning logic (same as cached data logic)
+        let waveOk: boolean;
+        let windOk: boolean;
+        
+        switch (planningLogic) {
+          case 'optimistic':
+            waveOk = (waveStats.avg || 0) >= waveMin && (waveStats.avg || 0) <= waveMax;
+            windOk = (windStats.avg || 0) <= windMax;
+            break;
+          case 'aggressive':
+            waveOk = (waveStats.min || 0) >= waveMin && (waveStats.min || 0) <= waveMax;
+            windOk = (windStats.avg || 0) <= windMax;
+            break;
+          case 'conservative':
+          default:
+            waveOk = (waveStats.avg || 0) >= waveMin && (waveStats.avg || 0) <= waveMax;
+            windOk = (windStats.max || 0) <= windMax;
+            break;
+        }
+        
+        // For fresh data, assume morning conditions are good since we don't have morning data
+        const morningOk = isFreshData ? true : (day.morning_ok || false);
+        const overallOk = waveOk && windOk && morningOk;
+        
+        if (overallOk) {
+          goodDays++;
+          if (!bestDay) bestDay = day.date;
+        }
+      }
+
+      return {
+        conditionsGood: goodDays > 0,
+        summary: {
+          goodDays,
+          totalDays: freshForecastData.length,
+          bestDay
+        }
+      };
+
+    } catch (error) {
+      console.error('Quick Check: Error fetching fresh forecast data:', error);
+      // Fall back to using whatever cached data we have
+      console.log('Quick Check: Falling back to cached data due to fresh data fetch error');
+    }
   }
 
   // Apply planning logic
+  const isFreshData = false; // This is cached data
   const planningLogic = alertRule.planning_logic || 'conservative';
   let goodDays = 0;
   let bestDay: string | undefined;
@@ -181,7 +275,8 @@ async function checkForecastConditions(supabase: any, alertRule: any) {
         break;
     }
     
-    const morningOk = day.morning_ok || false;
+    // For fresh data, assume morning conditions are good since we don't have morning data
+    const morningOk = isFreshData ? true : (day.morning_ok || false);
     const overallOk = waveOk && windOk && morningOk;
     
     if (overallOk) {
@@ -200,12 +295,12 @@ async function checkForecastConditions(supabase: any, alertRule: any) {
   };
 }
 
-async function checkPriceData(supabase: any, alertRule: any, ruleId: string) {
+async function checkPriceData(supabase: any, alertRule: any) {
   try {
     // Get the most recent price data for this spot
     const { data: priceData, error: priceError } = await supabase
       .from('price_cache')
-      .select('price_eur, affiliate_link, hotel_link, cached_at, expires_at')
+      .select('price_eur, affiliate_link, cached_at, expires_at')
       .eq('spot_id', alertRule.spot_id)
       .order('cached_at', { ascending: false })
       .limit(1);
@@ -215,7 +310,6 @@ async function checkPriceData(supabase: any, alertRule: any, ruleId: string) {
         freshness: 'none' as const,
         price: null,
         affiliateLink: null,
-        hotelLink: null,
         cachedAt: null,
         warning: 'No price data available - worker will run soon'
       };
@@ -244,114 +338,10 @@ async function checkPriceData(supabase: any, alertRule: any, ruleId: string) {
       warning = 'Price data is outdated - check current rates';
     }
 
-    // Generate fresh affiliate links using unified date logic if we have airport codes
-    let affiliateLink = price.affiliate_link;
-    let hotelLink = price.hotel_link;
-    
-    if (alertRule.origin_iata && alertRule.dest_iata) {
-      try {
-        // Get current forecast data to generate fresh affiliate links
-        const { data: forecastData } = await supabase
-          .from('forecast_cache')
-          .select('date, wave_stats, wind_stats, morning_ok, cached_at')
-          .eq('spot_id', alertRule.spot_id)
-          .order('cached_at', { ascending: false })
-          .limit(1);
-
-        if (forecastData && forecastData.length > 0) {
-          const cachedAt = forecastData[0].cached_at;
-          const forecastWindow = alertRule.forecast_window || 5;
-          
-          // Calculate the forecast window dates
-          const today = new Date();
-          const endDate = new Date(today);
-          endDate.setDate(today.getDate() + forecastWindow - 1);
-          
-          const todayStr = today.toISOString().split('T')[0];
-          const endDateStr = endDate.toISOString().split('T')[0];
-          
-          const { data: allForecastData } = await supabase
-            .from('forecast_cache')
-            .select('date, wave_stats, wind_stats, morning_ok')
-            .eq('spot_id', alertRule.spot_id)
-            .eq('cached_at', cachedAt)
-            .gte('date', todayStr)
-            .lte('date', endDateStr)
-            .order('date', { ascending: true });
-
-          if (allForecastData) {
-            // Find good days using the same logic as checkForecastConditions
-            const planningLogic = alertRule.planning_logic || 'conservative';
-            const goodDays: string[] = [];
-
-            for (const day of allForecastData) {
-              const waveStats = day.wave_stats || {};
-              const windStats = day.wind_stats || {};
-              
-              const waveMin = alertRule.wave_min_m || 0;
-              const waveMax = alertRule.wave_max_m || 100;
-              const windMax = alertRule.wind_max_kmh || 100;
-              
-              let waveOk: boolean;
-              let windOk: boolean;
-              
-              switch (planningLogic) {
-                case 'optimistic':
-                  waveOk = (waveStats.avg || 0) >= waveMin && (waveStats.avg || 0) <= waveMax;
-                  windOk = (windStats.avg || 0) <= windMax;
-                  break;
-                case 'aggressive':
-                  waveOk = (waveStats.min || 0) >= waveMin && (waveStats.min || 0) <= waveMax;
-                  windOk = (windStats.avg || 0) <= windMax;
-                  break;
-                case 'conservative':
-                default:
-                  waveOk = (waveStats.avg || 0) >= waveMin && (waveStats.avg || 0) <= waveMax;
-                  windOk = (windStats.max || 0) <= windMax;
-                  break;
-              }
-              
-              const morningOk = day.morning_ok || false;
-              const overallOk = waveOk && windOk && morningOk;
-              
-              if (overallOk) {
-                goodDays.push(day.date);
-              }
-            }
-
-            // Generate fresh affiliate links using unified date logic
-            if (goodDays.length > 0) {
-              const marker = process.env.NEXT_PUBLIC_AVIA_AFFILIATE_ID || process.env.AVIA_AFFILIATE_ID || '670448';
-              const { flightUrl, hotelUrl } = generateAffiliateUrls(
-                goodDays,
-                alertRule.origin_iata,
-                alertRule.dest_iata,
-                marker,
-                `alert_${ruleId}`
-              );
-              
-              affiliateLink = flightUrl;
-              hotelLink = hotelUrl;
-              
-              console.log('Quick Check: Generated fresh affiliate links:', {
-                goodDays,
-                affiliateLink,
-                hotelLink
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Quick Check: Error generating affiliate links:', error);
-        // Fall back to cached links
-      }
-    }
-
     return {
       freshness,
       price: price.price_eur,
-      affiliateLink,
-      hotelLink,
+      affiliateLink: price.affiliate_link,
       cachedAt: price.cached_at,
       warning
     };
@@ -362,7 +352,6 @@ async function checkPriceData(supabase: any, alertRule: any, ruleId: string) {
       freshness: 'none' as const,
       price: null,
       affiliateLink: null,
-      hotelLink: null,
       cachedAt: null,
       warning: 'Error checking price data - worker will run soon'
     };

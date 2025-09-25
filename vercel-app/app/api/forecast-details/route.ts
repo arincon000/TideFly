@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
         console.log(`API: Successfully fetched ${freshForecastData.length} days of fresh forecast data`);
         
         // Process the fresh data using the same logic as cached data
+        const isFreshData = true; // This is fresh data from Open-Meteo API
         const processedData = freshForecastData.map(day => {
           const waveStats = day.wave_stats || {};
           const windStats = day.wind_stats || {};
@@ -97,10 +98,29 @@ export async function POST(request: NextRequest) {
           const maxWind = windStats.max || 0;
           const minWind = windStats.min || 0;
           
-          // Use avg for waves, max for wind (as per recommendation)
-          const waveOk = avgWave >= waveMin && avgWave <= waveMax;
-          const windOk = maxWind <= windMax;
-          const morningOk = day.morning_ok || false;
+          // Apply planning logic (same as quick-forecast-check API)
+          const planningLogic = alertRule.planning_logic || 'conservative';
+          let waveOk: boolean;
+          let windOk: boolean;
+          
+          switch (planningLogic) {
+            case 'optimistic':
+              waveOk = avgWave >= waveMin && avgWave <= waveMax;
+              windOk = avgWind <= windMax;
+              break;
+            case 'aggressive':
+              waveOk = minWave >= waveMin && minWave <= waveMax;
+              windOk = avgWind <= windMax;
+              break;
+            case 'conservative':
+            default:
+              waveOk = avgWave >= waveMin && avgWave <= waveMax;
+              windOk = maxWind <= windMax;
+              break;
+          }
+          
+          // For fresh data, assume morning conditions are good since we don't have morning data
+const morningOk = isFreshData ? true : (day.morning_ok || false);
           
           // Check if conditions fall below minimum ranges
           const waveBelowMin = avgWave < waveMin;
@@ -220,6 +240,7 @@ export async function POST(request: NextRequest) {
         console.log(`API: Successfully fetched ${freshForecastData.length} days of fresh forecast data`);
         
         // Process the fresh data using the same logic as cached data
+        const isFreshData = true; // This is fresh data from Open-Meteo API
         const processedData = freshForecastData.map(day => {
           const waveStats = day.wave_stats || {};
           const windStats = day.wind_stats || {};
@@ -236,10 +257,29 @@ export async function POST(request: NextRequest) {
           const maxWind = windStats.max || 0;
           const minWind = windStats.min || 0;
           
-          // Use avg for waves, max for wind (as per recommendation)
-          const waveOk = avgWave >= waveMin && avgWave <= waveMax;
-          const windOk = maxWind <= windMax;
-          const morningOk = day.morning_ok || false;
+          // Apply planning logic (same as quick-forecast-check API)
+          const planningLogic = alertRule.planning_logic || 'conservative';
+          let waveOk: boolean;
+          let windOk: boolean;
+          
+          switch (planningLogic) {
+            case 'optimistic':
+              waveOk = avgWave >= waveMin && avgWave <= waveMax;
+              windOk = avgWind <= windMax;
+              break;
+            case 'aggressive':
+              waveOk = minWave >= waveMin && minWave <= waveMax;
+              windOk = avgWind <= windMax;
+              break;
+            case 'conservative':
+            default:
+              waveOk = avgWave >= waveMin && avgWave <= waveMax;
+              windOk = maxWind <= windMax;
+              break;
+          }
+          
+          // For fresh data, assume morning conditions are good since we don't have morning data
+const morningOk = isFreshData ? true : (day.morning_ok || false);
           
           // Check if conditions fall below minimum ranges
           const waveBelowMin = avgWave < waveMin;
@@ -293,6 +333,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process the forecast data and limit to forecast window
+    const isFreshData = false; // This is cached data
     const processedData = allForecastData.slice(0, forecastWindow).map(day => {
       const waveStats = day.wave_stats || {};
       const windStats = day.wind_stats || {};
@@ -312,7 +353,8 @@ export async function POST(request: NextRequest) {
       // Use avg for waves, max for wind (as per recommendation)
       const waveOk = avgWave >= waveMin && avgWave <= waveMax;
       const windOk = maxWind <= windMax;
-      const morningOk = day.morning_ok || false;
+      // For fresh data, assume morning conditions are good since we don't have morning data
+const morningOk = isFreshData ? true : (day.morning_ok || false);
       
       // Check if conditions fall below minimum ranges
       const waveBelowMin = avgWave < waveMin;
