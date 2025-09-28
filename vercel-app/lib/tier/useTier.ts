@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-export type Tier = 'free' | 'pro';
+export type Tier = 'free' | 'pro' | 'unlimited';
 type TierState = { tier: Tier; loading: boolean; error?: string | null };
 
 export function useTier(): TierState {

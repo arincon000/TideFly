@@ -21,7 +21,7 @@ type Spot = {
 export default function NewAlert() {
   const { tier, loading: tierLoading } = useTier();
   const { created, createdMax, atCreateCap, loading: usageLoading } = useAlertUsage(tier);
-  const isPro = tier === 'pro';
+  const isPro = tier === 'pro' || tier === 'unlimited';
   const { options: windowOptions, defaultValue: defaultWindow } = useWindowCategories(tier);
   
   const [userId, setUserId] = useState<string | null>(null);

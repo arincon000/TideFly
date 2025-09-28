@@ -306,9 +306,9 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
             <div className="space-y-6">
               {/* Quick Check Results */}
               {quickCheckResult && (
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
+                <div className={`bg-gradient-to-r ${quickCheckResult.conditionsGood ? 'from-green-50 to-blue-50 border-green-200' : 'from-blue-50 to-blue-50 border-blue-200'} border rounded-lg p-4`}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-green-800">🏄‍♂️ Quick Forecast Check</h3>
+                    <h3 className={`text-lg font-semibold ${quickCheckResult.conditionsGood ? 'text-green-800' : 'text-blue-800'}`}>🏄‍♂️ Quick Forecast Check</h3>
                     <div className="flex items-center gap-2">
                       {quickCheckResult.conditionsGood ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
@@ -324,7 +324,7 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                   
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
-                      <p className="text-sm text-green-700">
+                      <p className={`text-sm ${quickCheckResult.conditionsGood ? 'text-green-700' : 'text-blue-700'}`}>
                         <span className="font-medium">Good Days:</span> {forecastData ? forecastData.days.filter(day => day.overallOk).length : 0} / {forecastData ? forecastData.days.length : 0}
                       </p>
                       {forecastData && forecastData.days.filter(day => day.overallOk).length > 0 && (
@@ -334,59 +334,8 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                       )}
                     </div>
                     
-                    <div>
-                      <p className="text-sm text-green-700">
-                        <span className="font-medium">Price Data:</span> {
-                          quickCheckResult.priceFreshness === 'fresh' ? '✅ Fresh' :
-                          quickCheckResult.priceFreshness === 'stale' ? '⚠️ Stale' :
-                          '❌ None'
-                        }
-                      </p>
-                      {quickCheckResult.priceData && (
-                        <p className="text-xs text-green-600">
-                          {quickCheckResult.priceData.price ? `€${quickCheckResult.priceData.price.toFixed(0)}` : 'No price'}
-                        </p>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Price Data Display */}
-                  {quickCheckResult.priceData && quickCheckResult.priceData.price && (
-                    <div className="mb-3 p-3 bg-white border border-green-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">
-                            Flight Price: €{quickCheckResult.priceData.price.toFixed(0)}
-                          </p>
-                          {quickCheckResult.priceData.warning && (
-                            <p className="text-xs text-orange-600">{quickCheckResult.priceData.warning}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          {quickCheckResult.priceData.affiliateLink && (
-                            <a
-                              href={quickCheckResult.priceData.affiliateLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                            >
-                              🛫 Book Flight
-                            </a>
-                          )}
-                          {quickCheckResult.priceData.hotelLink && (
-                            <a
-                              href={quickCheckResult.priceData.hotelLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 transition-colors"
-                            >
-                              🏨 Book Hotel
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Booking Links for Good Conditions (Revenue Optimization) */}
                   {quickCheckResult.conditionsGood && (
@@ -549,8 +498,8 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                 </div>
               </div>
 
-              {/* Fresh Data Disclaimer */}
-              {forecastData.isFreshData && forecastData.disclaimer && (
+              {/* Fresh Data Banner - Show for alerts that haven't been processed by worker yet */}
+              {quickCheckResult && (!quickCheckResult.priceDataAvailable && !quickCheckResult.shouldTriggerWorker) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
@@ -563,7 +512,75 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                         Fresh Forecast Data
                       </h3>
                       <div className="mt-1 text-sm text-blue-700">
-                        {forecastData.disclaimer}
+                        Fresh data from Open-Meteo API. May not represent optimal morning conditions. We'll refresh with morning data and send alerts if conditions match.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Worker-Processed Data Banner - Show for alerts that have been processed by worker AND have good conditions */}
+              {quickCheckResult && quickCheckResult.shouldTriggerWorker && quickCheckResult.conditionsGood && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-green-800">
+                        Verified Morning Conditions
+                      </h3>
+                      <div className="mt-1 text-sm text-green-700">
+                        <div className="mb-2">
+                          Last updated: {new Date(forecastData.cachedAt).toLocaleString('en-US', { 
+                            timeZone: 'UTC', 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                          })}
+                        </div>
+                        <div>
+                          This data includes verified morning conditions. Our worker runs every 6 hours to capture morning surf conditions across different time zones worldwide, ensuring we catch the best surf windows globally.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Worker-Processed Data Banner - Show for alerts that have been processed by worker BUT have no good conditions */}
+              {quickCheckResult && quickCheckResult.shouldTriggerWorker && !quickCheckResult.conditionsGood && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">
+                        Worker-Processed Data
+                      </h3>
+                      <div className="mt-1 text-sm text-blue-700">
+                        <div className="mb-2">
+                          Last updated: {new Date(forecastData.cachedAt).toLocaleString('en-US', {
+                            timeZone: 'UTC',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                          })}.
+                        </div>
+                        <div>
+                          Conditions currently don't match your criteria, but we'll continue monitoring and send alerts if conditions improve.
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -684,10 +701,14 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                       <div className="mt-3 flex items-center gap-2">
                         <span className="text-lg">🌅</span>
                         <span className="text-sm text-slate-600">Morning conditions:</span>
-                        {day.morningOk ? (
-                          <span className="text-green-600 text-sm font-medium">Good</span>
+                        {day.overallOk ? (
+                          day.morningOk ? (
+                            <span className="text-green-600 text-sm font-medium">Good</span>
+                          ) : (
+                            <span className="text-red-600 text-sm font-medium">Poor</span>
+                          )
                         ) : (
-                          <span className="text-red-600 text-sm font-medium">Poor</span>
+                          <span className="text-gray-600 text-sm font-medium">No match</span>
                         )}
                       </div>
                     </div>

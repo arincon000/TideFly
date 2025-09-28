@@ -41,6 +41,11 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 # Email configuration
 EMAIL_FROM = os.environ.get("EMAIL_FROM", "alerts@tidefly.app")
+
+# Email testing configuration
+EMAIL_TEST_LIMIT = int(os.environ.get("EMAIL_TEST_LIMIT", "10"))  # Limit emails during testing
+EMAIL_TEST_COUNT = 0  # Counter for emails sent
+
 AMADEUS_CLIENT_ID = os.environ.get("AMADEUS_CLIENT_ID")
 AMADEUS_CLIENT_SECRET = os.environ.get("AMADEUS_CLIENT_SECRET")
 AMADEUS_ENV = (os.environ.get("AMADEUS_ENV") or "test").lower()  # "test" or "prod"
@@ -928,17 +933,104 @@ def main():
             continue
         
         rule_name = rule.get('name') or 'Surf Alert'
-        subject = f"Surf+Flight ({tier}): {spot['name']} + {origin}→{dest} ≈ EUR {best_price}"
+        subject = f'Your "{rule_name}" just hit ✅ [Match found]'
         window_len = int((end - start).days) + 1
         
-        link_html = f' &nbsp;|&nbsp; <a href="{link}">Book</a>' if link else ''
+        # Extract date range for display
+        if ok_dates:
+            start_date = ok_dates[0]
+            end_date = ok_dates[-1]
+        else:
+            start_date = start.strftime("%Y-%m-%d")
+            end_date = end.strftime("%Y-%m-%d")
+        
+        # Format all surfable days (all days that meet criteria)
+        if ok_dates:
+            if len(ok_dates) <= 5:
+                best_days = ", ".join(ok_dates)
+            else:
+                # Show first 3 and indicate there are more
+                best_days = f"{', '.join(ok_dates[:3])} + {len(ok_dates) - 3} more"
+        else:
+            best_days = "No surfable days found"
+        
+        # Get planning logic
+        planning_logic = rule.get('planning_logic') or 'conservative'
+        
+        # Get wave range
+        max_wave = float(rule.get('wave_max_m') or 999.0)
+        wave_range = f"{min_wave}–{max_wave}" if max_wave < 999 else f"≥{min_wave}"
+        
+        # Generate hotel URL
+        hotel_url = None
+        if ok_dates and len(ok_dates) >= 2:
+            try:
+                from .date_utils import generate_hotellook_url
+                # Use first and last good dates for hotel booking
+                check_in = ok_dates[0]
+                check_out = ok_dates[-1]
+                hotel_url = generate_hotellook_url(
+                    destination=dest,
+                    check_in=check_in,
+                    check_out=check_out,
+                    marker="670448",
+                    sub_id=f"alert_{rule['id']}"
+                )
+            except Exception as e:
+                print(f"[email] Failed to generate hotel URL: {e}")
+        
+        # Create booking buttons
+        flight_button = f'<a href="{link}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 12px;">Book flight</a>' if link else ''
+        hotel_button = f'<a href="{hotel_url}" style="background-color: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Find stay</a>' if hotel_url else ''
+        
+        # Estimate typical price (add 30% to current price)
+        typical_price = int(float(best_price) * 1.3)
+        
         html = f"""
-            <p><strong>Rule</strong>: {rule_name}</p>
-            <p><strong>Spot</strong>: {spot['name']}</p>
-            <p><strong>Surfable mornings</strong>: {dates_str}</p>
-            <p><strong>Cheapest roundtrip</strong>: EUR {best_price}{link_html}</p>
-            <p><strong>Tier</strong>: {tier} (window {window_len}d)</p>
-            <p><strong>Rules</strong>: wave ≥ {min_wave}m, wind ≤ {max_wind} km/h; stay {min_n}-{max_n} nights.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #059669; margin-bottom: 8px;">Your "{rule_name}" just hit ✅</h2>
+            <p style="color: #dc2626; font-weight: bold; margin-bottom: 24px;">Fares can change quickly—book or hold now.</p>
+            
+            <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                <p><strong>Route:</strong> {origin} → {dest}</p>
+                <p><strong>Dates:</strong> {start_date} → {end_date}</p>
+                <p><strong>The worker found flights as low as:</strong> €{best_price}</p>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <p><strong>Why it matched:</strong></p>
+                <ul style="margin: 8px 0; padding-left: 20px;">
+                    <li>Waves {wave_range} m</li>
+                    <li>Wind ≤ {max_wind} km/h</li>
+                    <li>{window_len}-day window • {planning_logic}</li>
+                </ul>
+                <p><strong>Surfable days:</strong> {best_days}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 32px 0;">
+                {flight_button}
+                {hotel_button}
+            </div>
+            
+            <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin: 24px 0;">
+                <p style="color: #dc2626; font-weight: bold; margin-bottom: 12px;">If you wait, you risk:</p>
+                <ul style="margin: 0; padding-left: 20px; color: #dc2626;">
+                    <li>Price snapping back toward ~€{typical_price}</li>
+                    <li>Best departure times selling out</li>
+                    <li>Swell window slipping past your dates</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                <p style="font-size: 14px; color: #6b7280;">
+                    <a href="#" style="color: #3b82f6;">Manage this alert</a> | 
+                    <a href="#" style="color: #3b82f6;">Unsubscribe</a>
+                </p>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
+                    — TideFly Surf Alerts
+                </p>
+            </div>
+        </div>
         """
         status = send_email(email, subject, html)
         print(f"[email] status={status} to={email}")

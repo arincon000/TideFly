@@ -17,7 +17,7 @@ export default function AlertsPage() {
       .from("alert_rules")
       .select(`
         id,name,spot_id,origin_iata,dest_iata,destination_iata,is_active,paused_until,forecast_window,max_price_eur,
-        wave_min_m,wave_max_m,wind_max_kmh,depart_date,return_date,created_at,last_checked_at,
+        wave_min_m,wave_max_m,wind_max_kmh,planning_logic,depart_date,return_date,created_at,last_checked_at,
         spots!inner(name,country)
       `)
       .eq("user_id", uid)

@@ -99,6 +99,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             forecast_window: rule.forecast_window,
             origin_iata: rule.origin_iata,
             dest_iata: rule.dest_iata,
+            planning_logic: rule.planning_logic,
           }
         };
         console.log('AlertRow: Request body being sent:', JSON.stringify(requestBody, null, 2));

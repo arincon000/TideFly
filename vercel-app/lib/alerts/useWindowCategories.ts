@@ -43,7 +43,7 @@ const ALL_WINDOWS: WindowCategory[] = [
   { id: 'lw', label: 'Long Watch',      subtitle: '11–16 days',value: 16, fromDay: 11, toDay: 16, proOnly: true  },
 ];
 
-/** Get allowed windows for a given tier (Free → only 5; Pro → all) */
+/** Get allowed windows for a given tier (Free → only 5; Pro/Unlimited → all) */
 export function getWindowCategories(tier: Tier): WindowCategory[] {
   const isFree = tier === 'free';
   return isFree ? ALL_WINDOWS.filter(w => !w.proOnly) : ALL_WINDOWS;

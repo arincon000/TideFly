@@ -22,7 +22,7 @@ export default function WindowRadios({ tier, categories, value, onChange }: Wind
       
       <div className="space-y-3">
         {categories.map((category) => {
-          const isDisabled = category.proOnly && tier === 'free';
+          const isDisabled = category.proOnly && (tier === 'free');
           const isSelected = value === category.value;
           
           return (

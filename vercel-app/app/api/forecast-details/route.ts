@@ -396,7 +396,8 @@ const morningOk = isFreshData ? true : (day.morning_ok || false);
         waveMax: alertRule.wave_max_m,
         windMax: alertRule.wind_max_kmh
       },
-      days: processedData
+      days: processedData,
+      isFreshData: false // This is cached data from worker runs
     });
 
   } catch (error) {

@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       priceFreshness: priceResult.freshness,
       shouldTriggerWorker,
       forecastSummary: forecastResult.summary,
-      priceData: priceResult.freshness !== 'none' ? {
+      priceData: priceResult.price !== null ? {
         price: priceResult.price,
         affiliateLink: priceResult.affiliateLink,
         cachedAt: priceResult.cachedAt,

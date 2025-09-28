@@ -1,17 +1,27 @@
-import os
-from supabase import create_client
-from dotenv import load_dotenv
+#!/usr/bin/env python3
 
+import os
+import sys
+sys.path.append('vercel-app')
+
+from supabase import create_client
+
+# Load environment variables
+from dotenv import load_dotenv
 load_dotenv('.env.local')
 
-supabase = create_client(
+# Create Supabase client
+client = create_client(
     os.getenv('NEXT_PUBLIC_SUPABASE_URL'),
-    os.getenv('SUPABASE_SERVICE_KEY')
+    os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 )
 
-# Check current alert_rules
-result = supabase.table('alert_rules').select('id,name').order('created_at', desc=True).limit(10).execute()
-print('Current alert_rules:')
-for rule in result.data:
-    print(f'  {rule["id"]}: {rule["name"]}')
+# Get all alerts
+result = client.table('alert_rules').select('id,name,is_active,last_checked_at').execute()
 
+print(f"Found {len(result.data)} alerts:")
+for alert in result.data[:10]:
+    print(f"- {alert['name']} (active: {alert['is_active']}, last_checked: {alert['last_checked_at']})")
+
+if len(result.data) > 10:
+    print(f"... and {len(result.data) - 10} more")
