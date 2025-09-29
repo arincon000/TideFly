@@ -2,7 +2,7 @@ import hashlib
 import json
 from typing import Any, Dict, Iterable, Optional
 
-from worker.utils import to_json_number  # absolute import
+from utils import to_json_number
 
 
 def make_summary_hash(

@@ -11,10 +11,10 @@ from dotenv import load_dotenv
 load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env.local", override=False)
 
 from supabase import create_client, Client
-from .net import get as http_get
-from .utils import call_with_budget, as_money
-from .events import log_event
-from .db import load_recent_forecast_from_cache
+from net import get as http_get
+from utils import call_with_budget, as_money
+from events import log_event
+from db import load_recent_forecast_from_cache
 
 def _is_iata(x: str) -> bool:
     return bool(re.fullmatch(r"[A-Z]{3}", (x or "")))
@@ -473,7 +473,7 @@ def amadeus_cheapest_roundtrip(fly_from, fly_to, date_from, date_to, min_n=2, ma
     return best
 
 # --- Email (Resend) ---
-from .emailer_resend import send_email_resend
+from emailer_resend import send_email_resend
 
 def send_email(to_email, subject, html):
     try:
@@ -704,6 +704,127 @@ def main():
         window_days = int(rule.get("forecast_window") or 5)
 
         merged, source, _ = _merged_forecast_for_spot(spot)
+        
+        # Check if this is a new alert (never processed by worker) or if we have insufficient cached data
+        is_new_alert = rule.get('last_checked_at') is None
+        if is_new_alert or merged.empty or len(merged) < window_days:
+            if is_new_alert:
+                print(f"[rule] {rule.get('name', 'Surf Alert')} -> new alert (never processed), fetching fresh data...")
+            else:
+                print(f"[rule] {rule.get('name', 'Surf Alert')} -> insufficient cached data ({len(merged) if not merged.empty else 0} days), fetching fresh data...")
+            
+            # Fetch fresh data from Open-Meteo API (same logic as APIs)
+            try:
+                import requests
+                import numpy as np
+                
+                # Open-Meteo API endpoints
+                weather_url = "https://api.open-meteo.com/v1/forecast"
+                marine_url = "https://marine-api.open-meteo.com/v1/marine"
+                
+                # Parameters for weather API
+                weather_params = {
+                    'latitude': spot['latitude'],
+                    'longitude': spot['longitude'],
+                    'hourly': 'wind_speed_10m,wind_direction_10m',
+                    'timezone': 'UTC',
+                    'forecast_days': window_days
+                }
+                
+                # Parameters for marine API
+                marine_params = {
+                    'latitude': spot['latitude'],
+                    'longitude': spot['longitude'],
+                    'hourly': 'wave_height,wave_direction,wave_period',
+                    'timezone': 'UTC',
+                    'forecast_days': window_days
+                }
+                
+                # Fetch data from both APIs
+                weather_response = requests.get(weather_url, params=weather_params, timeout=30)
+                marine_response = requests.get(marine_url, params=marine_params, timeout=30)
+                
+                if weather_response.status_code == 200 and marine_response.status_code == 200:
+                    weather_data = weather_response.json()
+                    marine_data = marine_response.json()
+                    
+                    print(f"[openmeteo] Weather API: {len(weather_data['hourly']['time'])} hours")
+                    print(f"[openmeteo] Marine API: {len(marine_data['hourly']['time'])} hours")
+                    
+                    # Merge the data
+                    weather_times = weather_data['hourly']['time']
+                    marine_times = marine_data['hourly']['time']
+                    
+                    if len(weather_times) == len(marine_times):
+                        print(f"[openmeteo] Merged {len(weather_times)} hourly data points")
+                        
+                        # Process hourly data into daily forecasts
+                        daily_forecasts = []
+                        for i in range(0, len(weather_times), 24):  # Process 24-hour chunks
+                            if i + 24 > len(weather_times):
+                                break
+                                
+                            # Get 24 hours of data
+                            day_times = weather_times[i:i+24]
+                            day_wind_speeds = weather_data['hourly']['wind_speed_10m'][i:i+24]
+                            day_wave_heights = marine_data['hourly']['wave_height'][i:i+24]
+                            
+                            # Calculate daily stats
+                            wave_stats = {
+                                'avg': np.mean(day_wave_heights),
+                                'min': np.min(day_wave_heights),
+                                'max': np.max(day_wave_heights)
+                            }
+                            
+                            wind_stats = {
+                                'avg': np.mean(day_wind_speeds),
+                                'min': np.min(day_wind_speeds),
+                                'max': np.max(day_wind_speeds)
+                            }
+                            
+                            # For fresh data, assume morning conditions are good (like APIs do)
+                            morning_ok = True
+                            
+                            daily_forecasts.append({
+                                'date': day_times[0][:10],  # YYYY-MM-DD format
+                                'wave_stats': wave_stats,
+                                'wind_stats': wind_stats,
+                                'morning_ok': morning_ok
+                            })
+                        
+                        print(f"[openmeteo] Generated {len(daily_forecasts)} daily forecasts")
+                        
+                        # Convert to pandas DataFrame format for compatibility
+                        if daily_forecasts:
+                            # Create a DataFrame from fresh data
+                            fresh_data = []
+                            for day in daily_forecasts:
+                                fresh_data.append({
+                                    'date': pd.Timestamp(day['date']),
+                                    'min_wave': day['wave_stats']['min'],
+                                    'max_wave': day['wave_stats']['max'],
+                                    'avg_wave': day['wave_stats']['avg'],
+                                    'min_wind': day['wind_stats']['min'],
+                                    'max_wind': day['wind_stats']['max'],
+                                    'avg_wind': day['wind_stats']['avg'],
+                                    'morning_ok': day['morning_ok']
+                                })
+                            
+                            merged = pd.DataFrame(fresh_data)
+                            source = "fresh_openmeteo"
+                            if is_new_alert:
+                                print(f"[rule] {rule.get('name', 'Surf Alert')} -> using fresh data for new alert from Open-Meteo API")
+                            else:
+                                print(f"[rule] {rule.get('name', 'Surf Alert')} -> using fresh data from Open-Meteo API")
+                        else:
+                            print(f"[rule] {rule.get('name', 'Surf Alert')} -> failed to process fresh data")
+                    else:
+                        print(f"[openmeteo] Time mismatch - Weather: {len(weather_times)}, Marine: {len(marine_times)}")
+                else:
+                    print(f"[openmeteo] API error - Weather: {weather_response.status_code}, Marine: {marine_response.status_code}")
+            except Exception as e:
+                print(f"[openmeteo] Error fetching fresh forecast data: {e}")
+        
         if merged.empty:
             log_event(
                 sb,
@@ -713,6 +834,8 @@ def main():
                 ok_dates_count=0,
                 reason="marine/weather unavailable and no fresh cache",
             )
+            # Update last_checked_at in alert_rules table
+            sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             print(f"[spot] {spot['name']} -> empty forecast merge, skipping")
             continue
         start = pd.Timestamp(today_d)
@@ -748,9 +871,25 @@ def main():
 
         # Apply surf thresholds (coerce NULLs from DB)
         min_wave = float(rule.get("wave_min_m") or 0.0)
+        max_wave = float(rule.get("wave_max_m") or 999.0)
         max_wind = float(rule.get("wind_max_kmh") or 999.0)
+        planning_logic = rule.get("planning_logic") or "conservative"
         
-        ok = window[(window["max_wave"] >= min_wave) & (window["min_wind"] <= max_wind)]
+        # Apply planning logic (same as frontend)
+        if planning_logic == "optimistic":
+            # Optimistic: avgWave in range, avgWind <= max
+            wave_ok = (window["avg_wave"] >= min_wave) & (window["avg_wave"] <= max_wave)
+            wind_ok = window["avg_wind"] <= max_wind
+        elif planning_logic == "aggressive":
+            # Aggressive: minWave in range, avgWind <= max
+            wave_ok = (window["min_wave"] >= min_wave) & (window["min_wave"] <= max_wave)
+            wind_ok = window["avg_wind"] <= max_wind
+        else:  # conservative (default)
+            # Conservative: avgWave in range, maxWind <= max
+            wave_ok = (window["avg_wave"] >= min_wave) & (window["avg_wave"] <= max_wave)
+            wind_ok = window["max_wind"] <= max_wind
+        
+        ok = window[wave_ok & wind_ok & (window["morning_ok"] == True)]
         ok_dates = ok["date"].dt.strftime("%Y-%m-%d").tolist()
         print(f"[rule] {rule.get('name') or 'Surf Alert'} ok_dates={len(ok_dates)} -> {ok_dates[:6]}{'...' if len(ok_dates)>6 else ''}")
         if not ok_dates:
@@ -762,6 +901,8 @@ def main():
                 ok_dates_count=0,
                 reason="no surfable mornings in window",
             )
+            # Update last_checked_at in alert_rules table
+            sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             continue
 
         # Determine “tier” by farthest ok date
@@ -858,6 +999,8 @@ def main():
                 tier=tier,
                 reason="forecast conditions met but no flight price available",
             )
+            # Update last_checked_at in alert_rules table
+            sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             continue
         raw_max = rule.get("max_price_eur")
         max_price = as_money(raw_max) if raw_max is not None else DEFAULT_MAX_PRICE_EUR
@@ -875,6 +1018,8 @@ def main():
                 ok_dates=ok_dates,
                 deep_link=link,
             )
+            # Update last_checked_at in alert_rules table
+            sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             continue
 
         # Dedupe & cooldown with alert_events
@@ -901,6 +1046,8 @@ def main():
                 ok_dates=ok_dates,
                 summary_hash=key,
             )
+            # Update last_checked_at in alert_rules table
+            sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             continue
 
         # 2) cooldown window?
@@ -924,6 +1071,8 @@ def main():
                 ok_dates=ok_dates,
                 summary_hash=key,
             )
+            # Update last_checked_at in alert_rules table
+            sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             continue
 
         # Compose and send email
@@ -933,7 +1082,7 @@ def main():
             continue
         
         rule_name = rule.get('name') or 'Surf Alert'
-        subject = f'Your "{rule_name}" just hit ✅ [Match found]'
+        subject = f'Your "{rule_name}" just hit ✅ **Match found**'
         window_len = int((end - start).days) + 1
         
         # Extract date range for display
@@ -961,27 +1110,38 @@ def main():
         max_wave = float(rule.get('wave_max_m') or 999.0)
         wave_range = f"{min_wave}–{max_wave}" if max_wave < 999 else f"≥{min_wave}"
         
-        # Generate hotel URL
+        # Generate proper affiliate URLs using date_utils
+        flight_url = None
         hotel_url = None
-        if ok_dates and len(ok_dates) >= 2:
+        if ok_dates:
             try:
-                from .date_utils import generate_hotellook_url
-                # Use first and last good dates for hotel booking
-                check_in = ok_dates[0]
-                check_out = ok_dates[-1]
-                hotel_url = generate_hotellook_url(
+                from date_utils import generate_affiliate_urls
+                flight_url, hotel_url, (depart_date, return_date, trip_duration) = generate_affiliate_urls(
+                    good_days=ok_dates,
+                    origin=origin,
                     destination=dest,
-                    check_in=check_in,
-                    check_out=check_out,
                     marker="670448",
                     sub_id=f"alert_{rule['id']}"
                 )
+                print(f"[email] Generated URLs - Flight: {flight_url[:50]}..., Hotel: {hotel_url[:50]}...")
+                print(f"[email] Trip dates: {depart_date} → {return_date} ({trip_duration} days)")
             except Exception as e:
-                print(f"[email] Failed to generate hotel URL: {e}")
+                print(f"[email] Failed to generate affiliate URLs: {e}")
+                # Fallback to using the cached link if available
+                flight_url = link
+                print(f"[email] Using fallback flight URL: {flight_url[:50] if flight_url else 'None'}...")
+        else:
+            print(f"[email] No good dates available for URL generation")
         
         # Create booking buttons
-        flight_button = f'<a href="{link}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 12px;">Book flight</a>' if link else ''
-        hotel_button = f'<a href="{hotel_url}" style="background-color: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Find stay</a>' if hotel_url else ''
+        flight_button = f'<a href="{flight_url}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 12px; font-weight: bold;">✈️ Book Flight</a>' if flight_url else ''
+        hotel_button = f'<a href="{hotel_url}" style="background-color: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">🏨 Find Hotel</a>' if hotel_url else ''
+        
+        # Debug logging
+        print(f"[email] Button generation - Flight URL: {flight_url[:50] if flight_url else 'None'}...")
+        print(f"[email] Button generation - Hotel URL: {hotel_url[:50] if hotel_url else 'None'}...")
+        print(f"[email] Flight button HTML: {flight_button[:100]}...")
+        print(f"[email] Hotel button HTML: {hotel_button[:100]}...")
         
         # Estimate typical price (add 30% to current price)
         typical_price = int(float(best_price) * 1.3)
@@ -1008,8 +1168,15 @@ def main():
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-                {flight_button}
-                {hotel_button}
+                <div style="margin-bottom: 16px;">
+                    {flight_button}
+                </div>
+                <div>
+                    {hotel_button}
+                </div>
+                <p style="font-size: 12px; color: #6b7280; margin-top: 16px;">
+                    💡 <strong>Pro tip:</strong> Book now to lock in these prices before they change!
+                </p>
             </div>
             
             <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin: 24px 0;">
@@ -1048,6 +1215,8 @@ def main():
                     ok_dates=ok_dates,
                     summary_hash=key,
                 )
+                # Update last_checked_at in alert_rules table
+                sb.table("alert_rules").update({"last_checked_at": now.isoformat()}).eq("id", rule["id"]).execute()
             except Exception as e:
                 print("alert_events insert error:", e)
 # TEMP sanity:

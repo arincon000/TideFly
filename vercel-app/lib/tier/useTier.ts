@@ -17,11 +17,18 @@ export function useTier(): TierState {
       if (cancelled) return;
       if (error) return setState({ tier: 'free', loading: false, error: error.message });
       const tier = (data?.tier as Tier) ?? 'free';
-      setState({ tier, loading: false, error: null });
+      // Ensure tier is always a valid value
+      const safeTier = tier && ['free', 'pro', 'unlimited'].includes(tier) ? tier : 'free';
+      setState({ tier: safeTier, loading: false, error: null });
     })();
 
     return () => { cancelled = true; };
   }, []);
 
-  return state;
+  // Always return a valid tier, even during loading
+  return {
+    tier: state.tier || 'free', // Ensure tier is never undefined
+    loading: state.loading,
+    error: state.error
+  };
 }

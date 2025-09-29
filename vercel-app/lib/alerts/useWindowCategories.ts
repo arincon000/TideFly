@@ -44,23 +44,25 @@ const ALL_WINDOWS: WindowCategory[] = [
 ];
 
 /** Get allowed windows for a given tier (Free → only 5; Pro/Unlimited → all) */
-export function getWindowCategories(tier: Tier): WindowCategory[] {
-  const isFree = tier === 'free';
+export function getWindowCategories(tier: Tier | undefined | null): WindowCategory[] {
+  const safeTier = tier || 'free';
+  const isFree = safeTier === 'free';
   return isFree ? ALL_WINDOWS.filter(w => !w.proOnly) : ALL_WINDOWS;
 }
 
 /** Default selection (keeps your UI behavior: High Confidence) */
-export function getDefaultWindowValue(_tier: Tier): WindowValue {
+export function getDefaultWindowValue(_tier: Tier | undefined | null): WindowValue {
   return 5;
 }
 
 /** React hook wrapper used by the /alerts/new page */
-export function useWindowCategories(tier: Tier): {
+export function useWindowCategories(tier: Tier | undefined | null): {
   options: WindowCategory[];
   defaultValue: WindowValue;
 } {
-  const options = useMemo(() => getWindowCategories(tier), [tier]);
-  const defaultValue = useMemo(() => getDefaultWindowValue(tier), [tier]);
+  const safeTier = tier || 'free';
+  const options = useMemo(() => getWindowCategories(safeTier as Tier), [safeTier]);
+  const defaultValue = useMemo(() => getDefaultWindowValue(safeTier as Tier), [safeTier]);
   return { options, defaultValue };
 }
 

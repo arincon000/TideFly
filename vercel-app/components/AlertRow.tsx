@@ -71,8 +71,10 @@ function hasGoodConditions(forecastData: any[]): boolean {
 export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: RuleStatus; refresh: () => void }) {
   console.log('AlertRow: Component rendered with rule.id:', rule.id, 'rule.spot_id:', rule.spot_id);
   
-  const { tier } = useTier();
-  const { active, activeMax, atActiveCap } = useAlertUsage(tier);
+  const { tier, loading: tierLoading, error: tierError } = useTier();
+  const usageData = useAlertUsage(tier);
+  const { active, atActiveCap } = usageData;
+  const activeMax = usageData.activeMax || 1;
   const router = useRouter();
   const [showForecastModal, setShowForecastModal] = useState(false);
   const [forecastData, setForecastData] = useState<any[]>([]);
@@ -129,6 +131,11 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       console.log('AlertRow: Skipping fetch - missing rule.id or rule.spot_id');
     }
   }, [rule.id, rule.spot_id]);
+
+  // Handle loading or invalid tier
+  if (tierLoading || tierError) {
+    return null; // or a loading spinner
+  }
 
   const toggleActive = async () => {
     // If trying to resume (activate) and at active cap, show error

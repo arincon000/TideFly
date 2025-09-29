@@ -33,12 +33,29 @@ type Usage = {
   error?: string;
 };
 
-export function useAlertUsage(tier: Tier): Usage {
+export function useAlertUsage(tier: Tier | undefined | null): Usage {
+  const safeTier = tier || 'free';
+  
+  // Get safe limits with fallback
+  const getSafeLimits = (t: string) => {
+    try {
+      const limits = TIER_LIMITS[t as Tier];
+      if (limits && typeof limits === 'object' && typeof limits.createdMax === 'number' && typeof limits.activeMax === 'number') {
+        return limits;
+      }
+    } catch (error) {
+      console.error('getSafeLimits error:', error);
+    }
+    return { createdMax: 3, activeMax: 1 }; // Free tier fallback
+  };
+  
+  const initialLimits = getSafeLimits(safeTier);
+  
   const [state, setState] = useState<Usage>({
     created: 0,
     active: 0,
-    createdMax: TIER_LIMITS[tier].createdMax,
-    activeMax: TIER_LIMITS[tier].activeMax,
+    createdMax: initialLimits.createdMax,
+    activeMax: initialLimits.activeMax,
     atCreateCap: false,
     atActiveCap: false,
     loading: true,
@@ -62,7 +79,9 @@ export function useAlertUsage(tier: Tier): Usage {
 
       const created = data?.created_count ?? 0;
       const active = data?.active_count ?? 0;
-      const { createdMax, activeMax } = TIER_LIMITS[tier];
+      const safeLimits = getSafeLimits(safeTier);
+      const createdMax = safeLimits.createdMax || 3;
+      const activeMax = safeLimits.activeMax || 1;
 
       setState({
         created,
@@ -77,7 +96,7 @@ export function useAlertUsage(tier: Tier): Usage {
 
     fetchUsage();
     return () => { mounted = false; };
-  }, [tier]);
+  }, [safeTier]);
 
   return state;
 }

@@ -27,7 +27,7 @@ export function buildAlertPayload(values: FormValues, tier: Tier) {
 		is_active: true,
 	};
 
-	if (tier === 'pro' || tier === 'unlimited') {
+	if ((tier || 'free') === 'pro' || (tier || 'free') === 'unlimited') {
 		if (values.waveMin != null) base.wave_min_m = Number(values.waveMin) ?? null;
 		if (values.waveMax != null) base.wave_max_m = Number(values.waveMax) ?? null;
 		if (values.windMax != null) base.wind_max_kmh = Number(values.windMax) ?? null;

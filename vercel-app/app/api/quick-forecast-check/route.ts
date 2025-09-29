@@ -201,17 +201,17 @@ async function checkForecastConditions(supabase: any, alertRule: any) {
         
         switch (planningLogic) {
           case 'optimistic':
-            waveOk = (waveStats.avg || 0) >= waveMin && (waveStats.avg || 0) <= waveMax;
-            windOk = (windStats.avg || 0) <= windMax;
+            waveOk = ((waveStats as any)?.avg || 0) >= waveMin && ((waveStats as any)?.avg || 0) <= waveMax;
+            windOk = ((windStats as any)?.avg || 0) <= windMax;
             break;
           case 'aggressive':
-            waveOk = (waveStats.min || 0) >= waveMin && (waveStats.min || 0) <= waveMax;
-            windOk = (windStats.avg || 0) <= windMax;
+            waveOk = ((waveStats as any)?.min || 0) >= waveMin && ((waveStats as any)?.min || 0) <= waveMax;
+            windOk = ((windStats as any)?.avg || 0) <= windMax;
             break;
           case 'conservative':
           default:
-            waveOk = (waveStats.avg || 0) >= waveMin && (waveStats.avg || 0) <= waveMax;
-            windOk = (windStats.max || 0) <= windMax;
+            waveOk = ((waveStats as any)?.avg || 0) >= waveMin && ((waveStats as any)?.avg || 0) <= waveMax;
+            windOk = ((windStats as any)?.max || 0) <= windMax;
             break;
         }
         
