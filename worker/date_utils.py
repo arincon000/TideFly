@@ -65,17 +65,8 @@ def format_date_for_aviasales(date_string: str) -> str:
     return f"{date.day:02d}{date.month:02d}"
 
 
-def format_date_for_hotellook(date_string: str) -> str:
-    """
-    Format date for Hotellook URL (YYYY-MM-DD format)
-    
-    Args:
-        date_string: Date in YYYY-MM-DD format
-    
-    Returns:
-        Date in YYYY-MM-DD format (already correct)
-    """
-    return date_string  # Already in correct format
+def format_date_ymd(date_string: str) -> str:
+    return date_string
 
 
 def generate_aviasales_url(
@@ -106,30 +97,26 @@ def generate_aviasales_url(
     return f"https://aviasales.com/search/{origin}{depart_formatted}{destination}{return_formatted}?marker={marker}&sub_id={sub_id}"
 
 
-def generate_hotellook_url(
-    destination: str,
-    check_in: str,
-    check_out: str,
-    marker: str,
-    sub_id: str
-) -> str:
-    """
-    Generate Hotellook affiliate URL
-    
-    Args:
-        destination: Destination airport code (e.g., 'BIQ')
-        check_in: Check-in date in YYYY-MM-DD format
-        check_out: Check-out date in YYYY-MM-DD format
-        marker: Affiliate marker
-        sub_id: Sub ID for tracking
-    
-    Returns:
-        Complete Hotellook affiliate URL
-    """
-    check_in_formatted = format_date_for_hotellook(check_in)
-    check_out_formatted = format_date_for_hotellook(check_out)
-    
-    return f"https://search.hotellook.com/?destination={destination}&checkIn={check_in_formatted}&checkOut={check_out_formatted}&adults=1&rooms=1&children=0&locale=en&currency=USD&marker={marker}&sub_id={sub_id}"
+def build_booking_link(city: str, check_in: str, check_out: str) -> str:
+    ci = format_date_ymd(check_in); co = format_date_ymd(check_out)
+    return (
+        "https://www.booking.com/searchresults.html?"
+        f"ss={requests.utils.quote(city)}&checkin={ci}&checkout={co}&group_adults=2&no_rooms=1&group_children=0"
+    )
+
+def build_google_hotels_link(city: str, check_in: str, check_out: str) -> str:
+    ci = format_date_ymd(check_in); co = format_date_ymd(check_out)
+    return (
+        "https://www.google.com/travel/hotels/"
+        f"{requests.utils.quote(city)}?checkin={ci}&checkout={co}"
+    )
+
+def build_expedia_link(city: str, check_in: str, check_out: str) -> str:
+    ci = format_date_ymd(check_in); co = format_date_ymd(check_out)
+    return (
+        "https://www.expedia.com/Hotel-Search?"
+        f"destination={requests.utils.quote(city)}&startDate={ci}&endDate={co}"
+    )
 
 
 def generate_affiliate_urls(
@@ -138,7 +125,7 @@ def generate_affiliate_urls(
     destination: str,
     marker: str,
     sub_id: str
-) -> Tuple[str, str, Tuple[str, str, int]]:
+) -> Tuple[str, Tuple[str, str, int]]:
     """
     Generate both flight and hotel affiliate URLs using unified date logic
     
@@ -162,13 +149,4 @@ def generate_affiliate_urls(
         marker,
         sub_id
     )
-    
-    hotel_url = generate_hotellook_url(
-        destination,
-        depart_date,
-        return_date,
-        marker,
-        sub_id
-    )
-    
-    return flight_url, hotel_url, (depart_date, return_date, trip_duration)
+    return flight_url, (depart_date, return_date, trip_duration)

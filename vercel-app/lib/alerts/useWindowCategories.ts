@@ -43,11 +43,10 @@ const ALL_WINDOWS: WindowCategory[] = [
   { id: 'lw', label: 'Long Watch',      subtitle: '11–16 days',value: 16, fromDay: 11, toDay: 16, proOnly: true  },
 ];
 
-/** Get allowed windows for a given tier (Free → only 5; Pro/Unlimited → all) */
+/** Get allowed windows for a given tier (Now shows ALL windows with lock icons for Pro-only) */
 export function getWindowCategories(tier: Tier | undefined | null): WindowCategory[] {
-  const safeTier = tier || 'free';
-  const isFree = safeTier === 'free';
-  return isFree ? ALL_WINDOWS.filter(w => !w.proOnly) : ALL_WINDOWS;
+  // Return ALL windows regardless of tier - UI will show lock icons for Pro-only options
+  return ALL_WINDOWS;
 }
 
 /** Default selection (keeps your UI behavior: High Confidence) */

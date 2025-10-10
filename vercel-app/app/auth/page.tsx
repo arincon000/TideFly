@@ -76,28 +76,10 @@ function AuthContent() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <a href="/" className="text-2xl font-bold text-slate-900">TideFly</a>
-          <nav className="hidden md:flex items-center gap-8">
-            <a
-              href="/#features"
-              className="text-slate-700 hover:text-slate-900 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-            >
-              Features
-            </a>
-            <a
-              href="/#pricing"
-              className="text-slate-700 hover:text-slate-900 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-            >
-              Pricing
-            </a>
-            <a
-              href="/#how-it-works"
-              className="text-slate-700 hover:text-slate-900 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-            >
-              How it works
-            </a>
-          </nav>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <a href="/" className="text-2xl font-bold text-slate-900 hover:text-slate-700 transition-colors">
+            TideFly 🌊
+          </a>
         </div>
       </header>
 

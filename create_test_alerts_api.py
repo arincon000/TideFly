@@ -157,3 +157,4 @@ if __name__ == "__main__":
     print("3. Run the worker to process the alerts")
     print("4. Verify Aviasales links are working correctly")
 
+

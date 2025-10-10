@@ -1,0 +1,3689 @@
+{
+  "RTM": {
+    "city": "Rotterdam",
+    "country": "Netherlands",
+    "city_id": 1841
+  },
+  "OST": {
+    "city": "Bruges",
+    "country": "Belgium",
+    "city_id": 2301
+  },
+  "CPT": {
+    "city": "Cape Town",
+    "country": "South Africa",
+    "city_id": 678
+  },
+  "MYR": {
+    "city": "Myrtle Beach",
+    "country": "United States"
+  },
+  "AVV": {
+    "city": "Melbourne",
+    "country": "Australia",
+    "city_id": 5436
+  },
+  "COF": {
+    "city": "Coffs Harbour",
+    "country": "Australia",
+    "city_id": 5191
+  },
+  "AGA": {
+    "city": "Agadir",
+    "country": "Morocco",
+    "city_id": 4277
+  },
+  "PNS": {
+    "city": "Pensacola",
+    "country": "United States"
+  },
+  "SNA": {
+    "city": "Los Angeles",
+    "country": "United States"
+  },
+  "BWX": {
+    "city": "Banyuwangi",
+    "country": "Indonesia"
+  },
+  "CXH": {
+    "city": "Vancouver",
+    "country": "Canada",
+    "city_id": 16968
+  },
+  "TRO": {
+    "city": "Taree",
+    "country": "Australia",
+    "city_id": 5634
+  },
+  "ESE": {
+    "city": "Ankara",
+    "country": "Turkey",
+    "city_id": 2700
+  },
+  "NOA": {
+    "city": "Pointe Noire",
+    "country": "Republic of the Congo"
+  },
+  "ADL": {
+    "city": "Adelaide",
+    "country": "Australia",
+    "city_id": 5052
+  },
+  "CHS": {
+    "city": "Charleston",
+    "country": "United States"
+  },
+  "YNY": {
+    "city": "Yangyang",
+    "country": "South Korea",
+    "city_id": 5798
+  },
+  "ACY": {
+    "city": "Atlantic City",
+    "country": "United States"
+  },
+  "ITO": {
+    "city": "Hilo",
+    "country": "United States"
+  },
+  "PSA": {
+    "city": "Pisa",
+    "country": "Italy",
+    "city_id": 13424
+  },
+  "OCE": {
+    "city": "Salisbury-Ocean City",
+    "country": "United States"
+  },
+  "JAD": {
+    "city": "Daocheng",
+    "country": "China",
+    "city_id": 1505119
+  },
+  "GYE": {
+    "city": "Guayaquil",
+    "country": "Ecuador",
+    "city_id": 913
+  },
+  "PLZ": {
+    "city": "Port Elizabeth",
+    "country": "South Africa",
+    "city_id": 788
+  },
+  "SMR": {
+    "city": "Santa Marta",
+    "country": "Colombia",
+    "city_id": 6249
+  },
+  "CRE": {
+    "city": "Heraklion",
+    "country": "Greece"
+  },
+  "MLW": {
+    "city": "Monrovia",
+    "country": "Liberia",
+    "city_id": 24200
+  },
+  "KAT": {
+    "city": "Verona",
+    "country": "Italy",
+    "city_id": 13971
+  },
+  "JFK": {
+    "city": "New York",
+    "country": "United States"
+  },
+  "VGO": {
+    "city": "Vigo",
+    "country": "Spain",
+    "city_id": 4192
+  },
+  "SBP": {
+    "city": "San Luis Obispo",
+    "country": "United States"
+  },
+  "GOT": {
+    "city": "Gothenburg",
+    "country": "Sweden",
+    "city_id": 8784
+  },
+  "OPO": {
+    "city": "Porto",
+    "country": "Portugal",
+    "city_id": 4884
+  },
+  "HNL": {
+    "city": "Honolulu",
+    "country": "United States"
+  },
+  "TOA": {
+    "city": "Tamatave",
+    "country": "Madagascar"
+  },
+  "BES": {
+    "city": "Belfast",
+    "country": "United Kingdom",
+    "city_id": 7010
+  },
+  "SWS": {
+    "city": "Swansea",
+    "country": "United Kingdom",
+    "city_id": 8453
+  },
+  "VLY": {
+    "city": "Valley",
+    "country": "United Kingdom"
+  },
+  "ABZ": {
+    "city": "Aberdeen",
+    "country": "United Kingdom",
+    "city_id": 6849
+  },
+  "FNA": {
+    "city": "Freetown",
+    "country": "Sierra Leone",
+    "city_id": 24354
+  },
+  "LIS": {
+    "city": "Lisbon",
+    "country": "Portugal",
+    "city_id": 4806
+  },
+  "JNX": {
+    "city": "Naxos, Cyclades Islands",
+    "country": "Greece"
+  },
+  "FEN": {
+    "city": "Fernando De Noronha",
+    "country": "Brazil",
+    "city_id": 6361
+  },
+  "BGI": {
+    "city": "Bridgetown",
+    "country": "Barbados",
+    "city_id": 26073
+  },
+  "FNC": {
+    "city": "Funchal",
+    "country": "Portugal",
+    "city_id": 1524478
+  },
+  "FUE": {
+    "city": "Puerto del Rosario",
+    "country": "Spain"
+  },
+  "WOL": {
+    "city": "Wollongong",
+    "country": "Australia",
+    "city_id": 5709
+  },
+  "RHO": {
+    "city": "Rhodes",
+    "country": "Greece",
+    "city_id": 30541
+  },
+  "MME": {
+    "city": "Durham Tees Valley",
+    "country": "United Kingdom"
+  },
+  "CAT": {
+    "city": "Tires",
+    "country": "Portugal"
+  },
+  "PEG": {
+    "city": "Perugia",
+    "country": "Italy",
+    "city_id": 13381
+  },
+  "GNS": {
+    "city": "Gunungsitoli",
+    "country": "Indonesia"
+  },
+  "KLX": {
+    "city": "Kalamata",
+    "country": "Greece",
+    "city_id": 25986
+  },
+  "HBE": {
+    "city": "Alexandria",
+    "country": "Egypt",
+    "city_id": 6652
+  },
+  "TED": {
+    "city": "Anchorage",
+    "country": "United States"
+  },
+  "JSH": {
+    "city": "Sitia",
+    "country": "Greece",
+    "city_id": 1506047
+  },
+  "ATH": {
+    "city": "Athens",
+    "country": "Greece",
+    "city_id": 23721
+  },
+  "CFU": {
+    "city": "Kerkyra",
+    "country": "Greece"
+  },
+  "SAW": {
+    "city": "Istanbul",
+    "country": "Turkey",
+    "city_id": 2764
+  },
+  "GLT": {
+    "city": "Gladstone",
+    "country": "Australia",
+    "city_id": 5294
+  },
+  "OVD": {
+    "city": "Asturias",
+    "country": "Spain"
+  },
+  "JAP": {
+    "city": "Tokyo",
+    "country": "Japan",
+    "city_id": 25666
+  },
+  "VAP": {
+    "city": "Wapenamanda",
+    "country": "Papua New Guinea",
+    "city_id": 2054
+  },
+  "BOJ": {
+    "city": "Bourgas",
+    "country": "Bulgaria",
+    "city_id": 609
+  },
+  "RUN": {
+    "city": "Detroit",
+    "country": "United States"
+  },
+  "BCN": {
+    "city": "Barcelona",
+    "country": "Spain",
+    "city_id": 3196
+  },
+  "INQ": {
+    "city": "In Guezzam",
+    "country": "Algeria"
+  },
+  "CMN": {
+    "city": "Casablanca",
+    "country": "Morocco",
+    "city_id": 4281
+  },
+  "ORN": {
+    "city": "Oran",
+    "country": "Algeria",
+    "city_id": 5871
+  },
+  "SBH": {
+    "city": "Saint Barthelemy",
+    "country": "Guadeloupe"
+  },
+  "GAN": {
+    "city": "Delhi",
+    "country": "India",
+    "city_id": 1508345
+  },
+  "WLG": {
+    "city": "Wellington",
+    "country": "New Zealand",
+    "city_id": 4665
+  },
+  "DPS": {
+    "city": "Denpasar (Bali)",
+    "country": "Indonesia",
+    "city_id": 23523
+  },
+  "PRM": {
+    "city": "Portimao",
+    "country": "Portugal",
+    "city_id": 4883
+  },
+  "BIO": {
+    "city": "Bilbao",
+    "country": "Spain",
+    "city_id": 3235
+  },
+  "SDR": {
+    "city": "Santander",
+    "country": "Spain",
+    "city_id": 4050
+  },
+  "NGO": {
+    "city": "Nagoya",
+    "country": "Japan",
+    "city_id": 25627
+  },
+  "KOJ": {
+    "city": "Kagoshima",
+    "country": "Japan",
+    "city_id": 1652751
+  },
+  "SCO": {
+    "city": "Phoenix",
+    "country": "United States"
+  },
+  "LIM": {
+    "city": "Istanbul",
+    "country": "Turkey",
+    "city_id": 2764
+  },
+  "JKH": {
+    "city": "Chios",
+    "country": "Greece",
+    "city_id": 30512
+  },
+  "GZP": {
+    "city": "Gazipasa",
+    "country": "Turkey",
+    "city_id": 1481036
+  },
+  "MCM": {
+    "city": "Fort McMurray",
+    "country": "Canada",
+    "city_id": 16293
+  },
+  "GOA": {
+    "city": "Goa",
+    "country": "India",
+    "city_id": 373
+  },
+  "FAO": {
+    "city": "Faro",
+    "country": "Portugal",
+    "city_id": 4778
+  },
+  "MCY": {
+    "city": "Sunshine Coast",
+    "country": "Australia",
+    "city_id": 1676777
+  },
+  "MDQ": {
+    "city": "Mar Del Plata",
+    "country": "Argentina",
+    "city_id": 6117
+  },
+  "TMS": {
+    "city": "Sao Tome Island",
+    "country": "São Tomé and Príncipe"
+  },
+  "CLY": {
+    "city": "Calvi",
+    "country": "France",
+    "city_id": 1497104
+  },
+  "BOS": {
+    "city": "Boston",
+    "country": "United States"
+  },
+  "TFN": {
+    "city": "Tenerife",
+    "country": "Spain",
+    "city_id": 30128
+  },
+  "AES": {
+    "city": "Aalesund",
+    "country": "Norway",
+    "city_id": 9046
+  },
+  "REU": {
+    "city": "Reus",
+    "country": "Spain",
+    "city_id": 3936
+  },
+  "BXO": {
+    "city": "Bhopal",
+    "country": "India",
+    "city_id": 25805
+  },
+  "KAH": {
+    "city": "Kahului",
+    "country": "United States"
+  },
+  "GPA": {
+    "city": "Patras",
+    "country": "Greece",
+    "city_id": 26006
+  },
+  "VAT": {
+    "city": "Prague",
+    "country": "Czech Republic",
+    "city_id": 6557
+  },
+  "EFL": {
+    "city": "Kefallinia",
+    "country": "Greece"
+  },
+  "PVK": {
+    "city": "Preveza",
+    "country": "Greece",
+    "city_id": 26030
+  },
+  "GIS": {
+    "city": "Gisborne",
+    "country": "New Zealand",
+    "city_id": 4558
+  },
+  "PVR": {
+    "city": "Puerto Vallarta",
+    "country": "Mexico",
+    "city_id": 4464
+  },
+  "LGB": {
+    "city": "Long Beach",
+    "country": "United States"
+  },
+  "MRY": {
+    "city": "Monterey",
+    "country": "United States"
+  },
+  "JSY": {
+    "city": "Syros Island",
+    "country": "Greece",
+    "city_id": 30532
+  },
+  "LFW": {
+    "city": "Lome",
+    "country": "Togo",
+    "city_id": 8941
+  },
+  "BIQ": {
+    "city": "Biarritz",
+    "country": "France",
+    "city_id": 14344
+  },
+  "SMA": {
+    "city": "Santa Maria (Azores)",
+    "country": "Portugal"
+  },
+  "SIO": {
+    "city": "Sioux Falls",
+    "country": "United States"
+  },
+  "SRQ": {
+    "city": "Sarasota",
+    "country": "United States"
+  },
+  "AAE": {
+    "city": "Annaba",
+    "country": "Algeria",
+    "city_id": 5853
+  },
+  "CUD": {
+    "city": "Cuddapah",
+    "country": "India"
+  },
+  "WAT": {
+    "city": "Vancouver",
+    "country": "Canada",
+    "city_id": 16968
+  },
+  "NUQ": {
+    "city": "Nuqui",
+    "country": "Colombia",
+    "city_id": 6234
+  },
+  "PRI": {
+    "city": "Moroni",
+    "country": "Comoros",
+    "city_id": 24196
+  },
+  "PTP": {
+    "city": "Abymes",
+    "country": "Guadeloupe",
+    "city_id": 1525000
+  },
+  "SEZ": {
+    "city": "Mahe Island",
+    "country": "Seychelles",
+    "city_id": 30249
+  },
+  "FDF": {
+    "city": "Fort De France",
+    "country": "Martinique",
+    "city_id": 12269
+  },
+  "CER": {
+    "city": "Cherepovets",
+    "country": "Russia",
+    "city_id": 12110
+  },
+  "UIP": {
+    "city": "Quimper",
+    "country": "France",
+    "city_id": 15644
+  },
+  "ACI": {
+    "city": "Alderney",
+    "country": "United Kingdom",
+    "city_id": 1502609
+  },
+  "LDH": {
+    "city": "Lord Howe Island",
+    "country": "Australia",
+    "city_id": 30202
+  },
+  "VIR": {
+    "city": "Sao Paulo",
+    "country": "Brazil",
+    "city_id": 6475
+  },
+  "AYT": {
+    "city": "Antalya",
+    "country": "Turkey",
+    "city_id": 2702
+  },
+  "KMI": {
+    "city": "Miyazaki",
+    "country": "Japan"
+  },
+  "TKG": {
+    "city": "Bandar Lampung",
+    "country": "Indonesia"
+  },
+  "TLV": {
+    "city": "Tel Aviv-Yafo",
+    "country": "Israel"
+  },
+  "NPL": {
+    "city": "New Plymouth",
+    "country": "New Zealand",
+    "city_id": 4609
+  },
+  "AJU": {
+    "city": "Aracaju",
+    "country": "Brazil",
+    "city_id": 6311
+  },
+  "PDP": {
+    "city": "Punta Del Este",
+    "country": "Uruguay",
+    "city_id": 6296
+  },
+  "GOX": {
+    "city": "Goa",
+    "country": "India",
+    "city_id": 373
+  },
+  "DUD": {
+    "city": "Dunedin",
+    "country": "New Zealand",
+    "city_id": 4550
+  },
+  "AUA": {
+    "city": "Aruba",
+    "country": "Aruba"
+  },
+  "AST": {
+    "city": "Saint Louis",
+    "country": "United States"
+  },
+  "ODS": {
+    "city": "Odessa",
+    "country": "Ukraine",
+    "city_id": 6620
+  },
+  "BDB": {
+    "city": "Bundaberg",
+    "country": "Australia",
+    "city_id": 5144
+  },
+  "PDL": {
+    "city": "Ponta Delgada (Azores)",
+    "country": "Portugal"
+  },
+  "PGF": {
+    "city": "Perpignan",
+    "country": "France",
+    "city_id": 15555
+  },
+  "LPA": {
+    "city": "Las Palmas",
+    "country": "Spain",
+    "city_id": 1525657
+  },
+  "FLN": {
+    "city": "Florianopolis",
+    "country": "Brazil",
+    "city_id": 6362
+  },
+  "SDU": {
+    "city": "Rio De Janeiro",
+    "country": "Brazil",
+    "city_id": 6456
+  },
+  "CFB": {
+    "city": "Cabo Frio",
+    "country": "Brazil",
+    "city_id": 6341
+  },
+  "CFS": {
+    "city": "Coffs Harbour",
+    "country": "Australia",
+    "city_id": 5191
+  },
+  "ACE": {
+    "city": "Lanzarote",
+    "country": "Spain",
+    "city_id": 30125
+  },
+  "ZLO": {
+    "city": "Manzanillo",
+    "country": "Mexico",
+    "city_id": 4435
+  },
+  "AYY": {
+    "city": "Ajaccio",
+    "country": "France"
+  },
+  "MGA": {
+    "city": "Managua",
+    "country": "Nicaragua",
+    "city_id": 12261
+  },
+  "AER": {
+    "city": "Moscow",
+    "country": "Russia",
+    "city_id": 12153
+  },
+  "MIM": {
+    "city": "Merimbula",
+    "country": "Australia",
+    "city_id": 5439
+  },
+  "ABO": {
+    "city": "Abu Dhabi",
+    "country": "United Arab Emirates"
+  },
+  "ESM": {
+    "city": "Izmir",
+    "country": "Turkey",
+    "city_id": 2765
+  },
+  "KMQ": {
+    "city": "Komatsu",
+    "country": "Japan",
+    "city_id": 25608
+  },
+  "NVT": {
+    "city": "Navegantes",
+    "country": "Brazil",
+    "city_id": 6422
+  },
+  "SHM": {
+    "city": "Shirahama",
+    "country": "Japan",
+    "city_id": 25652
+  },
+  "EWN": {
+    "city": "New Bern",
+    "country": "United States"
+  },
+  "TFS": {
+    "city": "Tenerife",
+    "country": "Spain",
+    "city_id": 30128
+  },
+  "LED": {
+    "city": "Saint Petersburg",
+    "country": "Russia",
+    "city_id": 12196
+  },
+  "SAN": {
+    "city": "San Diego",
+    "country": "United States"
+  },
+  "RGI": {
+    "city": "Rangiroa",
+    "country": "French Polynesia",
+    "city_id": 2257
+  },
+  "LSC": {
+    "city": "La Serena",
+    "country": "Chile",
+    "city_id": 4331
+  },
+  "LCG": {
+    "city": "La Coruna",
+    "country": "Spain",
+    "city_id": 3577
+  },
+  "SJU": {
+    "city": "San Juan",
+    "country": "Puerto Rico",
+    "city_id": 6787
+  },
+  "TKD": {
+    "city": "Takoradi",
+    "country": "Ghana",
+    "city_id": 1473132
+  },
+  "SNC": {
+    "city": "Salinas",
+    "country": "Ecuador",
+    "city_id": 924
+  },
+  "LRH": {
+    "city": "La Rochelle",
+    "country": "France",
+    "city_id": 15035
+  },
+  "TNE": {
+    "city": "Tanegashima",
+    "country": "Japan"
+  },
+  "GVA": {
+    "city": "Sao Paulo",
+    "country": "Brazil",
+    "city_id": 6475
+  },
+  "GET": {
+    "city": "London",
+    "country": "United Kingdom",
+    "city_id": 7896
+  },
+  "DUB": {
+    "city": "Dubai",
+    "country": "United Arab Emirates"
+  },
+  "NTL": {
+    "city": "Newcastle",
+    "country": "Australia",
+    "city_id": 5498
+  },
+  "BEO": {
+    "city": "Belgrade",
+    "country": "Serbia",
+    "city_id": 24178
+  },
+  "PMO": {
+    "city": "Palermo",
+    "country": "Italy",
+    "city_id": 1475435
+  },
+  "IOS": {
+    "city": "Ilheus",
+    "country": "Brazil",
+    "city_id": 6376
+  },
+  "HFA": {
+    "city": "Haifa",
+    "country": "Israel",
+    "city_id": 2972
+  },
+  "BNK": {
+    "city": "Ballina",
+    "country": "Australia",
+    "city_id": 5083
+  },
+  "PJM": {
+    "city": "Puerto Jimenez",
+    "country": "Costa Rica",
+    "city_id": 24974
+  },
+  "UST": {
+    "city": "Saint Augustine",
+    "country": "United States"
+  },
+  "OLB": {
+    "city": "Olbia",
+    "country": "Italy",
+    "city_id": 1467248
+  },
+  "MLA": {
+    "city": "Malta",
+    "country": "Malta",
+    "city_id": 747
+  },
+  "CXR": {
+    "city": "Nha Trang",
+    "country": "Vietnam",
+    "city_id": 14105
+  },
+  "TER": {
+    "city": "Krasnojarsk",
+    "country": "Russia",
+    "city_id": 12139
+  },
+  "NAT": {
+    "city": "Flagstaff",
+    "country": "United States"
+  },
+  "TYL": {
+    "city": "Talara",
+    "country": "Peru",
+    "city_id": 12058
+  },
+  "ILM": {
+    "city": "Wilmington",
+    "country": "United States"
+  },
+  "TSV": {
+    "city": "Townsville",
+    "country": "Australia",
+    "city_id": 5658
+  },
+  "OGG": {
+    "city": "Kahului",
+    "country": "United States"
+  },
+  "SJK": {
+    "city": "Sao Jose Dos Campos",
+    "country": "Brazil",
+    "city_id": 6472
+  },
+  "NLK": {
+    "city": "Norfolk Island",
+    "country": "Norfolk Island"
+  },
+  "PSE": {
+    "city": "Ponce",
+    "country": "Puerto Rico",
+    "city_id": 6781
+  },
+  "DUR": {
+    "city": "Durban",
+    "country": "South Africa",
+    "city_id": 688
+  },
+  "PVC": {
+    "city": "Provincetown",
+    "country": "United States"
+  },
+  "KIR": {
+    "city": "Kerry County",
+    "country": "Ireland",
+    "city_id": 5984
+  },
+  "LDY": {
+    "city": "Derry",
+    "country": "United Kingdom",
+    "city_id": 7378
+  },
+  "KOS": {
+    "city": "Sihanoukville",
+    "country": "Cambodia",
+    "city_id": 5849
+  },
+  "HBA": {
+    "city": "Hobart",
+    "country": "Australia",
+    "city_id": 5327
+  },
+  "NCL": {
+    "city": "Newcastle",
+    "country": "United Kingdom"
+  },
+  "MGH": {
+    "city": "Margate",
+    "country": "South Africa",
+    "city_id": 750
+  },
+  "LSS": {
+    "city": "Terre-de-Haut",
+    "country": "Guadeloupe"
+  },
+  "YGP": {
+    "city": "Gaspe",
+    "country": "Canada",
+    "city_id": 21813
+  },
+  "MSH": {
+    "city": "Masirah",
+    "country": "Oman"
+  },
+  "EPR": {
+    "city": "Esperance",
+    "country": "Australia",
+    "city_id": 5259
+  },
+  "HKT": {
+    "city": "Phuket",
+    "country": "Thailand"
+  },
+  "EXT": {
+    "city": "Exeter",
+    "country": "United Kingdom",
+    "city_id": 7479
+  },
+  "KOA": {
+    "city": "Bucharest",
+    "country": "Romania",
+    "city_id": 2627
+  },
+  "FCO": {
+    "city": "Rome",
+    "country": "Italy",
+    "city_id": 13559
+  },
+  "TUN": {
+    "city": "Tunis",
+    "country": "Tunisia",
+    "city_id": 6830
+  },
+  "DSS": {
+    "city": "Dakar",
+    "country": "Senegal",
+    "city_id": 12279
+  },
+  "TGD": {
+    "city": "Podgorica",
+    "country": "Montenegro",
+    "city_id": 24950
+  },
+  "MYA": {
+    "city": "Moruya",
+    "country": "Australia",
+    "city_id": 5470
+  },
+  "TNG": {
+    "city": "Tangier",
+    "country": "Morocco",
+    "city_id": 4306
+  },
+  "INH": {
+    "city": "Inhambane",
+    "country": "Mozambique",
+    "city_id": 8930
+  },
+  "RRJ": {
+    "city": "Rio De Janeiro",
+    "country": "Brazil",
+    "city_id": 6456
+  },
+  "ACA": {
+    "city": "Acapulco",
+    "country": "Mexico",
+    "city_id": 4356
+  },
+  "JOI": {
+    "city": "Joinville",
+    "country": "Brazil",
+    "city_id": 6398
+  },
+  "VIX": {
+    "city": "Vitoria",
+    "country": "Brazil",
+    "city_id": 6498
+  },
+  "TOQ": {
+    "city": "Lome",
+    "country": "Togo",
+    "city_id": 8941
+  },
+  "SSA": {
+    "city": "Salvador",
+    "country": "Brazil",
+    "city_id": 6458
+  },
+  "LRT": {
+    "city": "Lorient",
+    "country": "France",
+    "city_id": 15234
+  },
+  "PQQ": {
+    "city": "Port Macquarie",
+    "country": "Australia",
+    "city_id": 5551
+  },
+  "HUN": {
+    "city": "Shanghai",
+    "country": "China",
+    "city_id": 6680
+  },
+  "FSC": {
+    "city": "Figari",
+    "country": "France",
+    "city_id": 1486150
+  },
+  "BEY": {
+    "city": "Dubai",
+    "country": "United Arab Emirates"
+  },
+  "IQQ": {
+    "city": "Iquique",
+    "country": "Chile",
+    "city_id": 4329
+  },
+  "BUY": {
+    "city": "London",
+    "country": "United Kingdom",
+    "city_id": 7896
+  },
+  "SYD": {
+    "city": "Tenerife",
+    "country": "Spain",
+    "city_id": 30128
+  },
+  "DAB": {
+    "city": "Goa",
+    "country": "India",
+    "city_id": 373
+  },
+  "CLD": {
+    "city": "San Diego",
+    "country": "United States"
+  },
+  "LAI": {
+    "city": "Santo Domingo",
+    "country": "Dominican Republic",
+    "city_id": 12091
+  },
+  "XQP": {
+    "city": "Quepos",
+    "country": "Costa Rica",
+    "city_id": 24976
+  },
+  "MNI": {
+    "city": "Montserrat",
+    "country": "Montserrat",
+    "city_id": 598
+  },
+  "EAS": {
+    "city": "Leicestershire",
+    "country": "United Kingdom"
+  },
+  "BIC": {
+    "city": "Legaspi",
+    "country": "Philippines"
+  },
+  "VIP": {
+    "city": "Rahim Yar Khan",
+    "country": "Pakistan",
+    "city_id": 2888
+  },
+  "BLI": {
+    "city": "Bellingham",
+    "country": "United States"
+  },
+  "LOP": {
+    "city": "Praya",
+    "country": "Indonesia"
+  },
+  "CIA": {
+    "city": "Rome",
+    "country": "Italy",
+    "city_id": 13559
+  },
+  "GOI": {
+    "city": "Goa",
+    "country": "India",
+    "city_id": 373
+  },
+  "KCT": {
+    "city": "Koggala",
+    "country": "Sri Lanka",
+    "city_id": 881
+  },
+  "BWN": {
+    "city": "Bandar Seri Begawan",
+    "country": "Brunei",
+    "city_id": 6204
+  },
+  "ATA": {
+    "city": "Anta",
+    "country": "Peru"
+  },
+  "MRU": {
+    "city": "Mauritius",
+    "country": "Mauritius"
+  },
+  "THN": {
+    "city": "Trollhattan",
+    "country": "Sweden",
+    "city_id": 1420888
+  },
+  "ACV": {
+    "city": "Arcata",
+    "country": "United States"
+  },
+  "PER": {
+    "city": "Chiclayo",
+    "country": "Peru",
+    "city_id": 12041
+  },
+  "PHX": {
+    "city": "Phoenix",
+    "country": "United States"
+  },
+  "STS": {
+    "city": "Santa Rosa",
+    "country": "United States"
+  },
+  "VIL": {
+    "city": "Verona",
+    "country": "Italy",
+    "city_id": 13971
+  },
+  "TNJ": {
+    "city": "Tanjung Pinang",
+    "country": "Indonesia",
+    "city_id": 1506233
+  },
+  "SPN": {
+    "city": "Saipan",
+    "country": "Northern Mariana Islands"
+  },
+  "ESH": {
+    "city": "Sharm el Sheikh",
+    "country": "Egypt",
+    "city_id": 6674
+  },
+  "BOD": {
+    "city": "Bordeaux",
+    "country": "France",
+    "city_id": 14378
+  },
+  "TIA": {
+    "city": "Chengdu",
+    "country": "China",
+    "city_id": 26128
+  },
+  "CHX": {
+    "city": "Changuinola",
+    "country": "Panama",
+    "city_id": 557
+  },
+  "ZSE": {
+    "city": "St Pierre dela Reunion",
+    "country": "Réunion"
+  },
+  "DJJ": {
+    "city": "Jayapura",
+    "country": "Indonesia"
+  },
+  "LOC": {
+    "city": "Miami",
+    "country": "United States"
+  },
+  "OOL": {
+    "city": "Coolangatta (Gold Coast)",
+    "country": "Australia",
+    "city_id": 5199
+  },
+  "SFG": {
+    "city": "Saint Martin",
+    "country": "Saint Martin",
+    "city_id": 843
+  },
+  "BID": {
+    "city": "Bydgoszcz",
+    "country": "Poland",
+    "city_id": 2069
+  },
+  "CFN": {
+    "city": "Donegal",
+    "country": "Ireland",
+    "city_id": 5958
+  },
+  "TRG": {
+    "city": "Tauranga",
+    "country": "New Zealand",
+    "city_id": 4643
+  },
+  "SVD": {
+    "city": "Saint Vincent",
+    "country": "Saint Vincent and the Grenadines"
+  },
+  "BOC": {
+    "city": "Bocas Del Toro",
+    "country": "Panama"
+  },
+  "YTZ": {
+    "city": "Toronto",
+    "country": "Canada",
+    "city_id": 21396
+  },
+  "NTB": {
+    "city": "Notodden",
+    "country": "Norway",
+    "city_id": 9160
+  },
+  "TRV": {
+    "city": "Thiruvananthapuram",
+    "country": "India",
+    "city_id": 25800
+  },
+  "MLB": {
+    "city": "Melbourne",
+    "country": "United States"
+  },
+  "GUM": {
+    "city": "Guam",
+    "country": "Guam"
+  },
+  "NOT": {
+    "city": "Leicestershire",
+    "country": "United Kingdom"
+  },
+  "SYL": {
+    "city": "Sylhet",
+    "country": "Bangladesh",
+    "city_id": 6697
+  },
+  "JHM": {
+    "city": "Kapalua",
+    "country": "United States"
+  },
+  "ELS": {
+    "city": "San Salvador",
+    "country": "El Salvador",
+    "city_id": 8702
+  },
+  "NQY": {
+    "city": "Newquay",
+    "country": "United Kingdom",
+    "city_id": 8052
+  },
+  "DPO": {
+    "city": "Devonport",
+    "country": "Australia",
+    "city_id": 5236
+  },
+  "SVG": {
+    "city": "Stavanger",
+    "country": "Norway",
+    "city_id": 9200
+  },
+  "REC": {
+    "city": "Recife",
+    "country": "Brazil",
+    "city_id": 6451
+  },
+  "EBJ": {
+    "city": "Esbjerg",
+    "country": "Denmark",
+    "city_id": 1412
+  },
+  "BOH": {
+    "city": "Bournemouth",
+    "country": "United Kingdom",
+    "city_id": 7079
+  },
+  "GWT": {
+    "city": "Westerland",
+    "country": "Germany",
+    "city_id": 24810
+  },
+  "KID": {
+    "city": "Kristianstad",
+    "country": "Sweden",
+    "city_id": 8818
+  },
+  "ACH": {
+    "city": "Altenrhein",
+    "country": "Switzerland",
+    "city_id": 11515
+  },
+  "HOH": {
+    "city": "Hohhot",
+    "country": "China",
+    "city_id": 26264
+  },
+  "RAD": {
+    "city": "Radom",
+    "country": "Poland",
+    "city_id": 2169
+  },
+  "TAN": {
+    "city": "Belo Horizonte",
+    "country": "Brazil",
+    "city_id": 6328
+  },
+  "BQN": {
+    "city": "Aguadilla",
+    "country": "Puerto Rico",
+    "city_id": 6746
+  },
+  "DLH": {
+    "city": "Duluth",
+    "country": "United States"
+  },
+  "VEY": {
+    "city": "Weihai",
+    "country": "China",
+    "city_id": 26172
+  },
+  "HAW": {
+    "city": "Hawthorne",
+    "country": "United States"
+  },
+  "BOK": {
+    "city": "Baku",
+    "country": "Azerbaijan",
+    "city_id": 8942
+  },
+  "MGB": {
+    "city": "Mount Gambier",
+    "country": "Australia",
+    "city_id": 5476
+  },
+  "VSE": {
+    "city": "Viseu",
+    "country": "Portugal",
+    "city_id": 4972
+  },
+  "CCP": {
+    "city": "Concepcion",
+    "country": "Chile",
+    "city_id": 4321
+  },
+  "PBZ": {
+    "city": "Plettenberg Bay",
+    "country": "South Africa",
+    "city_id": 783
+  },
+  "BQB": {
+    "city": "Bussellton",
+    "country": "Australia",
+    "city_id": 5149
+  },
+  "EKA": {
+    "city": "Yekaterinburg",
+    "country": "Russia",
+    "city_id": 12115
+  },
+  "LAD": {
+    "city": "Luanda",
+    "country": "Angola",
+    "city_id": 24363
+  },
+  "PUS": {
+    "city": "Busan",
+    "country": "South Korea",
+    "city_id": 5755
+  },
+  "AAR": {
+    "city": "Aarhus",
+    "country": "Denmark",
+    "city_id": 1401
+  },
+  "POP": {
+    "city": "Puerto Plata",
+    "country": "Dominican Republic",
+    "city_id": 12085
+  },
+  "CAB": {
+    "city": "San Jose del Cabo",
+    "country": "Mexico",
+    "city_id": 4476
+  },
+  "BME": {
+    "city": "Broome",
+    "country": "Australia",
+    "city_id": 5139
+  },
+  "BHA": {
+    "city": "Bhairawa",
+    "country": "Nepal",
+    "city_id": 2841
+  },
+  "REL": {
+    "city": "Trelew",
+    "country": "Argentina",
+    "city_id": 6165
+  },
+  "AGP": {
+    "city": "Malaga",
+    "country": "Spain",
+    "city_id": 3689
+  },
+  "KNA": {
+    "city": "Vina del Mar",
+    "country": "Chile",
+    "city_id": 4355
+  },
+  "PEY": {
+    "city": "Painter Creek",
+    "country": "United States"
+  },
+  "ROZ": {
+    "city": "Roswell",
+    "country": "United States"
+  },
+  "CAG": {
+    "city": "Cagliari",
+    "country": "Italy",
+    "city_id": 12540
+  },
+  "ALC": {
+    "city": "Alicante",
+    "country": "Spain",
+    "city_id": 3108
+  },
+  "PMI": {
+    "city": "Palma Mallorca",
+    "country": "Spain"
+  },
+  "TIJ": {
+    "city": "Paris",
+    "country": "France",
+    "city_id": 15542
+  },
+  "RMU": {
+    "city": "Murcia",
+    "country": "Spain",
+    "city_id": 3774
+  },
+  "SJZ": {
+    "city": "Sao Jorge Island",
+    "country": "Portugal",
+    "city_id": 30173
+  },
+  "ARI": {
+    "city": "Arica",
+    "country": "Chile",
+    "city_id": 4315
+  },
+  "DOM": {
+    "city": "Dominica",
+    "country": "Dominica",
+    "city_id": 6742
+  },
+  "BPA": {
+    "city": "Bethpage",
+    "country": "United States"
+  },
+  "HUC": {
+    "city": "Khujand",
+    "country": "Tajikistan"
+  },
+  "JJG": {
+    "city": "Jaguaruna",
+    "country": "Brazil",
+    "city_id": 6392
+  },
+  "VER": {
+    "city": "Verona",
+    "country": "Italy",
+    "city_id": 13971
+  },
+  "PUY": {
+    "city": "Pula",
+    "country": "Croatia",
+    "city_id": 9007
+  },
+  "SBA": {
+    "city": "Santa Barbara",
+    "country": "United States"
+  },
+  "CCS": {
+    "city": "Caracas",
+    "country": "Venezuela",
+    "city_id": 4253
+  },
+  "DNR": {
+    "city": "Dinard",
+    "country": "France",
+    "city_id": 14698
+  },
+  "POG": {
+    "city": "Port Gentil",
+    "country": "Gabon",
+    "city_id": 851
+  },
+  "CSK": {
+    "city": "Cap Skirring",
+    "country": "Senegal",
+    "city_id": 12278
+  },
+  "EUN": {
+    "city": "Laayoune",
+    "country": "Western Sahara"
+  },
+  "GOL": {
+    "city": "Paris",
+    "country": "France",
+    "city_id": 15542
+  },
+  "EBA": {
+    "city": "Elba Island",
+    "country": "Italy",
+    "city_id": 30374
+  },
+  "AJA": {
+    "city": "Ajaccio",
+    "country": "France"
+  },
+  "FOG": {
+    "city": "Foggia",
+    "country": "Italy",
+    "city_id": 12892
+  },
+  "STX": {
+    "city": "Saint Croix",
+    "country": "U.S. Virgin Islands"
+  },
+  "ECN": {
+    "city": "Ercan",
+    "country": "Northern Cyprus"
+  },
+  "SCY": {
+    "city": "San Cristobal",
+    "country": "Ecuador",
+    "city_id": 925
+  },
+  "PXM": {
+    "city": "Puerto Escondido",
+    "country": "Mexico",
+    "city_id": 4462
+  },
+  "CTG": {
+    "city": "Cartagena",
+    "country": "Colombia",
+    "city_id": 1493715
+  },
+  "ARE": {
+    "city": "Arequipa",
+    "country": "Peru",
+    "city_id": 12038
+  },
+  "ALH": {
+    "city": "Albany",
+    "country": "Australia",
+    "city_id": 5057
+  },
+  "COV": {
+    "city": "Mersin",
+    "country": "Turkey",
+    "city_id": 2798
+  },
+  "AMS": {
+    "city": "Amsterdam",
+    "country": "Netherlands",
+    "city_id": 1503
+  },
+  "MEA": {
+    "city": "Bakersfield",
+    "country": "United States"
+  },
+  "DAR": {
+    "city": "Dar Es Salaam",
+    "country": "Tanzania",
+    "city_id": 6277
+  },
+  "HUY": {
+    "city": "Humberside",
+    "country": "United Kingdom"
+  },
+  "IAO": {
+    "city": "Sayak (Siargao)",
+    "country": "Philippines"
+  },
+  "SAL": {
+    "city": "San Salvador",
+    "country": "El Salvador",
+    "city_id": 8702
+  },
+  "PIO": {
+    "city": "Pisco",
+    "country": "Peru",
+    "city_id": 12050
+  },
+  "AOI": {
+    "city": "Ancona",
+    "country": "Italy",
+    "city_id": 12371
+  },
+  "TPQ": {
+    "city": "Tepic",
+    "country": "Mexico",
+    "city_id": 4499
+  },
+  "ISJ": {
+    "city": "Izhevsk",
+    "country": "Russia",
+    "city_id": 12123
+  },
+  "GDN": {
+    "city": "Gdansk",
+    "country": "Poland",
+    "city_id": 2083
+  },
+  "YHU": {
+    "city": "Montreal",
+    "country": "Canada",
+    "city_id": 21850
+  },
+  "BLB": {
+    "city": "Balboa",
+    "country": "Panama"
+  },
+  "RER": {
+    "city": "Retalhuleu",
+    "country": "Guatemala",
+    "city_id": 1474201
+  },
+  "BIX": {
+    "city": "Cooch Behar",
+    "country": "India",
+    "city_id": 1490086
+  },
+  "NNA": {
+    "city": "Abuja",
+    "country": "Nigeria",
+    "city_id": 582
+  },
+  "SUG": {
+    "city": "Surigao",
+    "country": "Philippines"
+  },
+  "CZM": {
+    "city": "Cozumel",
+    "country": "Mexico"
+  },
+  "KUA": {
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "city_id": 2922
+  },
+  "CFK": {
+    "city": "Chlef",
+    "country": "Algeria",
+    "city_id": 5858
+  },
+  "GND": {
+    "city": "St. George's",
+    "country": "Grenada",
+    "city_id": 5803
+  },
+  "YAZ": {
+    "city": "Tofino",
+    "country": "Canada"
+  },
+  "HKG": {
+    "city": "Hong Kong",
+    "country": "Hong Kong",
+    "city_id": 4525
+  },
+  "TRU": {
+    "city": "Dubai",
+    "country": "United Arab Emirates"
+  },
+  "MLE": {
+    "city": "Male",
+    "country": "Maldives",
+    "city_id": 1473301
+  },
+  "DUQ": {
+    "city": "Duqm",
+    "country": "Oman"
+  },
+  "KAX": {
+    "city": "Kahului",
+    "country": "United States"
+  },
+  "TSA": {
+    "city": "Taipei",
+    "country": "Taiwan"
+  },
+  "BON": {
+    "city": "Vancouver",
+    "country": "Canada",
+    "city_id": 16968
+  },
+  "VOL": {
+    "city": "Volos",
+    "country": "Greece",
+    "city_id": 25973
+  },
+  "HSZ": {
+    "city": "Xian",
+    "country": "China",
+    "city_id": 26107
+  },
+  "BIK": {
+    "city": "Legaspi",
+    "country": "Philippines"
+  },
+  "ACK": {
+    "city": "Nantucket",
+    "country": "United States"
+  },
+  "DKR": {
+    "city": "Dakar",
+    "country": "Senegal",
+    "city_id": 12279
+  },
+  "PPG": {
+    "city": "Pago Pago",
+    "country": "American Samoa",
+    "city_id": 6689
+  },
+  "UPP": {
+    "city": "Kalskag",
+    "country": "United States"
+  },
+  "RAI": {
+    "city": "Praia",
+    "country": "Cape Verde"
+  },
+  "SIG": {
+    "city": "San Juan",
+    "country": "Puerto Rico",
+    "city_id": 6787
+  },
+  "PUJ": {
+    "city": "Punta Cana",
+    "country": "Dominican Republic",
+    "city_id": 12086
+  },
+  "COI": {
+    "city": "Coimbatore",
+    "country": "India",
+    "city_id": 25865
+  },
+  "JUR": {
+    "city": "Dole",
+    "country": "France",
+    "city_id": 14705
+  },
+  "JOH": {
+    "city": "New York",
+    "country": "United States"
+  },
+  "PUB": {
+    "city": "Pueblo",
+    "country": "United States"
+  },
+  "SLU": {
+    "city": "Saint Lucia",
+    "country": "Saint Lucia"
+  },
+  "RBA": {
+    "city": "Rabat",
+    "country": "Morocco",
+    "city_id": 4302
+  },
+  "MOZ": {
+    "city": "Moorea",
+    "country": "French Polynesia"
+  },
+  "OTH": {
+    "city": "Warsaw",
+    "country": "Poland",
+    "city_id": 2200
+  },
+  "GFN": {
+    "city": "Grafton",
+    "country": "Australia",
+    "city_id": 5306
+  },
+  "TPS": {
+    "city": "Trapani",
+    "country": "Italy",
+    "city_id": 13904
+  },
+  "SJD": {
+    "city": "San Jose del Cabo",
+    "country": "Mexico",
+    "city_id": 4476
+  },
+  "PNR": {
+    "city": "Pointe Noire",
+    "country": "Republic of the Congo"
+  },
+  "CFR": {
+    "city": "Caen",
+    "country": "France",
+    "city_id": 14444
+  },
+  "YHZ": {
+    "city": "Halifax",
+    "country": "Canada",
+    "city_id": 20624
+  },
+  "CXB": {
+    "city": "Coxs Bazar",
+    "country": "Bangladesh",
+    "city_id": 6692
+  },
+  "CEC": {
+    "city": "Crescent City",
+    "country": "United States"
+  },
+  "PFO": {
+    "city": "Paphos",
+    "country": "Cyprus",
+    "city_id": 6637
+  },
+  "DIL": {
+    "city": "Dili",
+    "country": "East Timor",
+    "city_id": 24183
+  },
+  "MCZ": {
+    "city": "Maceio",
+    "country": "Brazil",
+    "city_id": 6409
+  },
+  "JAX": {
+    "city": "Jacksonville",
+    "country": "United States"
+  },
+  "SXM": {
+    "city": "Sint Maarten",
+    "country": "Sint Maarten"
+  },
+  "FOK": {
+    "city": "Cape Town",
+    "country": "South Africa",
+    "city_id": 678
+  },
+  "AKT": {
+    "city": "Aktau",
+    "country": "Kazakhstan",
+    "city_id": 1986
+  },
+  "VXE": {
+    "city": "Sao Vicente",
+    "country": "Cape Verde"
+  },
+  "KGC": {
+    "city": "Kingscote",
+    "country": "Australia"
+  },
+  "DAD": {
+    "city": "Da Nang",
+    "country": "Vietnam",
+    "city_id": 14094
+  },
+  "RMQ": {
+    "city": "Shalu",
+    "country": "Taiwan"
+  },
+  "RNN": {
+    "city": "Bornholm",
+    "country": "Denmark",
+    "city_id": 1463
+  },
+  "SYX": {
+    "city": "Sanya",
+    "country": "China",
+    "city_id": 26285
+  },
+  "LBC": {
+    "city": "Hamburg",
+    "country": "Germany",
+    "city_id": 10051
+  },
+  "PEA": {
+    "city": "Toronto",
+    "country": "Canada",
+    "city_id": 21396
+  },
+  "KEL": {
+    "city": "Leicestershire",
+    "country": "United Kingdom"
+  },
+  "FLL": {
+    "city": "Fort Lauderdale",
+    "country": "United States"
+  },
+  "VAO": {
+    "city": "Suavanao",
+    "country": "Solomon Islands"
+  },
+  "DOL": {
+    "city": "Deauville",
+    "country": "France",
+    "city_id": 14688
+  },
+  "ALG": {
+    "city": "Algiers",
+    "country": "Algeria",
+    "city_id": 5852
+  },
+  "SIN": {
+    "city": "Singapore",
+    "country": "Singapore",
+    "city_id": 14085
+  },
+  "DSI": {
+    "city": "Destin",
+    "country": "United States"
+  },
+  "FGI": {
+    "city": "Apia",
+    "country": "Samoa"
+  },
+  "IVC": {
+    "city": "Invercargill",
+    "country": "New Zealand",
+    "city_id": 4573
+  },
+  "JPA": {
+    "city": "Joao Pessoa",
+    "country": "Brazil",
+    "city_id": 6397
+  },
+  "PCN": {
+    "city": "Picton",
+    "country": "New Zealand",
+    "city_id": 4627
+  },
+  "DZA": {
+    "city": "Dzaoudzi",
+    "country": "Mayotte",
+    "city_id": 24453
+  },
+  "LAX": {
+    "city": "Los Angeles",
+    "country": "United States"
+  },
+  "MAZ": {
+    "city": "Warsaw",
+    "country": "Poland",
+    "city_id": 2200
+  },
+  "MKY": {
+    "city": "Mackay",
+    "country": "Australia",
+    "city_id": 5407
+  },
+  "AXA": {
+    "city": "The Valley",
+    "country": "Anguilla",
+    "city_id": 6843
+  },
+  "IPZ": {
+    "city": "San Isidro de El General",
+    "country": "Costa Rica"
+  },
+  "HSN": {
+    "city": "Zhoushan",
+    "country": "China",
+    "city_id": 25144
+  },
+  "SWA": {
+    "city": "Jieyang",
+    "country": "China",
+    "city_id": 1507651
+  },
+  "ZNZ": {
+    "city": "Zanzibar",
+    "country": "Tanzania"
+  },
+  "WVB": {
+    "city": "Walvis Bay",
+    "country": "Namibia",
+    "city_id": 5835
+  },
+  "ORK": {
+    "city": "Cork",
+    "country": "Ireland",
+    "city_id": 5954
+  },
+  "DXB": {
+    "city": "Dubai",
+    "country": "United Arab Emirates"
+  },
+  "GEA": {
+    "city": "Noumea",
+    "country": "New Caledonia",
+    "city_id": 14081
+  },
+  "EXM": {
+    "city": "Learmonth",
+    "country": "Australia",
+    "city_id": 5388
+  },
+  "ROC": {
+    "city": "Chicago",
+    "country": "United States"
+  },
+  "DGA": {
+    "city": "Dangriga",
+    "country": "Belize"
+  },
+  "NWI": {
+    "city": "Norwich",
+    "country": "United Kingdom",
+    "city_id": 8082
+  },
+  "CHC": {
+    "city": "Christchurch",
+    "country": "New Zealand",
+    "city_id": 4546
+  },
+  "BKL": {
+    "city": "Cleveland",
+    "country": "United States"
+  },
+  "VLI": {
+    "city": "Dallas",
+    "country": "United States"
+  },
+  "BAQ": {
+    "city": "Barranquilla",
+    "country": "Colombia",
+    "city_id": 6212
+  },
+  "AZS": {
+    "city": "El Catey",
+    "country": "Dominican Republic",
+    "city_id": 1519340
+  },
+  "MZT": {
+    "city": "Mazatlan",
+    "country": "Mexico",
+    "city_id": 4439
+  },
+  "JBQ": {
+    "city": "Santo Domingo",
+    "country": "Dominican Republic",
+    "city_id": 12091
+  },
+  "CIX": {
+    "city": "Chiclayo",
+    "country": "Peru",
+    "city_id": 12041
+  },
+  "TLU": {
+    "city": "Tolu",
+    "country": "Colombia",
+    "city_id": 1467126
+  },
+  "RIH": {
+    "city": "Krivoy Rog",
+    "country": "Ukraine"
+  },
+  "VLC": {
+    "city": "Valencia",
+    "country": "Spain",
+    "city_id": 4164
+  },
+  "MVD": {
+    "city": "Montevideo",
+    "country": "Uruguay",
+    "city_id": 6294
+  },
+  "ILS": {
+    "city": "San Salvador",
+    "country": "El Salvador",
+    "city_id": 8702
+  },
+  "LUD": {
+    "city": "Luderitz",
+    "country": "Namibia",
+    "city_id": 744
+  },
+  "KKE": {
+    "city": "Kerikeri",
+    "country": "New Zealand",
+    "city_id": 4582
+  },
+  "CNS": {
+    "city": "Cairns",
+    "country": "Australia",
+    "city_id": 5152
+  },
+  "VVO": {
+    "city": "Vladivostok",
+    "country": "Russia",
+    "city_id": 12221
+  },
+  "OXR": {
+    "city": "Ohrid",
+    "country": "North Macedonia"
+  },
+  "MRS": {
+    "city": "Marseille",
+    "country": "France",
+    "city_id": 15298
+  },
+  "KCO": {
+    "city": "Izmit",
+    "country": "Turkey",
+    "city_id": 2766
+  },
+  "WGP": {
+    "city": "Waingapu",
+    "country": "Indonesia"
+  },
+  "HOV": {
+    "city": "Orsta-Volda",
+    "country": "Norway"
+  },
+  "MAH": {
+    "city": "Menorca",
+    "country": "Spain"
+  },
+  "NEC": {
+    "city": "Al-Najaf",
+    "country": "Iraq"
+  },
+  "TAM": {
+    "city": "Tampa",
+    "country": "United States"
+  },
+  "VDM": {
+    "city": "Viedma",
+    "country": "Argentina",
+    "city_id": 6171
+  },
+  "ESU": {
+    "city": "Essaouira",
+    "country": "Morocco",
+    "city_id": 4287
+  },
+  "LEH": {
+    "city": "Leh",
+    "country": "India",
+    "city_id": 25757
+  },
+  "SKU": {
+    "city": "Skiros",
+    "country": "Greece",
+    "city_id": 1518994
+  },
+  "PPT": {
+    "city": "Papeete",
+    "country": "French Polynesia"
+  },
+  "RFP": {
+    "city": "Raiatea",
+    "country": "French Polynesia"
+  },
+  "CHQ": {
+    "city": "Chania",
+    "country": "Greece",
+    "city_id": 25961
+  },
+  "RMI": {
+    "city": "Rimini",
+    "country": "Italy",
+    "city_id": 13534
+  },
+  "HUH": {
+    "city": "Huahine",
+    "country": "French Polynesia"
+  },
+  "MOL": {
+    "city": "Molde",
+    "country": "Norway",
+    "city_id": 9150
+  },
+  "ACC": {
+    "city": "Accra",
+    "country": "Ghana",
+    "city_id": 4974
+  },
+  "KUM": {
+    "city": "Yakushima",
+    "country": "Japan"
+  },
+  "ISP": {
+    "city": "Ronkonkoma",
+    "country": "United States"
+  },
+  "ORF": {
+    "city": "Norfolk",
+    "country": "United States"
+  },
+  "PLO": {
+    "city": "Port Lincoln",
+    "country": "Australia",
+    "city_id": 5550
+  },
+  "TLE": {
+    "city": "Tulear",
+    "country": "Madagascar"
+  },
+  "WRE": {
+    "city": "Whangarei",
+    "country": "New Zealand",
+    "city_id": 4670
+  },
+  "IBZ": {
+    "city": "Ibiza",
+    "country": "Spain",
+    "city_id": 1486261
+  },
+  "SAB": {
+    "city": "Istanbul",
+    "country": "Turkey",
+    "city_id": 2764
+  },
+  "SFO": {
+    "city": "San Francisco",
+    "country": "United States"
+  },
+  "FXE": {
+    "city": "Fort Lauderdale",
+    "country": "United States"
+  },
+  "VPS": {
+    "city": "Fort Walton Beach",
+    "country": "United States"
+  },
+  "ADQ": {
+    "city": "Kodiak",
+    "country": "United States"
+  },
+  "HUM": {
+    "city": "Tehran",
+    "country": "Iran",
+    "city_id": 1486757
+  },
+  "PSM": {
+    "city": "Boston",
+    "country": "United States"
+  },
+  "HAF": {
+    "city": "Hambantota",
+    "country": "Sri Lanka",
+    "city_id": 869
+  },
+  "MBL": {
+    "city": "Manistee",
+    "country": "United States"
+  },
+  "ZSA": {
+    "city": "San Salvador",
+    "country": "Bahamas"
+  },
+  "FJR": {
+    "city": "Al-fujairah",
+    "country": "United Arab Emirates"
+  },
+  "MFK": {
+    "city": "Matsu",
+    "country": "Taiwan",
+    "city_id": 1519141
+  },
+  "KCZ": {
+    "city": "Kochi",
+    "country": "Japan",
+    "city_id": 1509170
+  },
+  "FOR": {
+    "city": "Fort Lauderdale",
+    "country": "United States"
+  },
+  "IOM": {
+    "city": "Isle Of Man",
+    "country": "Isle of Man"
+  },
+  "MHH": {
+    "city": "Marsh Harbour",
+    "country": "Bahamas"
+  },
+  "KEF": {
+    "city": "Reykjavik",
+    "country": "Iceland",
+    "city_id": 5044
+  },
+  "GRJ": {
+    "city": "George",
+    "country": "South Africa",
+    "city_id": 698
+  },
+  "CRM": {
+    "city": "Catarman",
+    "country": "Philippines"
+  },
+  "AGH": {
+    "city": "Angelholm/Helsingborg",
+    "country": "Sweden"
+  },
+  "LIH": {
+    "city": "Kauai Island",
+    "country": "United States"
+  },
+  "TAO": {
+    "city": "Taipei",
+    "country": "Taiwan"
+  },
+  "KVG": {
+    "city": "Kavieng",
+    "country": "Papua New Guinea",
+    "city_id": 2024
+  },
+  "SNR": {
+    "city": "Saint Nazaire",
+    "country": "France",
+    "city_id": 1527646
+  },
+  "KVA": {
+    "city": "Kavala",
+    "country": "Greece",
+    "city_id": 26041
+  },
+  "LBV": {
+    "city": "Libreville",
+    "country": "Gabon",
+    "city_id": 846
+  },
+  "GTO": {
+    "city": "Gorontalo",
+    "country": "Indonesia"
+  },
+  "PYR": {
+    "city": "Katowice",
+    "country": "Poland",
+    "city_id": 2107
+  },
+  "RKV": {
+    "city": "Reykjavik",
+    "country": "Iceland",
+    "city_id": 5044
+  },
+  "BZR": {
+    "city": "Beziers",
+    "country": "France",
+    "city_id": 14342
+  },
+  "CAW": {
+    "city": "Campos",
+    "country": "Brazil"
+  },
+  "PMV": {
+    "city": "Porlamar",
+    "country": "Venezuela"
+  },
+  "GCI": {
+    "city": "Guernsey",
+    "country": "Guernsey"
+  },
+  "KAG": {
+    "city": "Kagoshima",
+    "country": "Japan",
+    "city_id": 1652751
+  },
+  "HPA": {
+    "city": "Ha'Apai",
+    "country": "Tonga"
+  },
+  "NBE": {
+    "city": "Enfidha",
+    "country": "Tunisia",
+    "city_id": 1465205
+  },
+  "HND": {
+    "city": "Tokyo",
+    "country": "Japan",
+    "city_id": 25666
+  },
+  "YPW": {
+    "city": "Powell River",
+    "country": "Canada",
+    "city_id": 16938
+  },
+  "VTZ": {
+    "city": "Vishakhapatnam",
+    "country": "India",
+    "city_id": 25727
+  },
+  "GHB": {
+    "city": "Governor's Harbour",
+    "country": "Bahamas"
+  },
+  "NPE": {
+    "city": "Napier",
+    "country": "New Zealand",
+    "city_id": 4607
+  },
+  "TMU": {
+    "city": "Tambor",
+    "country": "Costa Rica",
+    "city_id": 24979
+  },
+  "PWM": {
+    "city": "Portland",
+    "country": "United States"
+  },
+  "UIL": {
+    "city": "Nairobi",
+    "country": "Kenya",
+    "city_id": 6595
+  },
+  "ELH": {
+    "city": "North Eleuthera",
+    "country": "Bahamas"
+  },
+  "LCH": {
+    "city": "Lake Charles",
+    "country": "United States"
+  },
+  "KIG": {
+    "city": "Kigali",
+    "country": "Rwanda",
+    "city_id": 544
+  },
+  "HNM": {
+    "city": "Hana",
+    "country": "United States"
+  },
+  "ANF": {
+    "city": "Antofagasta",
+    "country": "Chile",
+    "city_id": 4314
+  },
+  "BDA": {
+    "city": "Bermuda",
+    "country": "Bermuda"
+  },
+  "STT": {
+    "city": "Saint Thomas",
+    "country": "U.S. Virgin Islands"
+  },
+  "STA": {
+    "city": "London",
+    "country": "United Kingdom",
+    "city_id": 7896
+  },
+  "JIK": {
+    "city": "Ikaria Island",
+    "country": "Greece",
+    "city_id": 30513
+  },
+  "CAY": {
+    "city": "Cayenne",
+    "country": "French Guiana",
+    "city_id": 12092
+  },
+  "NJA": {
+    "city": "Nha Trang",
+    "country": "Vietnam",
+    "city_id": 14105
+  },
+  "YQY": {
+    "city": "Sydney",
+    "country": "Canada"
+  },
+  "PAS": {
+    "city": "Rome",
+    "country": "Italy",
+    "city_id": 13559
+  },
+  "CDT": {
+    "city": "Castellon de la Plana",
+    "country": "Spain",
+    "city_id": 3335
+  },
+  "GUB": {
+    "city": "Natal",
+    "country": "Brazil",
+    "city_id": 6421
+  },
+  "KIX": {
+    "city": "Osaka",
+    "country": "Japan",
+    "city_id": 25639
+  },
+  "TIU": {
+    "city": "Timaru",
+    "country": "New Zealand",
+    "city_id": 4650
+  },
+  "JAK": {
+    "city": "Jakarta",
+    "country": "Indonesia"
+  },
+  "DWC": {
+    "city": "Dubai",
+    "country": "United Arab Emirates"
+  },
+  "CJU": {
+    "city": "Jeju",
+    "country": "South Korea",
+    "city_id": 5779
+  },
+  "JJD": {
+    "city": "Jericoacoara",
+    "country": "Brazil",
+    "city_id": 6394
+  },
+  "JER": {
+    "city": "Jersey",
+    "country": "Jersey"
+  },
+  "XCH": {
+    "city": "Christmas Island",
+    "country": "Christmas Island"
+  },
+  "SEN": {
+    "city": "London",
+    "country": "United Kingdom",
+    "city_id": 7896
+  },
+  "BUN": {
+    "city": "Buenaventura",
+    "country": "Colombia",
+    "city_id": 6215
+  },
+  "PBI": {
+    "city": "West Palm Beach",
+    "country": "United States"
+  },
+  "PLQ": {
+    "city": "Palanga",
+    "country": "Lithuania",
+    "city_id": 8728
+  },
+  "VAR": {
+    "city": "Warsaw",
+    "country": "Poland",
+    "city_id": 2200
+  },
+  "TKS": {
+    "city": "Tokushima",
+    "country": "Japan",
+    "city_id": 25660
+  },
+  "JSI": {
+    "city": "Skiathos",
+    "country": "Greece"
+  },
+  "AGX": {
+    "city": "Agatti Island",
+    "country": "India"
+  },
+  "CNN": {
+    "city": "Kannur",
+    "country": "India",
+    "city_id": 1467164
+  },
+  "AKL": {
+    "city": "Auckland",
+    "country": "New Zealand",
+    "city_id": 4536
+  },
+  "HAD": {
+    "city": "Halmstad",
+    "country": "Sweden",
+    "city_id": 8790
+  },
+  "MMX": {
+    "city": "Malmo",
+    "country": "Sweden",
+    "city_id": 1420836
+  },
+  "NRT": {
+    "city": "Tokyo",
+    "country": "Japan",
+    "city_id": 25666
+  },
+  "FSZ": {
+    "city": "Shizuoka",
+    "country": "Japan",
+    "city_id": 25654
+  },
+  "BHE": {
+    "city": "Blenheim",
+    "country": "New Zealand",
+    "city_id": 4540
+  },
+  "PNL": {
+    "city": "Pantelleria",
+    "country": "Italy"
+  },
+  "MKK": {
+    "city": "Hoolehua",
+    "country": "United States"
+  },
+  "UUS": {
+    "city": "Yuzhno-Sakhalinsk",
+    "country": "Russia",
+    "city_id": 12229
+  },
+  "KTE": {
+    "city": "Kerteh",
+    "country": "Malaysia",
+    "city_id": 1521522
+  },
+  "DIW": {
+    "city": "Dikwella",
+    "country": "Sri Lanka",
+    "city_id": 1505784
+  },
+  "CUR": {
+    "city": "Curacao",
+    "country": "Curaçao"
+  },
+  "UTP": {
+    "city": "Utapao",
+    "country": "Thailand",
+    "city_id": 23382
+  },
+  "KBV": {
+    "city": "Krabi",
+    "country": "Thailand"
+  },
+  "USM": {
+    "city": "Koh Samui",
+    "country": "Thailand"
+  },
+  "UNN": {
+    "city": "Ranong",
+    "country": "Thailand",
+    "city_id": 24159
+  },
+  "BJL": {
+    "city": "Banjul",
+    "country": "Gambia",
+    "city_id": 5740
+  },
+  "HER": {
+    "city": "Medellin",
+    "country": "Colombia",
+    "city_id": 6230
+  },
+  "WWK": {
+    "city": "Wewak",
+    "country": "Papua New Guinea",
+    "city_id": 2055
+  },
+  "OKA": {
+    "city": "Sapporo",
+    "country": "Japan"
+  },
+  "DDD": {
+    "city": "Kudahuvadhoo",
+    "country": "Maldives",
+    "city_id": 1508109
+  },
+  "KUD": {
+    "city": "Kudat",
+    "country": "Malaysia",
+    "city_id": 2925
+  },
+  "RLG": {
+    "city": "Rostock-Laage",
+    "country": "Germany",
+    "city_id": 10335
+  },
+  "IZM": {
+    "city": "Izmir",
+    "country": "Turkey",
+    "city_id": 2765
+  },
+  "DAV": {
+    "city": "David",
+    "country": "Panama",
+    "city_id": 562
+  },
+  "ZIH": {
+    "city": "Ixtapa/Zihuatanejo",
+    "country": "Mexico"
+  },
+  "MLN": {
+    "city": "Melilla",
+    "country": "Spain",
+    "city_id": 3717
+  },
+  "SDQ": {
+    "city": "Santo Domingo",
+    "country": "Dominican Republic",
+    "city_id": 12091
+  },
+  "VCE": {
+    "city": "Venice",
+    "country": "Italy",
+    "city_id": 13964
+  },
+  "YAI": {
+    "city": "Hat Yai",
+    "country": "Thailand",
+    "city_id": 25929
+  },
+  "HUX": {
+    "city": "Huatulco",
+    "country": "Mexico",
+    "city_id": 4418
+  },
+  "VDE": {
+    "city": "Valverde",
+    "country": "Spain",
+    "city_id": 4175
+  },
+  "GIB": {
+    "city": "Gibraltar",
+    "country": "Gibraltar",
+    "city_id": 24886
+  },
+  "COO": {
+    "city": "Cotonou",
+    "country": "Benin",
+    "city_id": 1397
+  },
+  "AHO": {
+    "city": "Alghero",
+    "country": "Italy"
+  },
+  "CLQ": {
+    "city": "Colima",
+    "country": "Mexico",
+    "city_id": 4396
+  },
+  "BMU": {
+    "city": "Bima",
+    "country": "Indonesia",
+    "city_id": 1504795
+  },
+  "SCQ": {
+    "city": "Santiago De Compostela",
+    "country": "Spain",
+    "city_id": 4051
+  },
+  "JIP": {
+    "city": "Ji-Parana",
+    "country": "Brazil",
+    "city_id": 6395
+  },
+  "LIR": {
+    "city": "Liberia",
+    "country": "Costa Rica",
+    "city_id": 25451
+  },
+  "MRA": {
+    "city": "Misurata",
+    "country": "Libya"
+  },
+  "BTJ": {
+    "city": "Banda Aceh",
+    "country": "Indonesia"
+  },
+  "FTU": {
+    "city": "Fort Dauphin",
+    "country": "Madagascar",
+    "city_id": 5002
+  },
+  "NAP": {
+    "city": "Naples",
+    "country": "Italy",
+    "city_id": 13273
+  },
+  "RAN": {
+    "city": "Nha Trang",
+    "country": "Vietnam",
+    "city_id": 14105
+  },
+  "LOS": {
+    "city": "Los Angeles",
+    "country": "United States"
+  },
+  "GCM": {
+    "city": "Grand Cayman Island",
+    "country": "Cayman Islands",
+    "city_id": 30098
+  },
+  "TRS": {
+    "city": "Trieste",
+    "country": "Italy",
+    "city_id": 13923
+  },
+  "AAL": {
+    "city": "Aalborg",
+    "country": "Denmark",
+    "city_id": 1400
+  },
+  "POT": {
+    "city": "San Luis Potosi",
+    "country": "Mexico",
+    "city_id": 4478
+  },
+  "VRB": {
+    "city": "Vero Beach",
+    "country": "United States"
+  },
+  "CWL": {
+    "city": "Cardiff",
+    "country": "United Kingdom",
+    "city_id": 7183
+  },
+  "MFM": {
+    "city": "Macau",
+    "country": "Macau",
+    "city_id": 1398
+  },
+  "CAL": {
+    "city": "Campbeltown",
+    "country": "United Kingdom",
+    "city_id": 7177
+  },
+  "NSN": {
+    "city": "Nelson",
+    "country": "New Zealand",
+    "city_id": 4608
+  },
+  "MAA": {
+    "city": "Chennai",
+    "country": "India",
+    "city_id": 25864
+  },
+  "SMS": {
+    "city": "Sainte Marie",
+    "country": "Madagascar"
+  },
+  "SMX": {
+    "city": "Santa Maria",
+    "country": "United States"
+  },
+  "ACO": {
+    "city": "La Coruna",
+    "country": "Spain",
+    "city_id": 3577
+  },
+  "MYD": {
+    "city": "Malindi",
+    "country": "Kenya",
+    "city_id": 6593
+  },
+  "KWI": {
+    "city": "Kuwait",
+    "country": "Kuwait"
+  },
+  "HRL": {
+    "city": "Harlingen",
+    "country": "United States"
+  },
+  "MEC": {
+    "city": "Manta",
+    "country": "Ecuador",
+    "city_id": 919
+  },
+  "BEL": {
+    "city": "Brussels",
+    "country": "Belgium",
+    "city_id": 2302
+  },
+  "NOB": {
+    "city": "Nosara Beach",
+    "country": "Costa Rica"
+  },
+  "RMF": {
+    "city": "Marsa Alam",
+    "country": "Egypt",
+    "city_id": 6669
+  },
+  "WHK": {
+    "city": "Whakatane",
+    "country": "New Zealand",
+    "city_id": 4668
+  },
+  "IPC": {
+    "city": "Easter Island",
+    "country": "Chile",
+    "city_id": 30154
+  },
+  "ROR": {
+    "city": "Koror",
+    "country": "Palau"
+  },
+  "INU": {
+    "city": "Nauru Island",
+    "country": "Nauru"
+  },
+  "VAV": {
+    "city": "Vava'u",
+    "country": "Tonga"
+  },
+  "YWH": {
+    "city": "Victoria",
+    "country": "Canada"
+  },
+  "GLN": {
+    "city": "Goulimime",
+    "country": "Morocco",
+    "city_id": 1479698
+  },
+  "GRX": {
+    "city": "Granada",
+    "country": "Spain",
+    "city_id": 3509
+  },
+  "MBA": {
+    "city": "Mombasa",
+    "country": "Kenya",
+    "city_id": 6594
+  },
+  "MSJ": {
+    "city": "Misawa",
+    "country": "Japan",
+    "city_id": 25620
+  },
+  "BHI": {
+    "city": "Bahia Blanca",
+    "country": "Argentina",
+    "city_id": 6077
+  },
+  "CIY": {
+    "city": "Comiso",
+    "country": "Italy",
+    "city_id": 12776
+  },
+  "ARX": {
+    "city": "Arkhangelsk",
+    "country": "Russia",
+    "city_id": 12101
+  },
+  "RAR": {
+    "city": "Rarotonga",
+    "country": "Cook Islands"
+  },
+  "TAB": {
+    "city": "Tabuk",
+    "country": "Saudi Arabia",
+    "city_id": 12315
+  },
+  "DLI": {
+    "city": "Dalat",
+    "country": "Vietnam",
+    "city_id": 14093
+  },
+  "MUM": {
+    "city": "Mumbai",
+    "country": "India",
+    "city_id": 25826
+  },
+  "POL": {
+    "city": "Warsaw",
+    "country": "Poland",
+    "city_id": 2200
+  },
+  "APF": {
+    "city": "Naples",
+    "country": "United States"
+  },
+  "KNS": {
+    "city": "King Island",
+    "country": "Australia",
+    "city_id": 30198
+  },
+  "HYA": {
+    "city": "Hyannis",
+    "country": "United States"
+  },
+  "PNY": {
+    "city": "Pondicherry",
+    "country": "India",
+    "city_id": 1465236
+  },
+  "BKI": {
+    "city": "Kota Kinabalu",
+    "country": "Malaysia",
+    "city_id": 2917
+  },
+  "NCE": {
+    "city": "Nice",
+    "country": "France",
+    "city_id": 15471
+  },
+  "KGD": {
+    "city": "Kaliningrad",
+    "country": "Russia",
+    "city_id": 12125
+  },
+  "DRW": {
+    "city": "Darwin",
+    "country": "Australia",
+    "city_id": 5228
+  },
+  "TMC": {
+    "city": "Tambolaka",
+    "country": "Indonesia"
+  },
+  "MYE": {
+    "city": "Fort Myers",
+    "country": "United States"
+  },
+  "KRS": {
+    "city": "Kristiansand",
+    "country": "Norway",
+    "city_id": 9125
+  },
+  "PDG": {
+    "city": "Padang",
+    "country": "Indonesia",
+    "city_id": 1505821
+  },
+  "PIU": {
+    "city": "Piura",
+    "country": "Peru",
+    "city_id": 12051
+  },
+  "OAJ": {
+    "city": "Richlands",
+    "country": "United States"
+  },
+  "PPQ": {
+    "city": "Paraparaumu",
+    "country": "New Zealand",
+    "city_id": 4625
+  },
+  "NOU": {
+    "city": "Noumea",
+    "country": "New Caledonia",
+    "city_id": 14081
+  },
+  "WAL": {
+    "city": "Walvis Bay",
+    "country": "Namibia",
+    "city_id": 5835
+  },
+  "PNI": {
+    "city": "Pohnpei, Caroline Islands",
+    "country": "Micronesia"
+  },
+  "SOC": {
+    "city": "Surakarta",
+    "country": "Indonesia"
+  },
+  "LAO": {
+    "city": "Laoag",
+    "country": "Philippines"
+  },
+  "PAK": {
+    "city": "Pakse",
+    "country": "Laos",
+    "city_id": 5887
+  },
+  "MPL": {
+    "city": "Montpellier",
+    "country": "France",
+    "city_id": 15412
+  },
+  "LNY": {
+    "city": "Lanai",
+    "country": "United States"
+  },
+  "OAN": {
+    "city": "Atuona",
+    "country": "French Polynesia"
+  },
+  "SID": {
+    "city": "Sal",
+    "country": "Cape Verde",
+    "city_id": 30241
+  },
+  "LPX": {
+    "city": "Liepaya",
+    "country": "Latvia",
+    "city_id": 2529
+  },
+  "PSR": {
+    "city": "Pescara",
+    "country": "Italy",
+    "city_id": 1478284
+  },
+  "NAS": {
+    "city": "Washington",
+    "country": "United States"
+  },
+  "NUE": {
+    "city": "Nuremberg",
+    "country": "Germany",
+    "city_id": 10675
+  },
+  "CVQ": {
+    "city": "Carnarvon",
+    "country": "Australia",
+    "city_id": 5164
+  },
+  "DCF": {
+    "city": "Dominica",
+    "country": "Dominica",
+    "city_id": 6742
+  },
+  "PIC": {
+    "city": "Pico Island (Azores)",
+    "country": "Portugal"
+  },
+  "SDW": {
+    "city": "Malvan",
+    "country": "India",
+    "city_id": 1474060
+  },
+  "GRO": {
+    "city": "Girona",
+    "country": "Spain",
+    "city_id": 3505
+  },
+  "CTA": {
+    "city": "Catania",
+    "country": "Italy",
+    "city_id": 1509604
+  },
+  "AEP": {
+    "city": "Buenos Aires",
+    "country": "Argentina",
+    "city_id": 6079
+  },
+  "BRO": {
+    "city": "Stockholm",
+    "country": "Sweden",
+    "city_id": 8889
+  },
+  "CUN": {
+    "city": "Cancun",
+    "country": "Mexico",
+    "city_id": 4377
+  },
+  "BSC": {
+    "city": "Bahia Solano",
+    "country": "Colombia",
+    "city_id": 6210
+  },
+  "LEI": {
+    "city": "Leicestershire",
+    "country": "United Kingdom"
+  },
+  "TIX": {
+    "city": "Tijuana",
+    "country": "Mexico",
+    "city_id": 4502
+  },
+  "AQP": {
+    "city": "Arequipa",
+    "country": "Peru",
+    "city_id": 12038
+  },
+  "YDT": {
+    "city": "Vancouver",
+    "country": "Canada",
+    "city_id": 16968
+  },
+  "VNX": {
+    "city": "Vilanculos",
+    "country": "Mozambique"
+  },
+  "MCP": {
+    "city": "Macapa",
+    "country": "Brazil",
+    "city_id": 6408
+  },
+  "AAF": {
+    "city": "Killeen",
+    "country": "United States"
+  },
+  "LEQ": {
+    "city": "Legaspi",
+    "country": "Philippines"
+  },
+  "RIG": {
+    "city": "Riga",
+    "country": "Latvia",
+    "city_id": 2534
+  },
+  "BVC": {
+    "city": "Boa Vista",
+    "country": "Cape Verde"
+  },
+  "ZOS": {
+    "city": "Osorno",
+    "country": "Chile",
+    "city_id": 4334
+  },
+  "TGZ": {
+    "city": "Tuxtla Gutierrez",
+    "country": "Mexico",
+    "city_id": 4512
+  },
+  "TAP": {
+    "city": "Tapachula",
+    "country": "Mexico",
+    "city_id": 4489
+  },
+  "JOG": {
+    "city": "Yogyakarta",
+    "country": "Indonesia"
+  },
+  "AJS": {
+    "city": "Ronkonkoma",
+    "country": "United States"
+  },
+  "LAP": {
+    "city": "Krasnojarsk",
+    "country": "Russia",
+    "city_id": 12139
+  },
+  "ADZ": {
+    "city": "San Andres Island",
+    "country": "Colombia",
+    "city_id": 30252
+  },
+  "VRC": {
+    "city": "Virac",
+    "country": "Philippines",
+    "city_id": 1467182
+  },
+  "JJN": {
+    "city": "Jinjiang",
+    "country": "China",
+    "city_id": 26236
+  },
+  "SCT": {
+    "city": "Socotra",
+    "country": "Yemen"
+  },
+  "CRD": {
+    "city": "Comodoro Rivadavia",
+    "country": "Argentina",
+    "city_id": 6089
+  },
+  "RAG": {
+    "city": "Dubrovnik",
+    "country": "Croatia",
+    "city_id": 8960
+  },
+  "ZBR": {
+    "city": "Chah-Bahar",
+    "country": "Iran"
+  },
+  "LBS": {
+    "city": "Labasa",
+    "country": "Fiji",
+    "city_id": 549
+  },
+  "PIE": {
+    "city": "Tampa",
+    "country": "United States"
+  },
+  "LHN": {
+    "city": "Lishan",
+    "country": "Taiwan"
+  },
+  "RCB": {
+    "city": "Richards Bay",
+    "country": "South Africa",
+    "city_id": 792
+  },
+  "RGA": {
+    "city": "Rio Grande",
+    "country": "Argentina",
+    "city_id": 6140
+  },
+  "LZC": {
+    "city": "Lazaro Cardenas",
+    "country": "Mexico",
+    "city_id": 4430
+  },
+  "KDL": {
+    "city": "Kardla",
+    "country": "Estonia",
+    "city_id": 5729
+  },
+  "ZRH": {
+    "city": "Zurich",
+    "country": "Switzerland",
+    "city_id": 12009
+  },
+  "ZAD": {
+    "city": "Zadar",
+    "country": "Croatia",
+    "city_id": 9040
+  },
+  "SLL": {
+    "city": "Salalah",
+    "country": "Oman",
+    "city_id": 16274
+  },
+  "QSR": {
+    "city": "Salerno",
+    "country": "Italy",
+    "city_id": 13595
+  },
+  "TRF": {
+    "city": "Oslo",
+    "country": "Norway",
+    "city_id": 9166
+  },
+  "OER": {
+    "city": "Ornskoldsvik",
+    "country": "Sweden",
+    "city_id": 8857
+  },
+  "KTA": {
+    "city": "Karratha",
+    "country": "Australia",
+    "city_id": 5353
+  },
+  "SYY": {
+    "city": "Stornoway, Outer Stat Hebrides",
+    "country": "United Kingdom"
+  },
+  "SIT": {
+    "city": "London",
+    "country": "United Kingdom",
+    "city_id": 7896
+  },
+  "WIC": {
+    "city": "Wick",
+    "country": "United Kingdom",
+    "city_id": 8627
+  },
+  "SKG": {
+    "city": "Thessaloniki",
+    "country": "Greece",
+    "city_id": 26054
+  },
+  "BRN": {
+    "city": "Berne",
+    "country": "Switzerland",
+    "city_id": 11541
+  },
+  "SSI": {
+    "city": "Brunswick",
+    "country": "United States"
+  },
+  "WEH": {
+    "city": "Weihai",
+    "country": "China",
+    "city_id": 26172
+  },
+  "SDJ": {
+    "city": "Sendai",
+    "country": "Japan",
+    "city_id": 25646
+  },
+  "PHR": {
+    "city": "Phrae",
+    "country": "Thailand",
+    "city_id": 25920
+  },
+  "GUZ": {
+    "city": "Jujuy",
+    "country": "Argentina",
+    "city_id": 6104
+  },
+  "NTQ": {
+    "city": "Wajima",
+    "country": "Japan",
+    "city_id": 25680
+  },
+  "KSA": {
+    "city": "Kosrae, Caroline Islands",
+    "country": "Micronesia"
+  },
+  "NIS": {
+    "city": "Nis",
+    "country": "Serbia",
+    "city_id": 24179
+  },
+  "SDL": {
+    "city": "Sundsvall",
+    "country": "Sweden",
+    "city_id": 8895
+  },
+  "BEH": {
+    "city": "Isfahan",
+    "country": "Iran"
+  },
+  "AAQ": {
+    "city": "Anapa",
+    "country": "Russia",
+    "city_id": 12099
+  },
+  "VIJ": {
+    "city": "Virgin Gorda",
+    "country": "British Virgin Islands"
+  },
+  "SPB": {
+    "city": "Vancouver",
+    "country": "Canada",
+    "city_id": 16968
+  },
+  "PAM": {
+    "city": "Belo Horizonte",
+    "country": "Brazil",
+    "city_id": 6328
+  },
+  "SKB": {
+    "city": "Saint Kitts",
+    "country": "Saint Kitts and Nevis"
+  },
+  "SUA": {
+    "city": "Madrid",
+    "country": "Spain",
+    "city_id": 3683
+  },
+  "SZB": {
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "city_id": 2922
+  },
+  "PXO": {
+    "city": "Porto Santo (Madeira)",
+    "country": "Portugal"
+  },
+  "OHR": {
+    "city": "Ohrid",
+    "country": "North Macedonia"
+  },
+  "TTU": {
+    "city": "Tetuan",
+    "country": "Morocco",
+    "city_id": 4308
+  },
+  "SNW": {
+    "city": "Thandwe",
+    "country": "Myanmar",
+    "city_id": 24243
+  },
+  "CCU": {
+    "city": "Kolkata",
+    "country": "India",
+    "city_id": 25902
+  },
+  "CEG": {
+    "city": "Chester",
+    "country": "United Kingdom",
+    "city_id": 7234
+  },
+  "TGU": {
+    "city": "Tegucigalpa",
+    "country": "Honduras",
+    "city_id": 8720
+  },
+  "MRO": {
+    "city": "Cuiaba",
+    "country": "Brazil",
+    "city_id": 6359
+  },
+  "YHM": {
+    "city": "Toronto",
+    "country": "Canada",
+    "city_id": 21396
+  },
+  "CPX": {
+    "city": "Culebra",
+    "country": "Puerto Rico",
+    "city_id": 6760
+  },
+  "HGH": {
+    "city": "Hangzhou",
+    "country": "China",
+    "city_id": 25121
+  },
+  "FVM": {
+    "city": "Fuwamula",
+    "country": "Maldives"
+  },
+  "TSY": {
+    "city": "Zurich",
+    "country": "Switzerland",
+    "city_id": 12009
+  },
+  "JMK": {
+    "city": "Mikonos",
+    "country": "Greece",
+    "city_id": 30527
+  },
+  "TOD": {
+    "city": "Tioman",
+    "country": "Malaysia"
+  },
+  "FAE": {
+    "city": "Faroe Islands",
+    "country": "Faroe Islands"
+  },
+  "NYO": {
+    "city": "Stockholm",
+    "country": "Sweden",
+    "city_id": 8889
+  },
+  "BUA": {
+    "city": "Buka",
+    "country": "Papua New Guinea"
+  },
+  "GPS": {
+    "city": "Galapagos Islands",
+    "country": "Ecuador",
+    "city_id": 30073
+  },
+  "TTJ": {
+    "city": "Tottori",
+    "country": "Japan",
+    "city_id": 25668
+  },
+  "BRB": {
+    "city": "Barreirinhas",
+    "country": "Brazil",
+    "city_id": 6322
+  },
+  "RZH": {
+    "city": "Preobrazheniye",
+    "country": "Russia"
+  },
+  "FNI": {
+    "city": "Nimes",
+    "country": "France",
+    "city_id": 15474
+  },
+  "FLS": {
+    "city": "Flinders Island",
+    "country": "Australia",
+    "city_id": 30189
+  },
+  "KKJ": {
+    "city": "Kitakyushu",
+    "country": "Japan"
+  },
+  "CHT": {
+    "city": "Chatham Island",
+    "country": "New Zealand"
+  },
+  "TKU": {
+    "city": "Turku",
+    "country": "Finland",
+    "city_id": 2596
+  },
+  "HAZ": {
+    "city": "Dhaka",
+    "country": "Bangladesh",
+    "city_id": 6693
+  },
+  "MXP": {
+    "city": "Milan",
+    "country": "Italy",
+    "city_id": 13169
+  },
+  "SHJ": {
+    "city": "Sharjah",
+    "country": "United Arab Emirates",
+    "city_id": 25500
+  },
+  "LKN": {
+    "city": "Leknes",
+    "country": "Norway",
+    "city_id": 9134
+  },
+  "CHE": {
+    "city": "Chengdu",
+    "country": "China",
+    "city_id": 26128
+  },
+  "YUL": {
+    "city": "Montreal",
+    "country": "Canada",
+    "city_id": 21850
+  },
+  "VAI": {
+    "city": "Vanimo",
+    "country": "Papua New Guinea",
+    "city_id": 2052
+  },
+  "LCA": {
+    "city": "Larnaca",
+    "country": "Cyprus",
+    "city_id": 6632
+  },
+  "MUE": {
+    "city": "Bangkok",
+    "country": "Thailand",
+    "city_id": 25949
+  },
+  "ZMT": {
+    "city": "Masset",
+    "country": "Canada",
+    "city_id": 16921
+  },
+  "CEF": {
+    "city": "Beaumont",
+    "country": "United States"
+  },
+  "MIH": {
+    "city": "Yonago",
+    "country": "Japan",
+    "city_id": 25689
+  },
+  "IXZ": {
+    "city": "Port Blair",
+    "country": "India",
+    "city_id": 25905
+  },
+  "ADK": {
+    "city": "Adak Island",
+    "country": "United States"
+  },
+  "NKX": {
+    "city": "San Diego",
+    "country": "USA"
+  },
+  "SDB": {
+    "city": "16 Mile Beach",
+    "country": "South Africa"
+  },
+  "NPT": {
+    "city": "Newport",
+    "country": "USA"
+  },
+  "NTU": {
+    "city": "North East",
+    "country": "USA"
+  },
+  "JFM": {
+    "city": "Perth",
+    "country": "Australia"
+  },
+  "WVI": {
+    "city": "Santa Cruz",
+    "country": "USA"
+  },
+  "WWD": {
+    "city": "North East",
+    "country": "USA"
+  },
+  "RKI": {
+    "city": "Mentawai",
+    "country": "Indonesia"
+  },
+  "PDM": {
+    "city": "Panama City",
+    "country": "Panama"
+  },
+  "DNA": {
+    "city": "Okinawa",
+    "country": "Japan"
+  },
+  "MJX": {
+    "city": "North East",
+    "country": "USA"
+  }
+}

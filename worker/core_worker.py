@@ -734,10 +734,10 @@ def process_alert(supabase: Client, alert: dict, good_days: list[str] = None) ->
 		
 		if ENABLE_AFFILIATES and marker and origin and dest_iata:
 			try:
-				# Generate affiliate URLs using unified date logic
-				flight_url, hotel_url, (departYMD, returnYMD, trip_duration) = generate_affiliate_urls(
-					ok_dates, origin, dest_iata, marker, sub_id
-				)
+                # Generate flight URL and dates using unified logic
+                flight_url, (departYMD, returnYMD, trip_duration) = generate_affiliate_urls(
+                    ok_dates, origin, dest_iata, marker, sub_id
+                )
 				print(f"[affiliate] Generated URLs using unified logic: {trip_duration} days ({departYMD} to {returnYMD})")
 			except Exception as e:
 				print(f"[affiliate] Error generating unified URLs: {e}, falling back to old logic")
@@ -752,10 +752,10 @@ def process_alert(supabase: Client, alert: dict, good_days: list[str] = None) ->
 					end_date = start_date + timedelta(days=min_trip_days - 1)
 					returnYMD = end_date.isoformat()
 				
-				# Use unified affiliate URL generation (same as chips)
-				flight_url, hotel_url, (departYMD, returnYMD, trip_duration) = generate_affiliate_urls(
-					ok_dates, origin, dest_iata, AVIA_AFFILIATE_ID, f"alert_{alert_id}"
-				)
+                # Use unified affiliate URL generation (same as chips) for flight URL and dates
+                flight_url, (departYMD, returnYMD, trip_duration) = generate_affiliate_urls(
+                    ok_dates, origin, dest_iata, AVIA_AFFILIATE_ID, f"alert_{alert_id}"
+                )
 		else:
 			# No affiliate setup, use old logic for dates only
 			sorted_dates = sorted(ok_dates)
@@ -769,7 +769,7 @@ def process_alert(supabase: Client, alert: dict, good_days: list[str] = None) ->
 				returnYMD = end_date.isoformat()
 			
 			flight_url = offer.get("deep_link")
-			hotel_url = None
+            hotel_url = None
 	else:
 		departYMD = alert.get("depart_date")
 		returnYMD = alert.get("return_date")

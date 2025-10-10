@@ -1082,7 +1082,7 @@ def main():
             continue
         
         rule_name = rule.get('name') or 'Surf Alert'
-        subject = f'Your "{rule_name}" just hit ✅ **Match found**'
+        subject = f'Your "{rule_name}" just hit ✅ Match found'
         window_len = int((end - start).days) + 1
         
         # Extract date range for display
@@ -1112,18 +1112,29 @@ def main():
         
         # Generate proper affiliate URLs using date_utils
         flight_url = None
-        hotel_url = None
+        hotel_links = []
         if ok_dates:
             try:
-                from date_utils import generate_affiliate_urls
-                flight_url, hotel_url, (depart_date, return_date, trip_duration) = generate_affiliate_urls(
+                from date_utils import generate_affiliate_urls, build_booking_link, build_google_hotels_link, build_expedia_link
+                flight_url, (depart_date, return_date, trip_duration) = generate_affiliate_urls(
                     good_days=ok_dates,
                     origin=origin,
                     destination=dest,
                     marker="670448",
                     sub_id=f"alert_{rule['id']}"
                 )
-                print(f"[email] Generated URLs - Flight: {flight_url[:50]}..., Hotel: {hotel_url[:50]}...")
+                # Build hotel links using city names; default to destination IATA if names unavailable
+                iata_city = (spot.get("iata_city_name") or dest)
+                nearest_city = spot.get("nearest_city")
+                if iata_city:
+                    hotel_links.append(("Booking.com", build_booking_link(iata_city, depart_date, return_date)))
+                    hotel_links.append(("Google Hotels", build_google_hotels_link(iata_city, depart_date, return_date)))
+                    hotel_links.append(("Expedia", build_expedia_link(iata_city, depart_date, return_date)))
+                if nearest_city and nearest_city != iata_city:
+                    hotel_links.append(("Booking.com (near)", build_booking_link(nearest_city, depart_date, return_date)))
+                    hotel_links.append(("Google Hotels (near)", build_google_hotels_link(nearest_city, depart_date, return_date)))
+                    hotel_links.append(("Expedia (near)", build_expedia_link(nearest_city, depart_date, return_date)))
+                print(f"[email] Generated URLs - Flight: {flight_url[:50]}..., Hotels: {len(hotel_links)} links")
                 print(f"[email] Trip dates: {depart_date} → {return_date} ({trip_duration} days)")
             except Exception as e:
                 print(f"[email] Failed to generate affiliate URLs: {e}")
@@ -1135,13 +1146,17 @@ def main():
         
         # Create booking buttons
         flight_button = f'<a href="{flight_url}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 12px; font-weight: bold;">✈️ Book Flight</a>' if flight_url else ''
-        hotel_button = f'<a href="{hotel_url}" style="background-color: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">🏨 Find Hotel</a>' if hotel_url else ''
+        # Build hotel buttons list (max 3 providers for IATA, then up to 3 for nearest)
+        hotel_buttons_html = ''
+        if hotel_links:
+            items = []
+            for label, url in hotel_links:
+                items.append(f'<a href="{url}" style="background-color: #8b5cf6; color: white; padding: 10px 16px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 4px 6px;">🏨 {label}</a>')
+            hotel_buttons_html = ''.join(items)
         
         # Debug logging
         print(f"[email] Button generation - Flight URL: {flight_url[:50] if flight_url else 'None'}...")
-        print(f"[email] Button generation - Hotel URL: {hotel_url[:50] if hotel_url else 'None'}...")
-        print(f"[email] Flight button HTML: {flight_button[:100]}...")
-        print(f"[email] Hotel button HTML: {hotel_button[:100]}...")
+        print(f"[email] Hotel links count: {len(hotel_links)}")
         
         # Estimate typical price (add 30% to current price)
         typical_price = int(float(best_price) * 1.3)
@@ -1154,7 +1169,7 @@ def main():
             <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
                 <p><strong>Route:</strong> {origin} → {dest}</p>
                 <p><strong>Dates:</strong> {start_date} → {end_date}</p>
-                <p><strong>The worker found flights as low as:</strong> €{best_price}</p>
+                <p><strong>The worker found flights as low as:</strong> ${best_price}</p>
             </div>
             
             <div style="margin-bottom: 24px;">
@@ -1172,7 +1187,7 @@ def main():
                     {flight_button}
                 </div>
                 <div>
-                    {hotel_button}
+                    {hotel_buttons_html}
                 </div>
                 <p style="font-size: 12px; color: #6b7280; margin-top: 16px;">
                     💡 <strong>Pro tip:</strong> Book now to lock in these prices before they change!

@@ -2,8 +2,9 @@
 
 // Updated: Fixed revenue optimization - removed Get Fresh Prices button - v2.0
 import { useState, useEffect } from 'react';
-import { buildAviasalesLink, buildHotelLink } from '@/lib/affiliates';
+import { buildAviasalesLink } from '@/lib/affiliates';
 import { generateAffiliateUrls } from '@/lib/dateUtils';
+import { generateHotelProviderUrls } from '@/lib/hotels';
 
 interface ForecastDay {
   date: string;
@@ -55,6 +56,8 @@ interface ForecastDetailsModalProps {
     planning_logic?: string;
     origin_iata?: string | null;
     dest_iata?: string | null;
+    iata_city_name?: string | null;
+    nearest_city?: string | null;
   };
 }
 
@@ -85,6 +88,10 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
   const [triggeringWorker, setTriggeringWorker] = useState(false);
   const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('detailed');
   const [currentPage, setCurrentPage] = useState(0);
+  const [showHotelPicker, setShowHotelPicker] = useState(false);
+  const [hotelLinksIata, setHotelLinksIata] = useState<{ provider: string; url: string }[]>([]);
+  const [hotelLinksNearest, setHotelLinksNearest] = useState<{ provider: string; url: string }[]>([]);
+  const [hotelTab, setHotelTab] = useState<'iata' | 'nearest'>('iata');
 
   useEffect(() => {
     if (isOpen && ruleId) {
@@ -240,6 +247,10 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
   const endIndex = startIndex + itemsPerPage;
   const currentDays = forecastData ? forecastData.days.slice(startIndex, endIndex) : [];
 
+  // Derived helpers for consistency with AlertRow chips
+  const goodDaysAll = forecastData?.days?.filter(day => day.overallOk) || [];
+  const hasGoodDays = goodDaysAll.length > 0;
+
   // Compact view helpers
   const getCompactDays = () => {
     if (!forecastData) return [];
@@ -306,11 +317,11 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
             <div className="space-y-6">
               {/* Quick Check Results */}
               {quickCheckResult && (
-                <div className={`bg-gradient-to-r ${quickCheckResult.conditionsGood ? 'from-green-50 to-blue-50 border-green-200' : 'from-blue-50 to-blue-50 border-blue-200'} border rounded-lg p-4`}>
+                <div className={`bg-gradient-to-r ${hasGoodDays ? 'from-green-50 to-blue-50 border-green-200' : 'from-blue-50 to-blue-50 border-blue-200'} border rounded-lg p-4`}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className={`text-lg font-semibold ${quickCheckResult.conditionsGood ? 'text-green-800' : 'text-blue-800'}`}>🏄‍♂️ Quick Forecast Check</h3>
+                    <h3 className={`text-lg font-semibold ${hasGoodDays ? 'text-green-800' : 'text-blue-800'}`}>🏄‍♂️ Quick Forecast Check</h3>
                     <div className="flex items-center gap-2">
-                      {quickCheckResult.conditionsGood ? (
+                      {hasGoodDays ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                           ✅ Good Conditions
                         </span>
@@ -324,7 +335,7 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                   
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
-                      <p className={`text-sm ${quickCheckResult.conditionsGood ? 'text-green-700' : 'text-blue-700'}`}>
+                      <p className={`text-sm ${hasGoodDays ? 'text-green-700' : 'text-blue-700'}`}>
                         <span className="font-medium">Good Days:</span> {forecastData ? forecastData.days.filter(day => day.overallOk).length : 0} / {forecastData ? forecastData.days.length : 0}
                       </p>
                       {forecastData && forecastData.days.filter(day => day.overallOk).length > 0 && (
@@ -338,7 +349,7 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
 
 
                   {/* Booking Links for Good Conditions (Revenue Optimization) */}
-                  {quickCheckResult.conditionsGood && (
+                  {hasGoodDays && (
                     <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <p className="text-sm text-green-800 mb-2">
                         <span className="font-medium">🎯 Good conditions detected!</span> You can book now while prices are being processed.
@@ -349,9 +360,7 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                           onClick={(e) => {
                             e.preventDefault();
                             // Use unified date logic for consistent trip duration
-                            const goodDays = forecastData?.days
-                              ?.filter(day => day.overallOk)
-                              ?.map(day => day.date) || [];
+                              const goodDays = goodDaysAll.map(d => d.date);
                             
                             if (goodDays.length > 0) {
                               try {
@@ -406,46 +415,31 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                           href="#"
                           onClick={(e) => {
                             e.preventDefault();
-                            // Use unified date logic for consistent trip duration
                             const goodDays = forecastData?.days
                               ?.filter(day => day.overallOk)
                               ?.map(day => day.date) || [];
-                            
-                            if (goodDays.length > 0) {
-                              try {
-                                const origin = alertRule.origin_iata || 'LIS';
-                                const dest = alertRule.dest_iata || 'BIQ';
-                                const marker = '670448' // Hardcoded affiliate ID for client-side;
-                                
-                                const { hotelUrl } = generateAffiliateUrls(
-                                  goodDays,
-                                  origin,
-                                  dest,
-                                  marker,
-                                  `alert_${ruleId}`
-                                );
-                                
-                                console.log('Unified hotel URL generation:', {
-                                  goodDays,
-                                  origin,
-                                  dest,
-                                  hotelUrl
-                                });
-                                
-                                window.open(hotelUrl, '_blank');
-                              } catch (error) {
-                                console.error('Error generating unified hotel URL:', error);
-                                // Fallback to old logic
-                                const firstDate = quickCheckResult.forecastSummary?.bestDay || new Date().toISOString().split('T')[0];
-                                const forecastWindow = alertRule.forecast_window || 5;
-                                const firstDateObj = new Date(firstDate + 'T00:00:00.000Z');
-                                const lastDateObj = new Date(firstDateObj.getTime() + (forecastWindow - 1) * 24 * 60 * 60 * 1000);
-                                const lastDate = lastDateObj.toISOString().split('T')[0];
-                                const dest = alertRule.dest_iata || 'BIQ';
-                                
-                                const hotelUrl = `https://search.hotellook.com/?destination=${dest}&checkIn=${firstDate}&checkOut=${lastDate}&adults=1&rooms=1&children=0&locale=en&currency=USD&marker=670448&sub_id=alert_${ruleId}`;
-                                window.open(hotelUrl, '_blank');
-                              }
+                            if (goodDays.length === 0) return;
+                            try {
+                              const origin = alertRule.origin_iata || 'LIS';
+                              const dest = alertRule.dest_iata || 'BIQ';
+                              const marker = '670448';
+                              const { tripDates } = generateAffiliateUrls(
+                                goodDays,
+                                origin,
+                                dest,
+                                marker,
+                                `alert_${ruleId}`
+                              );
+                              const iataCity = alertRule.iata_city_name || dest;
+                              const nearestCity = alertRule.nearest_city || null;
+                              const linksIata = generateHotelProviderUrls({ city: iataCity, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+                              const linksNearest = nearestCity ? generateHotelProviderUrls({ city: nearestCity, checkIn: tripDates.departDate, checkOut: tripDates.returnDate }) : [];
+                              setHotelLinksIata(linksIata);
+                              setHotelLinksNearest(linksNearest);
+                              setHotelTab('iata');
+                              setShowHotelPicker(true);
+                            } catch (error) {
+                              console.error('Hotel picker generation failed:', error);
                             }
                           }}
                           className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
@@ -460,7 +454,7 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
                   )}
 
                   {/* No Good Conditions Message */}
-                  {!quickCheckResult.conditionsGood && (
+                  {!hasGoodDays && (
                     <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                       <p className="text-sm text-orange-800">
                         <span className="font-medium">⚠️ Conditions not ideal</span> - No booking links shown as conditions don't meet your criteria.
@@ -781,6 +775,56 @@ export function ForecastDetailsModal({ isOpen, onClose, ruleId, alertRule }: For
           </button>
         </div>
       </div>
+
+      {/* Hotel Picker Modal */}
+      {showHotelPicker && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowHotelPicker(false)}>
+          <div className="bg-white rounded-xl w-full max-w-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-900">Choose hotel search</h3>
+              <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowHotelPicker(false)}>×</button>
+            </div>
+            <div className="p-4">
+              <div className="flex gap-2 mb-4">
+                <button
+                  className={`px-3 py-1 text-sm rounded-lg ${hotelTab === 'iata' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  onClick={() => setHotelTab('iata')}
+                >
+                  IATA city
+                </button>
+                {hotelLinksNearest.length > 0 && (
+                  <button
+                    className={`px-3 py-1 text-sm rounded-lg ${hotelTab === 'nearest' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    onClick={() => setHotelTab('nearest')}
+                  >
+                    Nearest city
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {(hotelTab === 'iata' ? hotelLinksIata : hotelLinksNearest).map((l, idx) => (
+                  <a
+                    key={idx}
+                    href={l.url}
+                    target="_blank"
+                    rel="nofollow noopener"
+                    className="block w-full text-left px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700"
+                  >
+                    {l.provider === 'booking' ? 'Booking.com' : l.provider === 'google' ? 'Google Hotels' : l.provider === 'expedia' ? 'Expedia' : l.provider}
+                  </a>
+                ))}
+                {(hotelTab === 'nearest' && hotelLinksNearest.length === 0) && (
+                  <div className="text-sm text-slate-500">Nearest city not available for this spot.</div>
+                )}
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-200 text-right">
+              <button className="px-4 py-2 text-slate-600 hover:text-slate-800" onClick={() => setShowHotelPicker(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

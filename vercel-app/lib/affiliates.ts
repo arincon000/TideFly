@@ -57,48 +57,12 @@ export function buildBookingLink(opts: {
 }
 
 /** Hotellook via TP redirector (city + dates) */
-export function buildHotellookLink(opts: {
-  dest: string; checkinYMD: string; checkoutYMD: string; subId?: string;
-}): string | null {
-  if (!opts.dest || !opts.checkinYMD || !opts.checkoutYMD) return null;
+export type HotelProvider = "booking";
 
-  // tp.media affiliate – but still return a working link even if marker missing
-  const dest = opts.dest.toUpperCase();
-  const marker =
-    process.env.NEXT_PUBLIC_AVIA_AFFILIATE_ID ||
-    process.env.AVIA_AFFILIATE_ID ||
-    ""; // many setups reuse same marker
-  const p = process.env.NEXT_PUBLIC_TP_P_HOTELLOOK || process.env.TP_P_HOTELLOOK || "";
-
-  // Fallback to direct Hotellook link if no marker/p set (still usable)
-  if (!marker || !p) {
-    const u = new URL("https://search.hotellook.com/");
-    u.searchParams.set("destination", dest);
-    u.searchParams.set("checkin", opts.checkinYMD);
-    u.searchParams.set("checkout", opts.checkoutYMD);
-    u.searchParams.set("locale", "en_US");
-    return u.toString();
-  }
-  const u = new URL("https://tp.media/r");
-  u.searchParams.set("marker", marker);
-  u.searchParams.set("p", p);
-  u.searchParams.set(
-    "u",
-    encodeURI(
-      `https://search.hotellook.com/?destination=${dest}&checkIn=${opts.checkinYMD}&checkOut=${opts.checkoutYMD}&adults=1&rooms=1&children=0&locale=en&currency=USD`,
-    ),
-  );
-  if (opts.subId) u.searchParams.set("sub_id", opts.subId);
-  return u.toString();
-}
-
-export type HotelProvider = "hotellook" | "booking";
-
-/** Provider-agnostic hotel link (default from env) */
+/** Deprecated: buildHotelLink routed to Booking only (public provider mode handled elsewhere). */
 export function buildHotelLink(opts: {
   dest: string; checkinYMD: string; checkoutYMD: string; subId?: string;
-}, overrideProvider?: HotelProvider): string | null {
+}, _overrideProvider?: HotelProvider): string | null {
   if (process.env.ENABLE_HOTEL_CTA !== "true") return null;
-  const provider = overrideProvider ?? (process.env.HOTEL_PROVIDER as HotelProvider) ?? "hotellook";
-  return provider === "booking" ? buildBookingLink({...opts, city: opts.dest}) : buildHotellookLink(opts);
+  return buildBookingLink({ city: opts.dest, checkinYMD: opts.checkinYMD, checkoutYMD: opts.checkoutYMD, subId: opts.subId });
 }

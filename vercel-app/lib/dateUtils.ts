@@ -72,9 +72,7 @@ export function formatDateForAviasales(dateString: string): string {
  * @param dateString Date in YYYY-MM-DD format
  * @returns Date in YYYY-MM-DD format (already correct)
  */
-export function formatDateForHotellook(dateString: string): string {
-  return dateString; // Already in correct format
-}
+export function formatDateYMD(dateString: string): string { return dateString; }
 
 /**
  * Generate Aviasales affiliate URL
@@ -109,18 +107,7 @@ export function generateAviasalesUrl(
  * @param subId Sub ID for tracking
  * @returns Complete Hotellook affiliate URL
  */
-export function generateHotellookUrl(
-  destination: string,
-  checkIn: string,
-  checkOut: string,
-  marker: string,
-  subId: string
-): string {
-  const checkInFormatted = formatDateForHotellook(checkIn);
-  const checkOutFormatted = formatDateForHotellook(checkOut);
-  
-  return `https://search.hotellook.com/?destination=${destination}&checkIn=${checkInFormatted}&checkOut=${checkOutFormatted}&adults=1&rooms=1&children=0&locale=en&currency=USD&marker=${marker}&sub_id=${subId}`;
-}
+// Removed Hotellook URL generation; callers should use the hotels provider router with city names.
 
 /**
  * Generate both flight and hotel affiliate URLs using unified date logic
@@ -148,15 +135,9 @@ export function generateAffiliateUrls(
     marker,
     subId
   );
-  
-  const hotelUrl = generateHotellookUrl(
-    destination,
-    tripDates.departDate,
-    tripDates.returnDate,
-    marker,
-    subId
-  );
-  
+  // Placeholder: UI should use hotels provider router to build hotel links from city+dates
+  const hotelUrl = '';
+
   return {
     flightUrl,
     hotelUrl,

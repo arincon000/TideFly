@@ -27,13 +27,13 @@ export function buildAlertPayload(values: FormValues, tier: Tier) {
 		is_active: true,
 	};
 
-	if ((tier || 'free') === 'pro' || (tier || 'free') === 'unlimited') {
-		if (values.waveMin != null) base.wave_min_m = Number(values.waveMin) ?? null;
-		if (values.waveMax != null) base.wave_max_m = Number(values.waveMax) ?? null;
-		if (values.windMax != null) base.wind_max_kmh = Number(values.windMax) ?? null;
-		if (values.maxPrice != null) base.max_price_eur = values.maxPrice;
-		if (values.planningLogic != null) base.planning_logic = values.planningLogic;
-	}
-	// Free: do not attach pro-only keys; trigger also enforces.
+	// Attach optional filters whenever provided by the caller.
+	// UI ensures Free users only send official presets (not arbitrary custom values).
+	if (values.waveMin != null) base.wave_min_m = Number(values.waveMin) ?? null;
+	if (values.waveMax != null) base.wave_max_m = Number(values.waveMax) ?? null;
+	if (values.windMax != null) base.wind_max_kmh = Number(values.windMax) ?? null;
+	if (values.maxPrice != null) base.max_price_eur = values.maxPrice;
+	if (values.planningLogic != null) base.planning_logic = values.planningLogic;
+
 	return base;
 }

@@ -6,8 +6,9 @@ import { StatusPill } from "@/components/StatusPill";
 import { useTier } from "@/lib/tier/useTier";
 import { useAlertUsage } from "@/lib/alerts/useAlertUsage";
 import { useRouter } from 'next/navigation';
-import { buildAviasalesLink, buildHotellookLink } from "@/lib/affiliates";
+import { buildAviasalesLink } from "@/lib/affiliates";
 import { generateAffiliateUrls } from "@/lib/dateUtils";
+import { generateHotelProviderUrls } from "@/lib/hotels";
 import { ForecastDetailsModal } from "./ForecastDetailsModal";
 
 export type AlertRule = {
@@ -35,6 +36,8 @@ export type AlertRule = {
   // Spot data (joined)
   spot_name?: string | null;
   spot_country?: string | null;
+  iata_city_name?: string | null;
+  nearest_city?: string | null;
 };
 
 export type RuleStatus = {
@@ -78,6 +81,11 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
   const router = useRouter();
   const [showForecastModal, setShowForecastModal] = useState(false);
   const [forecastData, setForecastData] = useState<any[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showHotelPicker, setShowHotelPicker] = useState(false);
+  const [hotelLinksIata, setHotelLinksIata] = useState<{ provider: string; url: string }[]>([]);
+  const [hotelLinksNearest, setHotelLinksNearest] = useState<{ provider: string; url: string }[]>([]);
+  const [hotelTab, setHotelTab] = useState<'iata' | 'nearest'>('iata');
 
   // Fetch forecast data for all alerts to enable consistent affiliate link generation
   useEffect(() => {
@@ -147,26 +155,21 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     await supabase.from("alert_rules")
       .update({ is_active: !rule.is_active })
       .eq("id", rule.id);
-    refresh();
+    
+    // Force a full page reload to update usage counts
+    window.location.reload();
   };
 
-  const snooze7 = async () => {
-    const until = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
-    await supabase.from("alert_rules")
-      .update({ paused_until: until })
-      .eq("id", rule.id);
-    refresh();
-  };
 
   const onDelete = async () => {
-    if (!confirm('Delete this alert?')) return;
     const { error } = await supabase.from('alert_rules').delete().eq('id', rule.id);
     if (error) {
       console.error(error);
       return;
     }
-    router.refresh();
-    refresh();
+    setShowDeleteModal(false);
+    // Force a full page reload to update usage counts
+    window.location.reload();
   };
 
   // Helper functions
@@ -355,9 +358,9 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     return fallbackUrl;
   };
 
-  const buildHotelUrl = () => {
+  const buildHotelLinks = () => {
     if (!destIata) {
-      return null;
+      return [] as { label: string; url: string }[];
     }
     
     // PRIORITY 1: Use fresh forecast data if available (same as Forecast Details Modal)
@@ -369,14 +372,23 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
           .map(day => day.date);
         
         if (goodDays.length > 0) {
-          const { hotelUrl } = generateAffiliateUrls(
+          const { tripDates } = generateAffiliateUrls(
             goodDays,
-            rule.origin_iata || 'LIS', // Fallback origin
+            rule.origin_iata || 'LIS',
             destIata,
-            '670448', // Hardcoded affiliate ID for client-side
+            '670448',
             `alert_${rule.id}`
           );
-          return hotelUrl;
+          const links: { label: string; url: string }[] = [];
+          if (rule.iata_city_name) {
+            const l = generateHotelProviderUrls({ city: rule.iata_city_name!, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+            if (l[0]) links.push({ label: `Hotel in ${rule.iata_city_name}`, url: l[0].url });
+          }
+          if (rule.nearest_city && rule.nearest_city !== rule.iata_city_name) {
+            const l2 = generateHotelProviderUrls({ city: rule.nearest_city!, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+            if (l2[0]) links.push({ label: `Hotel near ${rule.nearest_city}`, url: l2[0].url });
+          }
+          return links;
         }
       } catch (error) {
         console.error('Error generating unified affiliate URLs from fresh data:', error);
@@ -387,14 +399,23 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     // PRIORITY 2: Use unified date logic if we have good days from status (cached data)
     if (status?.ok_dates && status.ok_dates.length > 0) {
       try {
-        const { hotelUrl } = generateAffiliateUrls(
+        const { tripDates } = generateAffiliateUrls(
           status.ok_dates,
-          rule.origin_iata || 'LIS', // Fallback origin
+          rule.origin_iata || 'LIS',
           destIata,
-          '670448', // Hardcoded affiliate ID for client-side
+          '670448',
           `alert_${rule.id}`
         );
-        return hotelUrl;
+        const links: { label: string; url: string }[] = [];
+        if (rule.iata_city_name) {
+          const l = generateHotelProviderUrls({ city: rule.iata_city_name!, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+          if (l[0]) links.push({ label: `Hotel in ${rule.iata_city_name}`, url: l[0].url });
+        }
+        if (rule.nearest_city && rule.nearest_city !== rule.iata_city_name) {
+          const l2 = generateHotelProviderUrls({ city: rule.nearest_city!, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+          if (l2[0]) links.push({ label: `Hotel near ${rule.nearest_city}`, url: l2[0].url });
+        }
+        return links;
       } catch (error) {
         console.error('Error generating unified affiliate URLs from cached data:', error);
         // Fall back to old logic
@@ -406,18 +427,22 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     const returnYMD = status?.snapped_return_date ?? rule.return_date ?? undefined;
     
     if (!returnYMD || !departYMD) {
-      return null;
+      return [] as { label: string; url: string }[];
     }
     
     const checkout = new Date(new Date(`${returnYMD}T00:00:00Z`).getTime() + 86400000)
       .toISOString()
       .slice(0, 10);
-    return buildHotellookLink({
-      dest: destIata,
-      checkinYMD: departYMD,
-      checkoutYMD: checkout,
-      subId: `alert_${rule.id}`,
-    });
+    const links: { label: string; url: string }[] = [];
+    if (rule.iata_city_name) {
+      const l = generateHotelProviderUrls({ city: rule.iata_city_name!, checkIn: departYMD, checkOut: checkout });
+      if (l[0]) links.push({ label: `Hotel in ${rule.iata_city_name}`, url: l[0].url });
+    }
+    if (rule.nearest_city && rule.nearest_city !== rule.iata_city_name) {
+      const l2 = generateHotelProviderUrls({ city: rule.nearest_city!, checkIn: departYMD, checkOut: checkout });
+      if (l2[0]) links.push({ label: `Hotel near ${rule.nearest_city}`, url: l2[0].url });
+    }
+    return links;
   };
 
   const getSpotDisplay = () => {
@@ -456,7 +481,69 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
 
   // Calculate URLs reactively based on current forecast data
   const flightUrl = buildFlightUrl();
-  const hotelUrl = buildHotelUrl();
+  const hotelLinks = buildHotelLinks();
+
+  const openHotelPicker = () => {
+    if (!destIata) return;
+    // Try fresh data
+    if (forecastData && forecastData.length > 0) {
+      try {
+        const goodDays = forecastData.filter((d: any) => d.overallOk).map((d: any) => d.date);
+        if (goodDays.length > 0) {
+          const { tripDates } = generateAffiliateUrls(
+            goodDays,
+            rule.origin_iata || 'LIS',
+            destIata,
+            '670448',
+            `alert_${rule.id}`
+          );
+          const iata = rule.iata_city_name || destIata;
+          const near = rule.nearest_city && rule.nearest_city !== rule.iata_city_name ? rule.nearest_city : null;
+          const iataLinks = generateHotelProviderUrls({ city: iata, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+          const nearLinks = near ? generateHotelProviderUrls({ city: near, checkIn: tripDates.departDate, checkOut: tripDates.returnDate }) : [];
+          setHotelLinksIata(iataLinks);
+          setHotelLinksNearest(nearLinks);
+          setHotelTab('iata');
+          setShowHotelPicker(true);
+          return;
+        }
+      } catch {}
+    }
+    // Try status ok_dates
+    if (status?.ok_dates && status.ok_dates.length > 0) {
+      try {
+        const { tripDates } = generateAffiliateUrls(
+          status.ok_dates,
+          rule.origin_iata || 'LIS',
+          destIata,
+          '670448',
+          `alert_${rule.id}`
+        );
+        const iata = rule.iata_city_name || destIata;
+        const near = rule.nearest_city && rule.nearest_city !== rule.iata_city_name ? rule.nearest_city : null;
+        const iataLinks = generateHotelProviderUrls({ city: iata, checkIn: tripDates.departDate, checkOut: tripDates.returnDate });
+        const nearLinks = near ? generateHotelProviderUrls({ city: near, checkIn: tripDates.departDate, checkOut: tripDates.returnDate }) : [];
+        setHotelLinksIata(iataLinks);
+        setHotelLinksNearest(nearLinks);
+        setHotelTab('iata');
+        setShowHotelPicker(true);
+        return;
+      } catch {}
+    }
+    // Fallback to snapped dates
+    const departYMD = status?.snapped_depart_date ?? rule.depart_date ?? undefined;
+    const returnYMD = status?.snapped_return_date ?? rule.return_date ?? undefined;
+    if (!departYMD || !returnYMD) return;
+    const checkout = new Date(new Date(`${returnYMD}T00:00:00Z`).getTime() + 86400000).toISOString().slice(0, 10);
+    const iata = rule.iata_city_name || destIata;
+    const near = rule.nearest_city && rule.nearest_city !== rule.iata_city_name ? rule.nearest_city : null;
+    const iataLinks = generateHotelProviderUrls({ city: iata, checkIn: departYMD, checkOut: checkout });
+    const nearLinks = near ? generateHotelProviderUrls({ city: near, checkIn: departYMD, checkOut: checkout }) : [];
+    setHotelLinksIata(iataLinks);
+    setHotelLinksNearest(nearLinks);
+    setHotelTab('iata');
+    setShowHotelPicker(true);
+  };
 
   // Helper to check if we should show spot row
   const shouldShowSpot = rule.spot_name && rule.spot_name !== '—';
@@ -524,7 +611,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
         <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
             <span className="font-medium">Flight price too high.</span> 
-            {' '}Current price is €{status.price?.toFixed(2)} but your alert has a maximum price limit.
+            {' '}Current price is ${status.price?.toFixed(2)} but your alert has a maximum price limit.
           </p>
         </div>
       );
@@ -582,19 +669,34 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
     value: getWindowDisplay()
   });
 
+  const isPaused = !rule.is_active;
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" style={{ lineHeight: '1.4' }}>
+    <div className={`rounded-xl border p-5 shadow-sm transition-all duration-200 border-l-4 cursor-default ${
+      isPaused 
+        ? 'border-slate-300 border-l-slate-400 bg-slate-50 opacity-60 hover:shadow-md' 
+        : 'border-slate-200 border-l-blue-500 bg-white hover:shadow-lg hover:border-slate-300'
+    }`} style={{ lineHeight: '1.5' }}>
       {/* Top row - Essentials */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-lg font-semibold text-slate-900 truncate" style={{ fontSize: '18px' }}>
-            {rule.name ?? "Surf Alert"}
-          </h3>
-          {getStatusBadge()}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className={`text-lg font-semibold truncate ${
+              isPaused ? 'text-slate-500' : 'text-slate-900'
+            }`} style={{ fontSize: '18px' }}>
+              {rule.name ?? "Surf Alert"}
+            </h3>
+            {getStatusBadge()}
+          </div>
+          <div className={`text-sm ${isPaused ? 'text-slate-400' : 'text-slate-600'}`}>
+            📍 {rule.spot_name || 'Unknown Spot'} {rule.spot_country && `• ${rule.spot_country}`}
+          </div>
         </div>
         {status?.price && !isNewAlert(rule) && (
-          <div className="text-lg font-semibold text-slate-700 ml-2" style={{ fontSize: '18px' }}>
-            €{status.price.toFixed(2)}
+          <div className={`text-lg font-semibold ml-4 ${
+            isPaused ? 'text-slate-500' : 'text-slate-700'
+          }`} style={{ fontSize: '18px' }}>
+            ${status.price.toFixed(2)}
               </div>
             )}
           </div>
@@ -602,7 +704,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       {/* Links row - Chips */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {/* Show booking chips for new alerts with good conditions (revenue optimization) */}
-        {(flightUrl || (isNewAlert(rule) && hasGoodConditions(forecastData))) ? (
+        {(flightUrl || (isNewAlert(rule) && hasGoodConditions(forecastData))) && !isPaused ? (
           <a
             href={flightUrl || '#'}
             target="_blank"
@@ -621,34 +723,27 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
         ) : (
           <div
             className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 font-medium text-gray-500 cursor-not-allowed"
-            title="Set dates to enable flight link"
+            title={isPaused ? "Alert is paused" : "Set dates to enable flight link"}
             style={{ fontSize: '15px' }}
           >
             ✈️ Flight: {rule.origin_iata} → {destIata}
             </div>
           )}
         
-        {/* Show hotel chips for new alerts with good conditions (revenue optimization) */}
-        {(hotelUrl || (isNewAlert(rule) && hasGoodConditions(forecastData))) ? (
+        {/* Hotel: single button opens picker (IATA vs Nearest) */}
+        {(hotelLinks.length > 0 || (isNewAlert(rule) && hasGoodConditions(forecastData))) && !isPaused ? (
           <a
-            href={hotelUrl || '#'}
-            target="_blank"
-            rel="nofollow sponsored noopener"
-            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 font-medium transition-colors ${
-              isNewAlert(rule) && hasGoodConditions(forecastData) && !hotelUrl
-                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
+            href="#"
+            onClick={(e) => { e.preventDefault(); openHotelPicker(); }}
+            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 font-medium transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200`}
             style={{ fontSize: '15px' }}
-            title={isNewAlert(rule) && hasGoodConditions(forecastData) && !hotelUrl ? 'Price not yet verified - will be checked in next run' : undefined}
           >
-            🏨 Hotel: your stay in {destIata}
-            {isNewAlert(rule) && hasGoodConditions(forecastData) && !hotelUrl && ' *'}
+            🏨 Book your stay
           </a>
         ) : (
           <div
             className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 font-medium text-gray-500 cursor-not-allowed"
-            title={status?.snapped_depart_date ? "Need both start & end to build hotel link" : "No surfable days yet"}
+            title={isPaused ? "Alert is paused" : (status?.snapped_depart_date ? "Need both start & end to build hotel link" : "No surfable days yet")}
             style={{ fontSize: '15px' }}
           >
             🏨 Hotel: your stay in {destIata}
@@ -670,7 +765,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       {/* Details grid - Auto-fill */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
         {detailItems.map((item, index) => {
-          const isClickable = item.label === 'Wave' || item.label === 'Wind';
+          const isClickable = (item.label === 'Wave' || item.label === 'Wind') && !isPaused;
           
           return (
             <div key={index} className="flex items-center gap-2">
@@ -719,15 +814,6 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
           </span>
           {rule.is_active ? 'Pause' : 'Resume'}
             </button>
-        
-            <button
-              onClick={snooze7}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-          style={{ fontSize: '15px' }}
-            >
-          <span className="text-slate-400" aria-hidden>🛌</span>
-              Snooze 7d
-            </button>
             
             <button
               onClick={() => window.location.href = `/alerts/new?duplicate=${rule.id}`}
@@ -739,7 +825,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             </button>
         
         <button
-          onClick={onDelete}
+          onClick={() => setShowDeleteModal(true)}
           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-500 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
           style={{ fontSize: '15px' }}
         >
@@ -761,9 +847,110 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
           wave_max_m: rule.wave_max_m,
           wind_max_kmh: rule.wind_max_kmh,
           forecast_window: rule.forecast_window,
-          planning_logic: rule.planning_logic
+          planning_logic: rule.planning_logic,
+          iata_city_name: rule.iata_city_name,
+          nearest_city: rule.nearest_city
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-2xl">🗑️</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Delete this alert?</h3>
+                <p className="text-sm text-slate-500 mt-0.5">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-3 mb-5">
+              <p className="text-sm text-slate-700">
+                <span className="font-medium">{rule.name || 'Surf Alert'}</span>
+                <br />
+                <span className="text-slate-500">{rule.spot_name} • {rule.origin_iata} → {rule.dest_iata || rule.destination_iata}</span>
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onDelete}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 font-medium text-white hover:bg-red-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 shadow-lg shadow-red-600/30"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hotel Picker Modal */}
+      {showHotelPicker && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
+          onClick={() => setShowHotelPicker(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-900">Choose hotel search</h3>
+              <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowHotelPicker(false)}>×</button>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                className={`px-3 py-1 text-sm rounded-lg ${hotelTab === 'iata' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                onClick={() => setHotelTab('iata')}
+              >
+                IATA city
+              </button>
+              {hotelLinksNearest.length > 0 && (
+                <button
+                  className={`px-3 py-1 text-sm rounded-lg ${hotelTab === 'nearest' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  onClick={() => setHotelTab('nearest')}
+                >
+                  Nearest city
+                </button>
+              )}
+            </div>
+            <div className="space-y-2">
+              {(hotelTab === 'iata' ? hotelLinksIata : hotelLinksNearest).map((l, idx) => (
+                <a
+                  key={idx}
+                  href={l.url}
+                  target="_blank"
+                  rel="nofollow noopener"
+                  className="block w-full text-left px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700"
+                >
+                  {l.provider === 'booking' ? 'Booking.com' : l.provider === 'google' ? 'Google Hotels' : l.provider === 'expedia' ? 'Expedia' : l.provider}
+                </a>
+              ))}
+              {(hotelTab === 'nearest' && hotelLinksNearest.length === 0) && (
+                <div className="text-sm text-slate-500">Nearest city not available for this spot.</div>
+              )}
+            </div>
+            <div className="mt-3 text-right">
+              <button className="px-4 py-2 text-slate-600 hover:text-slate-800" onClick={() => setShowHotelPicker(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

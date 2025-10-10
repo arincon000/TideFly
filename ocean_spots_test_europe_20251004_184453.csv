@@ -1,0 +1,6 @@
+id,name,country,latitude,longitude,timezone,seasonality,difficulty,primary_airport_iata,region_major,skill_level,orientation,wave_min_m,wave_max_m,wind_max_kmh,season_months,notes,slug,active,source
+osm-471487588,Windsurfingclub Neustadt/Ostholstein e.V.,Deutschland,54.0884807,10.8754251,UTC,Year-round,All levels,LBC,Europe,intermediate,,,,,,,windsurfingclub-neustadt-ostholstein-e-v-deutschland,True,osm
+osm-734887621,Tramore Surf Shop And School,Éire / Ireland,52.1597508,-7.1408186,UTC,Year-round,All levels,WAT,Europe,intermediate,,,,,,,tramore-surf-shop-and-school-eire-ireland,True,osm
+osm-734889663,Oceanics Surf School,Éire / Ireland,52.1609941,-7.1404764,UTC,Year-round,All levels,WAT,Europe,intermediate,,,,,,,oceanics-surf-school-eire-ireland,True,osm
+osm-804088954,Bunmahon Surf School,Éire / Ireland,52.1388214,-7.3707735,UTC,Year-round,All levels,WAT,Europe,intermediate,,,,,,,bunmahon-surf-school-eire-ireland,True,osm
+osm-913120839,Onaka,France,43.3723576,-1.7743576,Europe/Paris,Year-round,All levels,EAS,Europe,intermediate,,,,,,,onaka-france,True,osm

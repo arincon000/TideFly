@@ -18,16 +18,22 @@ export default function AlertsPage() {
       .select(`
         id,name,spot_id,origin_iata,dest_iata,destination_iata,is_active,paused_until,forecast_window,max_price_eur,
         wave_min_m,wave_max_m,wind_max_kmh,planning_logic,depart_date,return_date,created_at,last_checked_at,
-        spots!inner(name,country)
+        spots(name,country,iata_city_name,nearest_city)
       `)
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
-    const rules = (rdata ?? []).map(rule => ({
-      ...rule,
-      spot_name: rule.spots?.[0]?.name || null,
-      spot_country: rule.spots?.[0]?.country || null,
-      spots: undefined // Remove the nested object
-    }));
+    console.log('Raw alert rules data:', rdata);
+    const rules = (rdata ?? []).map(rule => {
+      console.log('Processing rule:', rule.id, 'spots:', rule.spots);
+      return {
+        ...rule,
+        spot_name: rule.spots?.name || null,
+        spot_country: rule.spots?.country || null,
+        iata_city_name: rule.spots?.iata_city_name || null,
+        nearest_city: rule.spots?.nearest_city || null,
+        spots: undefined // Remove the nested object
+      };
+    });
     setRules(rules);
 
     const ids = rules.map(r => r.id);
@@ -135,11 +141,11 @@ export default function AlertsPage() {
             Explore Spots
           </a>
           <a
-            href="/suggestions"
+            href="/feedback"
             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-slate-700 font-semibold hover:bg-slate-50 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
           >
-            <span className="text-lg" aria-hidden>💡</span>
-            Suggestions
+            <span className="text-lg" aria-hidden>💬</span>
+            Feedback
           </a>
           <a
             href="/alerts/new"
@@ -155,7 +161,7 @@ export default function AlertsPage() {
       <UsageBanner />
 
       {/* Alerts List */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {rules.length === 0 ? (
           <div className="text-center py-12">
             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-sky-100 grid place-items-center">

@@ -20,3 +20,4 @@ result2 = supabase.table('alert_events').select('*').order('sent_at', desc=True)
 for event in result2.data:
     print(f'  {event["rule_id"]}: {event["status"]} - {event["ok_dates_count"]} days - {event["reason"]}')
 
+

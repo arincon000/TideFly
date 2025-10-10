@@ -83,3 +83,4 @@ FROM alert_rules
 WHERE is_active = true
 ORDER BY created_at DESC;
 
+

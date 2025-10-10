@@ -50,3 +50,4 @@ WHERE table_name = 'alert_rules'
     AND table_schema = 'public'
 ORDER BY ordinal_position;
 
+

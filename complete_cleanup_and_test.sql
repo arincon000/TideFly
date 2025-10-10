@@ -117,3 +117,4 @@ JOIN pg_namespace n ON p.pronamespace = n.oid
 WHERE pg_get_functiondef(p.oid) LIKE '%min_nights%' 
    OR pg_get_functiondef(p.oid) LIKE '%max_nights%';
 
+
