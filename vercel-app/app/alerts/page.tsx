@@ -25,14 +25,15 @@ export default function AlertsPage() {
     console.log('Raw alert rules data:', rdata);
     const rules = (rdata ?? []).map(rule => {
       console.log('Processing rule:', rule.id, 'spots:', rule.spots);
+      const spot = Array.isArray(rule.spots) ? rule.spots[0] : rule.spots;
       return {
         ...rule,
-        spot_name: rule.spots?.name || null,
-        spot_country: rule.spots?.country || null,
-        iata_city_name: rule.spots?.iata_city_name || null,
-        nearest_city: rule.spots?.nearest_city || null,
+        spot_name: spot?.name || null,
+        spot_country: spot?.country || null,
+        iata_city_name: spot?.iata_city_name || null,
+        nearest_city: spot?.nearest_city || null,
         spots: undefined // Remove the nested object
-      };
+      } as any;
     });
     setRules(rules);
 
