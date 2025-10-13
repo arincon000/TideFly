@@ -85,15 +85,15 @@ function AuthContent() {
 
       {/* Main Content */}
       <main className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-20">
           <div className="max-w-md mx-auto">
             {/* Auth Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-slate-900">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+              <div className="text-center mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
                   {view === "sign_in" ? "Welcome back" : "Join TideFly"}
                 </h1>
-                <p className="mt-2 text-slate-600">
+                <p className="mt-2 text-sm sm:text-base text-slate-600">
                   {view === "sign_in" 
                     ? "Sign in to your account to continue tracking waves" 
                     : "Create your account to start receiving surf alerts"

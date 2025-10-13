@@ -444,14 +444,14 @@ export default function NewAlert() {
         >
           ← Back to alerts
         </a>
-        <h1 className="text-3xl font-bold text-slate-900">Create new surf alert</h1>
-        <p className="mt-2 text-lg text-slate-600">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Create new surf alert</h1>
+        <p className="mt-2 text-sm md:text-lg text-slate-600">
           Set up intelligent notifications for perfect surf conditions and travel deals
         </p>
       </div>
 
       {/* Progress Indicator (sticky) */}
-      <div className="sticky top-4 z-20 rounded-2xl border-2 border-blue-100 bg-gradient-to-r from-blue-50 to-blue-100 p-6 shadow-sm">
+      <div className="sticky top-4 z-20 rounded-2xl border-2 border-blue-100 bg-gradient-to-r from-blue-50 to-blue-100 p-4 md:p-6 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-slate-700">Setup Progress</span>
           <span className="text-sm font-semibold text-blue-600">
@@ -516,11 +516,11 @@ export default function NewAlert() {
       {/* Form */}
       <form onSubmit={submit} className="space-y-8">
         {/* Skill Selection */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl" aria-hidden>🏄‍♂️</span>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">1. Choose your skill level</h2>
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">1. Choose your skill level</h2>
               <p className="text-slate-600">Select your surfing ability to get appropriate wave and wind presets.</p>
             </div>
           </div>
@@ -532,11 +532,11 @@ export default function NewAlert() {
         </div>
 
         {/* Location Selection */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl" aria-hidden>🌍</span>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">2. Choose your location</h2>
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">2. Choose your location</h2>
               <p className="text-slate-600">Select a region, then a country to narrow down spots.</p>
             </div>
           </div>
@@ -575,11 +575,11 @@ export default function NewAlert() {
         </div>
 
         {/* Spot Selection */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl" aria-hidden>📍</span>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">3. Choose your surf spot</h2>
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">3. Choose your surf spot</h2>
               <p className="text-slate-600">Spots matching your skill and location.</p>
             </div>
           </div>
@@ -610,11 +610,11 @@ export default function NewAlert() {
         </div>
 
         {/* Forecast Window */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl" aria-hidden>🌊</span>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">3. Forecast window</h2>
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">3. Forecast window</h2>
               <p className="text-slate-600">Choose how far ahead to look for surf conditions.</p>
               <p className="text-xs text-slate-500 mt-1">
                 💡 <strong>Tip:</strong> Shorter windows (5 days) = higher confidence. Longer windows (16 days) = more opportunities but less certain.
@@ -638,11 +638,11 @@ export default function NewAlert() {
         </div>
 
         {/* Trip Basics */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl" aria-hidden>✈️</span>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">4. Trip basics</h2>
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">4. Trip basics</h2>
               <p className="text-slate-600">Set your travel details and preferences.</p>
             </div>
           </div>
@@ -733,12 +733,12 @@ export default function NewAlert() {
         </div>
 
         {/* Custom Conditions (Section 5) - Separate section */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl" aria-hidden>⚙️</span>
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-lg md:text-xl font-bold text-slate-900">
                   5. Custom Conditions {!isPro && <span className="text-slate-500 font-normal text-base">(Pro Feature)</span>}
                 </h2>
                 {!isPro && (
