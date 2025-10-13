@@ -451,7 +451,7 @@ export default function NewAlert() {
       </div>
 
       {/* Progress Indicator (sticky) */}
-      <div className="sticky top-4 z-20 rounded-2xl border-2 border-blue-100 bg-gradient-to-r from-blue-50 to-teal-50 p-6 shadow-sm">
+      <div className="sticky top-4 z-20 rounded-2xl border-2 border-blue-100 bg-gradient-to-r from-blue-50 to-blue-100 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-slate-700">Setup Progress</span>
           <span className="text-sm font-semibold text-blue-600">
@@ -462,7 +462,7 @@ export default function NewAlert() {
         {/* Progress Bar */}
         <div className="relative h-3 bg-white rounded-full overflow-hidden shadow-inner mb-4">
           <div 
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-teal-500 transition-all duration-500 ease-out rounded-full"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-sky-500 transition-all duration-500 ease-out rounded-full"
             style={{ width: `${progress.percentage}%` }}
           >
             <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
@@ -482,7 +482,7 @@ export default function NewAlert() {
                 <div className={`
                   relative z-10 flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm transition-all duration-300
                   ${step.completed 
-                    ? 'bg-gradient-to-br from-blue-500 to-teal-500 text-white shadow-lg scale-110' 
+                    ? 'bg-gradient-to-br from-blue-500 to-sky-500 text-white shadow-lg scale-110' 
                     : 'bg-white text-slate-400 border-2 border-slate-200'
                   }
                 `}>
@@ -756,7 +756,7 @@ export default function NewAlert() {
                 <p className="text-sm text-blue-900">
                   <span className="font-semibold">💡 Currently using {selectedSkill || 'preset'} conditions.</span> Unlock full customization with Pro!
                 </p>
-                <a 
+              <a
                   href="/upgrade"
                   className="text-sm font-bold text-blue-600 hover:text-blue-700 underline whitespace-nowrap ml-4"
                 >
@@ -885,7 +885,7 @@ export default function NewAlert() {
 
         {/* Summary (non-sticky at bottom) */}
             {selectedSkill && (
-          <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-teal-50 p-6 shadow-lg mt-6">
+          <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-6 shadow-lg mt-6">
             <div className="flex items-start gap-3">
               <span className="text-2xl flex-shrink-0">📋</span>
               <div className="flex-1">
@@ -979,7 +979,7 @@ export default function NewAlert() {
             {!isPro && (
               <a
                 href="/upgrade"
-                className="inline-flex items-center justify-center rounded-xl bg-teal-600 px-6 py-3 text-white font-semibold hover:bg-teal-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2"
+                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
               >
                 Upgrade to Pro
               </a>
@@ -1000,7 +1000,7 @@ export default function NewAlert() {
           >
             {/* Header */}
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-sky-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl">💎</span>
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-2">

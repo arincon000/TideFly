@@ -16,11 +16,13 @@ function useDebouncedValue<T>(v: T, ms = 200) {
 export default function AirportAutocomplete({
   value,
   onChange,
+  onInputChange,
   placeholder = "e.g., BOG or Bogotá",
   className = "border p-2 w-full",
 }: {
   value: string;
   onChange: (iata: string) => void;
+  onInputChange?: (q: string) => void;
   placeholder?: string;
   className?: string;
 }) {
@@ -31,6 +33,22 @@ export default function AirportAutocomplete({
   const debounced = useDebouncedValue(query, 200);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // Lightweight local fallback so the landing demo works even if Supabase is unavailable
+  const fallbackAirports: Airport[] = [
+    { iata: "LAX", name: "Los Angeles Intl", city: "Los Angeles", country: "US" },
+    { iata: "MAD", name: "Adolfo Suárez Madrid–Barajas", city: "Madrid", country: "ES" },
+    { iata: "LIS", name: "Humberto Delgado", city: "Lisbon", country: "PT" },
+    { iata: "BRU", name: "Zaventem", city: "Brussels", country: "BE" },
+    { iata: "DUB", name: "Dublin", city: "Dublin", country: "IE" },
+    { iata: "JFK", name: "John F. Kennedy Intl", city: "New York", country: "US" },
+    { iata: "SFO", name: "San Francisco Intl", city: "San Francisco", country: "US" },
+    { iata: "LHR", name: "Heathrow", city: "London", country: "GB" },
+    { iata: "CDG", name: "Charles de Gaulle", city: "Paris", country: "FR" },
+    { iata: "BCN", name: "El Prat", city: "Barcelona", country: "ES" },
+    { iata: "AMS", name: "Schiphol", city: "Amsterdam", country: "NL" },
+    { iata: "FRA", name: "Frankfurt Main", city: "Frankfurt", country: "DE" },
+  ];
+
   useEffect(() => {
     const run = async () => {
       const q = debounced.trim();
@@ -38,8 +56,24 @@ export default function AirportAutocomplete({
         setList([]);
         return;
       }
-      const { data } = await supabase.rpc("search_airports", { q, max_results: 8 });
-      if (data) setList(data as Airport[]);
+      try {
+        const { data, error } = await supabase.rpc("search_airports", { q, max_results: 8 });
+        if (!error && data) {
+          setList(data as Airport[]);
+          return;
+        }
+      } catch (_e) {
+        // ignore and fall back
+      }
+      // Fallback: simple client-side filter
+      const qlow = q.toLowerCase();
+      const filtered = fallbackAirports.filter(a =>
+        a.iata.toLowerCase().includes(qlow) ||
+        (a.city ?? '').toLowerCase().includes(qlow) ||
+        (a.name ?? '').toLowerCase().includes(qlow) ||
+        (a.country ?? '').toLowerCase().includes(qlow)
+      ).slice(0, 8);
+      setList(filtered);
     };
     run();
   }, [debounced]);
@@ -78,6 +112,8 @@ export default function AirportAutocomplete({
     if (/^[A-Za-z]{3}$/.test(value)) setQuery(value.toUpperCase());
   }, [value]);
 
+  // Do not uppercase/emit while typing; only emit on explicit selection
+
   return (
     <div ref={boxRef} className="relative">
       <input
@@ -85,6 +121,7 @@ export default function AirportAutocomplete({
         onChange={e => {
           setQuery(e.target.value);
           setOpen(true);
+          onInputChange?.(e.target.value);
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
@@ -93,11 +130,11 @@ export default function AirportAutocomplete({
         autoComplete="off"
       />
       {open && list.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full max-height-64 overflow-auto border bg-white text-black rounded shadow">
+        <ul className="absolute z-50 mt-1 w-full max-h-64 overflow-auto border bg-white text-slate-900 rounded-lg shadow">
           {list.map((a, i) => (
             <li
               key={a.iata}
-              className={`px-3 py-2 cursor-pointer ${i === active ? "bg-gray-200" : ""}`}
+              className={`px-3 py-2 cursor-pointer ${i === active ? "bg-blue-50" : ""}`}
               onMouseEnter={() => setActive(i)}
               onMouseDown={e => {
                 e.preventDefault();
@@ -105,12 +142,16 @@ export default function AirportAutocomplete({
               }}
             >
               <div className="font-medium">{a.iata.toUpperCase()} — {a.city ?? ""}</div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-slate-600">
                 {a.name}
                 {a.country ? `, ${a.country}` : ""}
               </div>
             </li>
           ))}
+          {/* hint */}
+          {list[active] && (
+            <li className="px-3 py-2 text-xs text-slate-500 border-t">Press Enter to select {list[active].iata.toUpperCase()}</li>
+          )}
         </ul>
       )}
     </div>

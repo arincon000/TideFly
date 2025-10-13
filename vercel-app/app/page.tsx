@@ -1,33 +1,47 @@
 "use client";
 import "./globals.css"; // leave for THIS redeploy
 import { useState } from "react";
+import AirportAutocomplete from "@/components/AirportAutocomplete";
 
 export default function LandingPage() {
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('yearly');
 
   // Demo wizard state (hero section)
   type Skill = 'beginner' | 'intermediate' | 'advanced';
-  const demoSpots: { id: string; name: string; country: string; dest: string }[] = [
-    { id: 'ericeira', name: 'Ericeira', country: 'Portugal', dest: 'LIS' },
-    { id: 'hossegor', name: 'Hossegor', country: 'France', dest: 'BIQ' },
-    { id: 'bali', name: 'Uluwatu', country: 'Indonesia', dest: 'DPS' },
-    { id: 'canary', name: 'Las Palmas', country: 'Canary Islands', dest: 'LPA' },
-    { id: 'barbados', name: 'Batts Rock', country: 'Barbados', dest: 'BGI' },
-    { id: 'taghazout', name: 'Taghazout', country: 'Morocco', dest: 'AGA' },
-    { id: 'algarve', name: 'Algarve', country: 'Portugal', dest: 'FAO' },
-    { id: 'hawaii', name: 'Oahu (North Shore)', country: 'USA', dest: 'HNL' },
-    { id: 'santacruz', name: 'Santa Cruz', country: 'USA', dest: 'SFO' },
-    { id: 'lanzarote', name: 'Lanzarote', country: 'Canary Islands', dest: 'ACE' },
+  const demoSpots: { id: string; name: string; country: string; dest: string; region: 'Europe'|'North America'|'Central America'|'South America'|'Caribbean'|'Africa'|'Asia-Pacific' }[] = [
+    { id: 'ericeira', name: 'Ericeira', country: 'Portugal', dest: 'LIS', region: 'Europe' },
+    { id: 'hossegor', name: 'Hossegor', country: 'France', dest: 'BIQ', region: 'Europe' },
+    { id: 'bali', name: 'Uluwatu', country: 'Indonesia', dest: 'DPS', region: 'Asia-Pacific' },
+    { id: 'canary', name: 'Las Palmas', country: 'Canary Islands', dest: 'LPA', region: 'Europe' },
+    { id: 'barbados', name: 'Batts Rock', country: 'Barbados', dest: 'BGI', region: 'Caribbean' },
+    { id: 'taghazout', name: 'Taghazout', country: 'Morocco', dest: 'AGA', region: 'Africa' },
+    { id: 'algarve', name: 'Algarve', country: 'Portugal', dest: 'FAO', region: 'Europe' },
+    { id: 'hawaii', name: 'Oahu (North Shore)', country: 'USA', dest: 'HNL', region: 'North America' },
+    { id: 'santacruz', name: 'Santa Cruz', country: 'USA', dest: 'SFO', region: 'North America' },
+    { id: 'lanzarote', name: 'Lanzarote', country: 'Canary Islands', dest: 'ACE', region: 'Europe' },
+    { id: 'tamarindo', name: 'Tamarindo', country: 'Costa Rica', dest: 'LIR', region: 'Central America' },
   ];
   const [demoSkill, setDemoSkill] = useState<Skill | null>(null);
+  const [demoRegion, setDemoRegion] = useState<string>('');
+  const [demoCountry, setDemoCountry] = useState<string>('');
   const [demoSpot, setDemoSpot] = useState<string>('');
   const [demoOrigin, setDemoOrigin] = useState<string>('');
+  const [demoOriginRaw, setDemoOriginRaw] = useState<string>('');
   const [demoBudget, setDemoBudget] = useState<string>('');
   const [demoOpen, setDemoOpen] = useState<boolean>(false);
   const [demoDone, setDemoDone] = useState<boolean>(false);
+  const [demoStep, setDemoStep] = useState<number>(0); // 0..5
+  const TOTAL_STEPS = 6;
+  const demoProgress = (demoStep/(TOTAL_STEPS-1))*100;
 
-  const demoStep = !demoOpen ? 0 : (demoSkill ? (demoSpot ? (demoOrigin.length===3 ? 3 : 2) : 1) : 0);
-  const demoProgress = (demoStep/3)*100;
+  // Custom conditions (demo)
+  const [demoWaveMin, setDemoWaveMin] = useState<number>(1.2);
+  const [demoWaveMax, setDemoWaveMax] = useState<number>(2.5);
+  const [demoWindMax, setDemoWindMax] = useState<number>(25);
+  const [demoPrice, setDemoPrice] = useState<string>("");
+  const [demoPlanning, setDemoPlanning] = useState<'conservative'|'aggressive'|'optimistic'>('conservative');
+
+  const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
 
   return (
     <div>
@@ -59,7 +73,7 @@ export default function LandingPage() {
             </a>
             <a
               href="/auth?view=sign_up"
-              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-4 py-2 text-white font-semibold hover:from-sky-700 hover:to-teal-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2"
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-4 py-2 text-white font-semibold hover:from-sky-700 hover:to-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2"
             >
               Start tracking waves
             </a>
@@ -67,12 +81,12 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main className="min-h-screen bg-white">
+      <main className="min-h-screen" style={{ background: "linear-gradient(180deg, rgba(186,230,253,0.9) 0%, rgba(191,219,254,0.75) 28%, rgba(240,249,255,0.55) 62%, #ffffff 100%)" }}>
         {/* HERO */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-sky-50 via-teal-50 to-white pb-12 md:pb-14">
+        <section className="relative overflow-hidden pb-8 md:pb-10">
           {/* Decorative ocean glows */}
           <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl"></div>
-          <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-teal-200/40 blur-3xl"></div>
+          <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 text-center">
             <span className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
               Surf forecasting meets flight booking
@@ -90,10 +104,10 @@ export default function LandingPage() {
 
             {/* Reuse existing CTA links – if they already exist in the file, keep their href and just add these classes */}
             <div className="mt-6 md:mt-8 flex items-center justify-center gap-3 md:gap-4">
-              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
+              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
                 Start tracking waves
               </a>
-              <a href="#features" className="inline-flex items-center justify-center rounded-xl border border-sky-300 px-5 py-3 text-sky-700 hover:bg-sky-50 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
+              <a href="#features" className="inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-700 hover:bg-sky-50 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
                 See features →
               </a>
             </div>
@@ -108,33 +122,36 @@ export default function LandingPage() {
 
             {/* Interactive demo wizard (mock) */}
             {/* Gradient frame wrapper for elevated look */}
-            <div className="mx-auto mt-6 md:mt-8 w-full max-w-4xl bg-gradient-to-r from-sky-200/60 via-teal-200/60 to-sky-200/60 p-0.5 rounded-3xl shadow-xl">
+            <div className="mx-auto mt-6 md:mt-8 w-full max-w-4xl bg-gradient-to-r from-sky-200/60 via-blue-200/60 to-sky-200/60 p-0.5 rounded-3xl shadow-xl">
             <div className="rounded-3xl bg-white p-5 md:p-6 border border-white/60">
-              <div className="flex items-center justify-between mb-4">
-                <div>
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-3 items-center">
+                <div className="hidden md:block" />
+                <div className="text-center">
                   <h3 className="text-lg md:text-xl font-bold text-slate-900">Build a surf alert</h3>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                  <div className="mt-1 flex items-center justify-center gap-2 text-xs text-slate-500 flex-wrap">
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">🔒 Nothing saved</span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">⚡ 30‑second demo</span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">✉️ Email alerts on real accounts</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => { setDemoOpen((v) => !v); setDemoDone(false); setDemoSkill(null); setDemoSpot(''); setDemoOrigin(''); setDemoBudget(''); }}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >{demoOpen ? 'Reset demo' : 'Try it now →'}</button>
+                <div className="mt-3 md:mt-0 flex justify-center md:justify-end">
+                  <button
+                    onClick={() => { setDemoOpen((v) => !v); setDemoDone(false); setDemoSkill(null); setDemoSpot(''); setDemoOrigin(''); setDemoBudget(''); }}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >{demoOpen ? 'Reset demo' : 'Try it now →'}</button>
+                </div>
               </div>
 
               {demoOpen && (
                 <div className="mb-5">
                   <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-sky-500 to-teal-500 transition-all duration-500 ease-out" style={{ width: `${demoProgress}%` }}></div>
+                    <div className="h-full bg-gradient-to-r from-sky-500 to-blue-500 transition-all duration-500 ease-out" style={{ width: `${demoProgress}%` }}></div>
                   </div>
                   {/* Step chips */}
-                  <div className="mt-2 flex items-center gap-3 text-xs">
-                    {['Skill','Spot','Trip'].map((label, idx) => (
-                      <div key={label} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 border ${demoStep>idx ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                        <span className={`w-4 h-4 grid place-items-center rounded-full text-[10px] ${demoStep>idx ? 'bg-blue-600 text-white' : 'bg-slate-300 text-white'}`}>{idx+1}</span>
+                  <div className="mt-2 flex items-center justify-center flex-wrap gap-3 text-xs">
+                    {['Skill','Location','Spot','Forecast','Trip','Conditions'].map((label, idx) => (
+                      <div key={label} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 border ${demoStep>=idx ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <span className={`w-4 h-4 grid place-items-center rounded-full text-[10px] ${demoStep>=idx ? 'bg-blue-600 text-white' : 'bg-slate-300 text-white'}`}>{idx+1}</span>
                         {label}
                       </div>
                     ))}
@@ -144,214 +161,209 @@ export default function LandingPage() {
 
               {!demoOpen ? (
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-slate-600 text-sm md:text-base">Test‑drive the flow without creating an account. Choose a skill, pick a spot, and set your origin airport.</p>
-                  <button onClick={() => setDemoOpen(true)} className="rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-teal-700">Start demo</button>
+                  <p className="text-slate-600 text-sm md:text-base">Test‑drive the real flow step‑by‑step without creating an account.</p>
+                  <button onClick={() => { setDemoOpen(true); setDemoStep(0); }} className="rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700">Start demo</button>
                 </div>
               ) : (
-                <div className="space-y-5">
-                  {/* Step 1: Skill */}
-                  <div>
-                  <div className="mb-2 text-sm font-semibold text-slate-900">1. Choose your skill level</div>
-                    <div className="flex flex-wrap gap-2">
-                      {([
-                        { key: 'beginner', label: '🌱 Beginner', desc: '0.8–1.5m, ≤25 km/h' },
-                        { key: 'intermediate', label: '⚡ Intermediate', desc: '1.2–2.5m, ≤30 km/h' },
-                        { key: 'advanced', label: '🔥 Advanced', desc: '2.0–4.0m, ≤35 km/h' },
-                      ] as const).map(opt => (
-                        <button
-                          key={opt.key}
-                          onClick={() => setDemoSkill(opt.key)}
-                          className={`px-4 py-2 rounded-xl border text-left text-sm transition-all ${demoSkill===opt.key ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}
-                          title={opt.desc}
-                        >{opt.label}</button>
-                      ))}
+                <div className="space-y-4">
+                  {/* Step content - slideshow style */}
+                  {demoStep === 0 && (
+                    <div className="max-w-2xl mx-auto">
+                      <div className="mb-2 text-sm font-semibold text-slate-900">1. Choose your skill level</div>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {([
+                          { key: 'beginner', label: '🌱 Beginner' },
+                          { key: 'intermediate', label: '⚡ Intermediate' },
+                          { key: 'advanced', label: '🔥 Advanced' },
+                        ] as const).map(opt => (
+                          <button key={opt.key} onClick={() => { setDemoSkill(opt.key); setDemoStep(1); }} className={`px-4 py-2 rounded-xl border text-left text-sm transition-all ${demoSkill===opt.key ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>{opt.label}</button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Step 2: Spot */}
-                  <div>
-                    <div className="mb-2 text-sm font-semibold text-slate-900">2. Choose your spot</div>
-                    <select
-                      value={demoSpot}
-                      onChange={(e)=>setDemoSpot(e.target.value)}
-                      disabled={!demoSkill}
-                      className="w-full md:w-auto rounded-xl border border-slate-300 px-4 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-sky-300"
-                    >
-                      <option value="">{demoSkill ? 'Select a spot' : 'Choose skill first'}</option>
-                      {demoSpots.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} – {s.country}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Step 3: Trip basics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <div className="mb-2 text-sm font-semibold text-slate-900">Origin (IATA)</div>
-                      <input
-                        value={demoOrigin}
-                        onChange={(e)=>setDemoOrigin(e.target.value.toUpperCase().slice(0,3))}
-                        placeholder="e.g., LAX"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-teal-300"
-                      />
+                  )}
+                  {demoStep === 1 && (
+                    <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <div className="mb-2 text-sm font-semibold text-slate-900">2. Region</div>
+                        <select value={demoRegion} onChange={e=>{ setDemoRegion(e.target.value); setDemoCountry(''); setDemoSpot(''); }} className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-sky-300">
+                          <option value="">Select region</option>
+                          {['Europe','North America','Central America','Caribbean','Africa','Asia-Pacific'].map(r=> <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div className="mb-2 text-sm font-semibold text-slate-900">Country</div>
+                        <select value={demoCountry} onChange={e=>{ setDemoCountry(e.target.value); setDemoSpot(''); }} className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-sky-300" disabled={!demoRegion}>
+                          <option value="">{demoRegion ? 'Select country' : 'Select region first'}</option>
+                          {Array.from(new Set(demoSpots.filter(s=> !demoRegion || s.region===demoRegion).map(s=>s.country))).map(c=> <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className="col-span-1 md:col-span-2 flex justify-end">
+                        <button onClick={()=> setDemoStep(2)} disabled={!demoRegion} className="rounded-xl bg-blue-600 px-4 py-2 text-white font-semibold disabled:opacity-50">Next</button>
+                      </div>
                     </div>
-                    <div>
-                      <div className="mb-2 text-sm font-semibold text-slate-900">Budget (optional)</div>
-                      <input
-                        type="number"
-                        value={demoBudget}
-                        onChange={(e)=>setDemoBudget(e.target.value)}
-                        placeholder="e.g., 600"
-                        className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-teal-300"
-                      />
+                  )}
+                  {demoStep === 2 && (
+                    <div className="max-w-2xl mx-auto">
+                      <div className="mb-2 text-sm font-semibold text-slate-900">3. Choose your surf spot</div>
+                      <select value={demoSpot} onChange={(e)=>setDemoSpot(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-sky-300">
+                        <option value="">Select a spot</option>
+                        {demoSpots.filter(s => (!demoRegion || s.region===demoRegion) && (!demoCountry || s.country===demoCountry)).map(s => (
+                          <option key={s.id} value={s.id}>{s.name} – {s.country}</option>
+                        ))}
+                      </select>
+                      <div className="mt-3 flex justify-between">
+                        <button onClick={()=> setDemoStep(1)} className="rounded-xl border border-slate-300 px-4 py-2 text-slate-700">Back</button>
+                        <button onClick={()=> setDemoStep(3)} disabled={!demoSpot} className="rounded-xl bg-blue-600 px-4 py-2 text-white font-semibold disabled:opacity-50">Next</button>
+                      </div>
                     </div>
-                    <div className="flex items-end">
-                      <button
-                        onClick={()=> setDemoDone(true)}
-                        disabled={!demoSkill || !demoSpot || demoOrigin.length!==3}
-                        className="w-full rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-4 py-3 text-white font-semibold hover:from-sky-700 hover:to-teal-700 disabled:opacity-50 shadow"
-                      >Create demo alert</button>
+                  )}
+                  {demoStep === 3 && (
+                    <div className="max-w-2xl mx-auto">
+                      <div className="mb-2 text-sm font-semibold text-slate-900">4. Forecast window</div>
+                      <div className="inline-flex rounded-full border border-slate-200 p-1">
+                        {['5','10','16'].map(v => (
+                          <button key={v} type="button" onClick={()=> setDemoStep(4)} className="px-4 py-2 text-sm font-semibold rounded-full text-slate-700 hover:bg-slate-100">{v} days</button>
+                        ))}
+                      </div>
+                      <div className="mt-3 flex justify-between">
+                        <button onClick={()=> setDemoStep(2)} className="rounded-xl border border-slate-300 px-4 py-2 text-slate-700">Back</button>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  {demoStep === 4 && (
+                    <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-2">
+                        <div className="mb-2 text-sm font-semibold text-slate-900">Origin (IATA)</div>
+                        {/* Simplified demo: static dropdown to ensure reliability without Supabase */}
+                        <select
+                          value={demoOrigin}
+                          onChange={(e)=>setDemoOrigin(e.target.value.toUpperCase())}
+                          className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-sky-300"
+                        >
+                          <option value="">Select an airport (demo)</option>
+                          {[
+                            { iata: 'LAX', label: 'LAX — Los Angeles, US' },
+                            { iata: 'MAD', label: 'MAD — Madrid, ES' },
+                            { iata: 'LIS', label: 'LIS — Lisbon, PT' },
+                            { iata: 'BRU', label: 'BRU — Brussels, BE' },
+                            { iata: 'JFK', label: 'JFK — New York (JFK), US' },
+                            { iata: 'SFO', label: 'SFO — San Francisco, US' },
+                            { iata: 'CDG', label: 'CDG — Paris (CDG), FR' },
+                            { iata: 'LHR', label: 'LHR — London (Heathrow), GB' },
+                          ].map(a => (
+                            <option key={a.iata} value={a.iata}>{a.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <div className="mb-2 text-sm font-semibold text-slate-900">Max Flight Price ($)</div>
+                        <input type="number" value={demoBudget} onChange={(e)=>setDemoBudget(e.target.value)} placeholder="" className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:ring-2 focus:ring-sky-300" />
+                      </div>
+                      <div className="col-span-1 md:col-span-3 mt-3 flex items-center justify-between gap-3">
+                        <button onClick={()=> setDemoStep(3)} className="rounded-xl border border-slate-300 px-4 py-2 text-slate-700">Back</button>
+                        <div className="text-xs text-slate-500">Max Flight Price ($)</div>
+                        <button onClick={()=> setDemoStep(5)} disabled={!isIata(demoOrigin)} className="rounded-xl bg-blue-600 px-4 py-2 text-white font-semibold disabled:opacity-50">Next</button>
+                      </div>
+                    </div>
+                  )}
+                  {demoStep === 5 && (
+                    <div className="max-w-2xl mx-auto space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <div className="mb-2 text-sm font-semibold text-slate-900">Wave min/max (m)</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="number" step="0.1" value={demoWaveMin} onChange={e=>setDemoWaveMin(parseFloat(e.target.value))} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-300" />
+                            <input type="number" step="0.1" value={demoWaveMax} onChange={e=>setDemoWaveMax(parseFloat(e.target.value))} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-300" />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-2 text-sm font-semibold text-slate-900">Wind max (km/h)</div>
+                          <input type="number" value={demoWindMax} onChange={e=>setDemoWindMax(parseFloat(e.target.value))} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-300" />
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <div className="mb-2 text-sm font-semibold text-slate-900">Planning logic</div>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {(['conservative','aggressive','optimistic'] as const).map(k => (
+                            <label key={k} className={`cursor-pointer px-3 py-2 rounded-lg border-2 text-sm ${demoPlanning===k ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                              <input type="radio" className="mr-2" checked={demoPlanning===k} onChange={()=>setDemoPlanning(k)} />
+                              {k}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <button onClick={()=> setDemoStep(4)} className="rounded-xl border border-slate-300 px-4 py-2 text-slate-700">Back</button>
+                        <button onClick={()=> setDemoDone(true)} disabled={!demoSkill || !demoSpot || !isIata(demoOrigin)} className="rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-4 py-2 text-white font-semibold disabled:opacity-50">Create demo alert</button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500">Demo note: This builder uses a small sample of airports and spots to illustrate the flow.</p>
+                        <a href="/auth?view=sign_up" className="rounded-lg bg-blue-600 px-3 py-2 text-white text-sm font-semibold hover:bg-blue-700">Sign up</a>
+                      </div>
+                    </div>
+                  )}
 
                   {demoDone && (
-                    <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 flex items-start gap-2 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 flex items-start gap-2 animate-[fadeIn_0.3s_ease-out]">
                       <span>✅</span>
                       <div>
                         <div className="font-semibold">Demo alert created!</div>
-                        <div>This is a preview of how TideFly works. Sign up to save real alerts and get email notifications.</div>
+                        <div>This is a preview of the real wizard. Sign up to save your alert and get email notifications.</div>
                       </div>
                     </div>
                   )}
                 </div>
               )}
-            </div>
+              </div>
             </div>
           </div>
-          {/* Wave separator */}
-          <svg className="pointer-events-none absolute bottom-0 left-0 w-full -z-10" viewBox="0 0 1440 120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden>
-            <path d="M0,64L48,58.7C96,53,192,43,288,42.7C384,43,480,53,576,58.7C672,64,768,64,864,64C960,64,1056,64,1152,64C1248,64,1344,64,1392,64L1440,64L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z" fill="#fff" fillOpacity="1"/>
-          </svg>
+          {/* Seamless background handled by page-level gradient; wave separator removed for continuous flow */}
         </section>
 
-    {/* HOW IT WORKS (Expanded) */}
-    <section id="how-it-works" className="py-20 md:py-24 bg-gradient-to-b from-white to-sky-50/40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center text-slate-900">
-          How TideFly works
-        </h2>
-        <p className="mt-2 md:mt-3 text-base md:text-lg text-slate-600 text-center max-w-3xl mx-auto">
-          We match surf forecasts with flight prices — then tap you on the shoulder when a good session becomes bookable from your home airport.
-        </p>
+        {/* VALUE SECTION (Consolidated) */}
+        <section id="features" className="py-14 md:py-16">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">Why TideFly works (and saves you time)</h2>
+            <p className="mt-3 text-base md:text-lg text-slate-600 max-w-3xl mx-auto">
+              We match surf forecasts with flight prices and alert you when a trip is actually worth booking from your home airport.
+            </p>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
-            <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center text-sky-700"><span className="text-xl">🏄‍♂️</span></div>
-            <div className="font-semibold text-slate-900 mb-1">1) Choose your skill</div>
-            <div className="text-sm text-slate-600">We set sensible wave/wind presets so you only see days you’d actually surf.</div>
-          </div>
-          <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
-            <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center text-sky-700"><span className="text-xl">📍</span></div>
-            <div className="font-semibold text-slate-900 mb-1">2) Pick a spot</div>
-            <div className="text-sm text-slate-600">Select a destination (or several). We know each spot’s local difficulty and seasonality.</div>
-          </div>
-          <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
-            <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center text-sky-700"><span className="text-xl">✈️</span></div>
-            <div className="font-semibold text-slate-900 mb-1">3) Set trip basics</div>
-            <div className="text-sm text-slate-600">Home airport, forecast window, optional price guardrails. Then you forget about it.</div>
-          </div>
-          <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
-            <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center text-sky-700"><span className="text-xl">🔔</span></div>
-            <div className="font-semibold text-slate-900 mb-1">4) We monitor 24/7</div>
-            <div className="text-sm text-slate-600">When waves match and flights are reasonable, we email you with book-now links.</div>
-          </div>
-        </div>
-
-        <div className="mt-4 text-center text-sm text-slate-500">
-          The interactive demo above is a simplified preview. The full wizard adds planning logic, longer forecast windows, and custom thresholds (Pro).
-        </div>
-      </div>
-    </section>
-
-    {/* WHY TIDEFLY (Value) */}
-    <section className="py-14 md:py-18 bg-gradient-to-b from-sky-50/40 to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h3 className="text-2xl md:text-3xl font-bold text-slate-900 text-center">Why surfers use TideFly</h3>
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="font-semibold text-slate-900 mb-1">Save hours every week</div>
-            <div className="text-sm text-slate-600">Skip the tab‑sprawl. We check forecasts and prices for you — continuously.</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="font-semibold text-slate-900 mb-1">Catch the good windows</div>
-            <div className="text-sm text-slate-600">We focus on morning surfability and match the days that actually work.</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="font-semibold text-slate-900 mb-1">Book with confidence</div>
-            <div className="text-sm text-slate-600">Email alerts include flight and hotel links for the exact dates we found.</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="font-semibold text-slate-900 mb-1">Budget guardrails</div>
-            <div className="text-sm text-slate-600">Free highlights cheap or reasonable prices; Pro enforces your price cap.</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="font-semibold text-slate-900 mb-1">Built for your level</div>
-            <div className="text-sm text-slate-600">Beginner, Intermediate, Advanced presets — or fully custom with Pro.</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="font-semibold text-slate-900 mb-1">Discover more, stress less</div>
-            <div className="text-sm text-slate-600">Explore new regions with confidence knowing we screen for your conditions.</div>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-5 text-left">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-2 text-xl">🏄‍♂️</div>
+                <div className="font-semibold text-slate-900">Built for your level</div>
+                <div className="text-sm text-slate-600">Beginner, Intermediate, Advanced presets so you only see surfable days.</div>
+                </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-2 text-xl">📍</div>
+                <div className="font-semibold text-slate-900">Pick a spot, we do the rest</div>
+                <div className="text-sm text-slate-600">We factor local difficulty and morning surfability.</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-2 text-xl">✈️</div>
+                <div className="font-semibold text-slate-900">Fair flight prices</div>
+                <div className="text-sm text-slate-600">Free highlights reasonable prices; Pro enforces a price cap.</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-2 text-xl">🔔</div>
+                <div className="font-semibold text-slate-900">We monitor 24/7</div>
+                <div className="text-sm text-slate-600">You’ll get an email with book‑now links the moment things line up.</div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* FEATURES */}
-        <section id="features" className="py-16 md:py-20 bg-gradient-to-b from-white to-sky-50/30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-
-            <div className="mt-8 md:mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-              {/* Card 1 */}
-              <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-8 text-center shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg">
-                <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-                <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center transition-transform duration-200 group-hover:scale-105">
-                  <span className="text-2xl" aria-hidden>🌊</span>
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900">Smart Surf Alerts</h3>
-                <p className="mt-2 text-slate-600">Get notified when waves, wind, and conditions match your skill level—no more guessing.</p>
-              </div>
-
-              {/* Card 2 */}
-              <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-8 text-center shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg">
-                <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-                <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center transition-transform duration-200 group-hover:scale-105">
-                  <span className="text-2xl" aria-hidden>✈️</span>
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900">Flight Price Tracking</h3>
-                <p className="mt-2 text-slate-600">We monitor flight prices 24/7, so you book when it's cheap, not when it's too late.</p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="group relative rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-8 text-center shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg">
-                <div className="absolute top-0 left-0 h-1 w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-teal-400"></div>
-                <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 ring-1 ring-sky-200 grid place-items-center transition-transform duration-200 group-hover:scale-105">
-                  <span className="text-2xl" aria-hidden>🎯</span>
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900">Personalized Thresholds</h3>
-                <p className="mt-2 text-slate-600">Set custom wave heights, wind limits, and price caps—your perfect session, your rules.</p>
-              </div>
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-6 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700">Create a free alert</a>
+              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-6 py-3 text-sky-700 font-semibold hover:bg-sky-50">Upgrade to Pro</a>
             </div>
+
+            <p className="mt-3 text-xs text-slate-500">The wizard in the hero is a preview. The full builder adds longer windows and custom thresholds (Pro).</p>
           </div>
         </section>
 
         {/* PRICING */}
-        <section id="pricing" className="py-16 md:py-20 bg-gradient-to-b from-white to-sky-50/20">
+        <section id="pricing" className="py-16 md:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Choose your wave-hunting plan</h2>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">Choose your wave-hunting plan</h2>
             <p className="mt-3 text-lg text-slate-600">
               From casual beach days to professional surf trips, we've got the perfect plan.
             </p>
@@ -409,7 +421,7 @@ export default function LandingPage() {
               </div>
 
               {/* Pro Tier (featured) */}
-              <div className="relative rounded-2xl border-2 border-sky-200 bg-gradient-to-b from-sky-50 to-teal-50 p-8 shadow-md">
+              <div className="relative rounded-2xl border-2 border-sky-200 bg-gradient-to-b from-sky-50 to-blue-50 p-8 shadow-md">
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
                   Most Popular
                 </span>
@@ -450,7 +462,7 @@ export default function LandingPage() {
                     <span className="font-semibold">Priority email alerts</span>
                   </li>
                 </ul>
-                <a href="/auth?view=sign_up" className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-5 py-3 font-semibold text-white hover:from-sky-700 hover:to-teal-700 transition-colors duration-200">
+                <a href="/auth?view=sign_up" className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 font-semibold text-white hover:from-sky-700 hover:to-blue-700 transition-colors duration-200">
                   Upgrade to Pro
                 </a>
               </div>
