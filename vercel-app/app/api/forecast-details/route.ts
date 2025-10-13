@@ -244,8 +244,8 @@ const morningOk = isFreshData ? true : (day.morning_ok || false);
         // Process the fresh data using the same logic as cached data
         const isFreshData = true; // This is fresh data from Open-Meteo API
         const processedData = freshForecastData.map(day => {
-          const waveStats = day.wave_stats || {};
-          const windStats = day.wind_stats || {};
+          const waveStats: any = day.wave_stats || {};
+          const windStats: any = day.wind_stats || {};
           
           // Check if this day meets the alert criteria
           const waveMin = alertRule.wave_min_m || 0;
