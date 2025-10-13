@@ -194,9 +194,8 @@ export default function NewAlert() {
     setForecastWindow(defaultWindow);
   }, [defaultWindow]);
 
-  // For FREE users: when skill changes and custom inputs haven't been modified, populate Step 5 with the correct presets
+  // When skill changes and custom inputs haven't been modified, populate Step 5 with the corresponding presets
   useEffect(() => {
-    if (isPro) return;
     if (!selectedSkill) return;
     if (hasModifiedCustomInputs) return; // do not overwrite user-edited values
 
@@ -204,7 +203,7 @@ export default function NewAlert() {
     setMinWave(preset.waveMin);
     setMaxWave(preset.waveMax);
     setMaxWind(preset.windMax);
-  }, [selectedSkill, isPro, hasModifiedCustomInputs]);
+  }, [selectedSkill, hasModifiedCustomInputs]);
 
 
   function onSpotChange(id: string) {
