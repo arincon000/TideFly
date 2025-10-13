@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
         // Process the fresh data using the same logic as cached data
         const isFreshData = true; // This is fresh data from Open-Meteo API
         const processedData = freshForecastData.map(day => {
-          const waveStats = day.wave_stats || {};
-          const windStats = day.wind_stats || {};
+          const waveStats = (day.wave_stats || {}) as Record<string, number>;
+          const windStats = (day.wind_stats || {}) as Record<string, number>;
           
           // Check if this day meets the alert criteria
           const waveMin = alertRule.wave_min_m || 0;
@@ -335,8 +335,8 @@ const morningOk = isFreshData ? true : (day.morning_ok || false);
     // Process the forecast data and limit to forecast window
     const isFreshData = false; // This is cached data
     const processedData = allForecastData.slice(0, forecastWindow).map(day => {
-      const waveStats = day.wave_stats || {};
-      const windStats = day.wind_stats || {};
+      const waveStats = (day.wave_stats || {}) as Record<string, number>;
+      const windStats = (day.wind_stats || {}) as Record<string, number>;
       
       // Check if this day meets the alert criteria
       const waveMin = alertRule.wave_min_m || 0;
