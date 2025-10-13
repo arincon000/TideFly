@@ -92,7 +92,7 @@ export default function LandingPage() {
               Surf forecasting meets flight booking
             </span>
 
-            <h1 className="mt-4 md:mt-6 text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="mt-4 md:mt-6 text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900">
               Catch the perfect{" "}
               <span className="bg-gradient-to-r from-sky-500 to-indigo-500 bg-clip-text text-transparent">wave</span>{" "}
               at the perfect price
@@ -103,11 +103,11 @@ export default function LandingPage() {
             </p>
 
             {/* Reuse existing CTA links – if they already exist in the file, keep their href and just add these classes */}
-            <div className="mt-6 md:mt-8 flex items-center justify-center gap-3 md:gap-4">
-              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
+            <div className="mt-6 md:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
+              <a href="/auth?view=sign_up" className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
                 Start tracking waves
               </a>
-              <a href="#features" className="inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-700 hover:bg-sky-50 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
+              <a href="#features" className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-700 hover:bg-sky-50 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2">
                 See features →
               </a>
             </div>
@@ -160,9 +160,9 @@ export default function LandingPage() {
               )}
 
               {!demoOpen ? (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                   <p className="text-slate-600 text-sm md:text-base">Test‑drive the real flow step‑by‑step without creating an account.</p>
-                  <button onClick={() => { setDemoOpen(true); setDemoStep(0); }} className="rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700">Start demo</button>
+                  <button onClick={() => { setDemoOpen(true); setDemoStep(0); }} className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700">Start demo</button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -351,9 +351,9 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-8 flex items-center justify-center gap-3">
-              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-6 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700">Create a free alert</a>
-              <a href="/auth?view=sign_up" className="inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-6 py-3 text-sky-700 font-semibold hover:bg-sky-50">Upgrade to Pro</a>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a href="/auth?view=sign_up" className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-6 py-3 text-white font-semibold hover:from-sky-700 hover:to-blue-700">Create a free alert</a>
+              <a href="/auth?view=sign_up" className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-sky-300 bg-white px-6 py-3 text-sky-700 font-semibold hover:bg-sky-50">Upgrade to Pro</a>
             </div>
 
             <p className="mt-3 text-xs text-slate-500">The wizard in the hero is a preview. The full builder adds longer windows and custom thresholds (Pro).</p>

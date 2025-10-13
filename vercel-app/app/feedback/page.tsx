@@ -103,7 +103,7 @@ export default function FeedbackPage() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 md:py-8">
           <div className="space-y-8">
             {/* Header */}
             <div>
@@ -113,7 +113,7 @@ export default function FeedbackPage() {
               >
                 ← Back to alerts
               </a>
-              <h1 className="text-3xl font-bold text-slate-900">Feedback</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Feedback</h1>
               <p className="mt-2 text-lg text-slate-600">
                 We'd love to hear your thoughts, suggestions, or report any issues you've encountered.
               </p>
@@ -163,11 +163,11 @@ export default function FeedbackPage() {
               )}
 
               {/* Submit Button */}
-              <div className="flex justify-end">
+              <div className="flex md:justify-end">
                 <button
                   type="submit"
                   disabled={isSubmitting || !message.trim()}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+                  className="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
                 >
                   {isSubmitting ? (
                     <>
