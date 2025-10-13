@@ -85,18 +85,20 @@ export async function POST(request: NextRequest) {
         const processedData = freshForecastData.map(day => {
           const waveStats = (day.wave_stats || {}) as Record<string, number>;
           const windStats = (day.wind_stats || {}) as Record<string, number>;
+          const ws: any = waveStats; // relax typing for JSON blobs
+          const wn: any = windStats;
           
           // Check if this day meets the alert criteria
           const waveMin = alertRule.wave_min_m || 0;
           const waveMax = alertRule.wave_max_m || 100;
           const windMax = alertRule.wind_max_kmh || 100;
           
-          const avgWave = waveStats.avg || 0;
-          const maxWave = waveStats.max || 0;
-          const minWave = waveStats.min || 0;
-          const avgWind = windStats.avg || 0;
-          const maxWind = windStats.max || 0;
-          const minWind = windStats.min || 0;
+          const avgWave = ws.avg || 0;
+          const maxWave = ws.max || 0;
+          const minWave = ws.min || 0;
+          const avgWind = wn.avg || 0;
+          const maxWind = wn.max || 0;
+          const minWind = wn.min || 0;
           
           // Apply planning logic (same as quick-forecast-check API)
           const planningLogic = alertRule.planning_logic || 'conservative';
@@ -337,18 +339,20 @@ const morningOk = isFreshData ? true : (day.morning_ok || false);
     const processedData = allForecastData.slice(0, forecastWindow).map(day => {
       const waveStats = (day.wave_stats || {}) as Record<string, number>;
       const windStats = (day.wind_stats || {}) as Record<string, number>;
+      const ws: any = waveStats;
+      const wn: any = windStats;
       
       // Check if this day meets the alert criteria
       const waveMin = alertRule.wave_min_m || 0;
       const waveMax = alertRule.wave_max_m || 100;
       const windMax = alertRule.wind_max_kmh || 100;
       
-      const avgWave = waveStats.avg || 0;
-      const maxWave = waveStats.max || 0;
-      const minWave = waveStats.min || 0;
-      const avgWind = windStats.avg || 0;
-      const maxWind = windStats.max || 0;
-      const minWind = windStats.min || 0;
+      const avgWave = ws.avg || 0;
+      const maxWave = ws.max || 0;
+      const minWave = ws.min || 0;
+      const avgWind = wn.avg || 0;
+      const maxWind = wn.max || 0;
+      const minWind = wn.min || 0;
       
       // Use avg for waves, max for wind (as per recommendation)
       const waveOk = avgWave >= waveMin && avgWave <= waveMax;
