@@ -24,3 +24,4 @@ for rule_id, event in rule_status.items():
     print(f'  {rule_id}: {event["status"]} - {event["ok_dates_count"]} days - {event["reason"]}')
 
 
+

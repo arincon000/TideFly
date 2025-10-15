@@ -129,3 +129,4 @@ DROP TABLE IF EXISTS spots_import;
 SELECT '✅ Import complete! Check the verification queries above.' as status;
 
 
+

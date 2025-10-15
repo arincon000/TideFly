@@ -47,8 +47,9 @@ export default function LandingPage() {
     <div>
       <header className="bg-gradient-to-b from-white/80 to-sky-50/50 backdrop-blur border-b border-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between">
-          <a href="/" className="text-2xl font-bold text-slate-900 hover:text-slate-700 transition-colors">
-            TideFly 🌊
+          <a href="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <span className="text-xl sm:text-2xl" aria-hidden>🌊</span>
+            <span className="text-xl sm:text-2xl font-bold text-slate-900">TideFly</span>
           </a>
           <nav className="hidden md:flex items-center gap-8">
             <a
@@ -64,18 +65,18 @@ export default function LandingPage() {
               Pricing
             </a>
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <a
               href="/auth?view=sign_in"
-              className="text-slate-700 hover:text-slate-900 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+              className="text-sm sm:text-base text-slate-700 hover:text-slate-900 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
             >
               Sign in
             </a>
             <a
               href="/auth?view=sign_up"
-              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-4 py-2 text-white font-semibold hover:from-sky-700 hover:to-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2"
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-white font-semibold hover:from-sky-700 hover:to-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 whitespace-nowrap"
             >
-              Start tracking waves
+              Get started
             </a>
           </div>
         </div>

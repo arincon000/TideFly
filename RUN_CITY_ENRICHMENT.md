@@ -100,3 +100,4 @@ Just execute the command above and let it run! The script will:
 **Want to run it?** Just say the word! 🌊
 
 
+

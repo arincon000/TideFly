@@ -78,3 +78,4 @@ Nazaré - Praia do Norte,Portugal,39.605,-9.078,Europe/Lisbon,advanced,LIS,Europ
 
 Ready to go! 🏄‍♂️
 
+

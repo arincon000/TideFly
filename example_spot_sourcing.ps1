@@ -34,3 +34,4 @@ Write-Host "   2. Import to Supabase"
 Write-Host "   3. Validate with OpenMeteo API"
 
 
+

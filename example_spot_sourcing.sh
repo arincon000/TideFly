@@ -35,3 +35,4 @@ echo "   2. Import to Supabase"
 echo "   3. Validate with OpenMeteo API"
 
 
+

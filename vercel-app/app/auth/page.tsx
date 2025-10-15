@@ -76,9 +76,10 @@ function AuthContent() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <a href="/" className="text-2xl font-bold text-slate-900 hover:text-slate-700 transition-colors">
-            TideFly 🌊
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <a href="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity">
+            <span className="text-xl sm:text-2xl" aria-hidden>🌊</span>
+            <span className="text-xl sm:text-2xl font-bold text-slate-900">TideFly</span>
           </a>
         </div>
       </header>

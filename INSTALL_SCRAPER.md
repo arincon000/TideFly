@@ -27,3 +27,4 @@ python wannasurf_scraper.py --region portugal --limit 5
 That's it! 🎉
 
 
+

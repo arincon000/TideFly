@@ -70,3 +70,4 @@ CREATE INDEX IF NOT EXISTS idx_spots_skill_range ON spots(skill_level_min, skill
 -- Done.
 
 
+
