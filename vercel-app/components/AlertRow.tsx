@@ -803,40 +803,40 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       {/* Explanation message for failed alerts */}
       {getExplanationMessage()}
           
-      {/* Actions row - Right-aligned, wraps on mobile */}
-      <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+      {/* Actions row - Wraps on mobile, full width */}
+      <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full">
             <button
               onClick={toggleActive}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
         >
           <span className="text-slate-400" aria-hidden>
             {rule.is_active ? '⏸' : '▶️'}
           </span>
-          <span className="hidden sm:inline">{rule.is_active ? 'Pause' : 'Resume'}</span>
+          {rule.is_active ? 'Pause' : 'Resume'}
             </button>
             
             <button
               onClick={() => setShowForecastModal(true)}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
             >
           <span className="text-slate-400" aria-hidden>🔍</span>
-          <span className="hidden sm:inline">Forecast</span>
+          Forecast
             </button>
 
             <button
               onClick={() => setShowAiItineraryModal(true)}
-          className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:from-purple-600 hover:to-pink-600 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 shadow-sm"
+          className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-2 text-sm font-medium text-white hover:from-purple-600 hover:to-pink-600 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 shadow-sm"
             >
           <span aria-hidden>✨</span>
-          <span className="hidden sm:inline">AI Itinerary</span>
+          AI Itinerary
             </button>
         
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
         >
           <span className="text-slate-400" aria-hidden>🗑️</span>
-          <span className="hidden sm:inline">Delete</span>
+          Delete
         </button>
       </div>
 
