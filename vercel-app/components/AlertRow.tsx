@@ -86,6 +86,7 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
   const [hotelLinksIata, setHotelLinksIata] = useState<{ provider: string; url: string }[]>([]);
   const [hotelLinksNearest, setHotelLinksNearest] = useState<{ provider: string; url: string }[]>([]);
   const [hotelTab, setHotelTab] = useState<'iata' | 'nearest'>('iata');
+  const [showAiItineraryModal, setShowAiItineraryModal] = useState(false);
 
   // Fetch forecast data for all alerts to enable consistent affiliate link generation
   useEffect(() => {
@@ -802,35 +803,40 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
       {/* Explanation message for failed alerts */}
       {getExplanationMessage()}
           
-      {/* Actions row - Right-aligned */}
-      <div className="flex items-center justify-end gap-2">
+      {/* Actions row - Right-aligned, wraps on mobile */}
+      <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
             <button
               onClick={toggleActive}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-          style={{ fontSize: '15px' }}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
         >
           <span className="text-slate-400" aria-hidden>
             {rule.is_active ? '⏸' : '▶️'}
           </span>
-          {rule.is_active ? 'Pause' : 'Resume'}
+          <span className="hidden sm:inline">{rule.is_active ? 'Pause' : 'Resume'}</span>
             </button>
             
             <button
-              onClick={() => window.location.href = `/alerts/new?duplicate=${rule.id}`}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-          style={{ fontSize: '15px' }}
+              onClick={() => setShowForecastModal(true)}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
             >
-          <span className="text-slate-400" aria-hidden>📋</span>
-              Duplicate
+          <span className="text-slate-400" aria-hidden>🔍</span>
+          <span className="hidden sm:inline">Forecast</span>
+            </button>
+
+            <button
+              onClick={() => setShowAiItineraryModal(true)}
+          className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:from-purple-600 hover:to-pink-600 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 shadow-sm"
+            >
+          <span aria-hidden>✨</span>
+          <span className="hidden sm:inline">AI Itinerary</span>
             </button>
         
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-500 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
-          style={{ fontSize: '15px' }}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
         >
           <span className="text-slate-400" aria-hidden>🗑️</span>
-          Delete
+          <span className="hidden sm:inline">Delete</span>
         </button>
       </div>
 
@@ -947,6 +953,54 @@ export function AlertRow({ rule, status, refresh }: { rule: AlertRule; status?: 
             </div>
             <div className="mt-3 text-right">
               <button className="px-4 py-2 text-slate-600 hover:text-slate-800" onClick={() => setShowHotelPicker(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Itinerary Modal */}
+      {showAiItineraryModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
+          onClick={() => setShowAiItineraryModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              {/* Icon */}
+              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                <span className="text-3xl" aria-hidden>✨</span>
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">AI Itinerary Planner</h3>
+              
+              {/* Description */}
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                Get personalized day-by-day surf trip itineraries with AI-powered recommendations for meals, activities, and the best surf sessions.
+              </p>
+              
+              {/* Coming Soon Badge */}
+              <div className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 font-semibold text-white shadow-lg mb-4">
+                Coming Soon for Pro+ Users
+              </div>
+              
+              {/* Additional Info */}
+              <p className="text-sm text-slate-500 mb-6">
+                Be the first to know when this feature launches!
+              </p>
+            </div>
+            
+            {/* Close Button */}
+            <div className="text-center">
+              <button 
+                className="px-6 py-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                onClick={() => setShowAiItineraryModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
