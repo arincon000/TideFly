@@ -45,6 +45,11 @@ export default function AlertsLayout({
         body: JSON.stringify({ customerId })
       });
       const data = await res.json();
+      if (!res.ok) {
+        console.error('Billing portal error:', data?.error || data);
+        alert(`Unable to open billing portal. ${data?.error ? `(${data.error})` : ''}`);
+        return;
+      }
       if (data?.url) window.location.href = data.url as string;
     } finally {
       setBillingLoading(false);
