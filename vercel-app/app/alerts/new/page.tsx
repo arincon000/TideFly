@@ -92,7 +92,9 @@ export default function NewAlert() {
 
   // Stripe checkout (upgrade) helper
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const startCheckout = async () => {
+  const [showPlanChooser, setShowPlanChooser] = useState(false);
+  const [upgradePlan, setUpgradePlan] = useState<'monthly' | 'yearly'>('monthly');
+  const startCheckoutByPlan = async (plan: 'monthly' | 'yearly') => {
     try {
       setCheckoutLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -100,7 +102,7 @@ export default function NewAlert() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY,
+          priceId: plan === 'monthly' ? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY : process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY,
           userId: user?.id,
           email: user?.email,
         }),
@@ -784,7 +786,7 @@ export default function NewAlert() {
                 </p>
               <button
                 type="button"
-                onClick={startCheckout}
+                onClick={() => setShowPlanChooser(true)}
                 className="text-sm font-bold text-blue-600 hover:text-blue-700 underline whitespace-nowrap ml-4 disabled:opacity-60"
                 disabled={checkoutLoading}
               >
@@ -1007,7 +1009,7 @@ export default function NewAlert() {
             {!isPro && (
               <button
                 type="button"
-                onClick={startCheckout}
+                onClick={() => setShowPlanChooser(true)}
                 className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:opacity-60"
                 disabled={checkoutLoading}
               >
@@ -1017,6 +1019,50 @@ export default function NewAlert() {
           </div>
         </div>
       </form>
+
+      {/* Plan chooser modal */}
+      {showPlanChooser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowPlanChooser(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-900 mb-3">Choose your plan</h3>
+            <div className="space-y-3">
+              <button
+                className={`w-full rounded-xl border px-4 py-3 text-left ${upgradePlan==='monthly' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                onClick={() => setUpgradePlan('monthly')}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-slate-900">Monthly</div>
+                    <div className="text-sm text-slate-600">$19 / month</div>
+                  </div>
+                </div>
+              </button>
+              <button
+                className={`w-full rounded-xl border px-4 py-3 text-left ${upgradePlan==='yearly' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                onClick={() => setUpgradePlan('yearly')}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-slate-900">Yearly</div>
+                    <div className="text-sm text-slate-600">$156 billed yearly ($13 / mo)</div>
+                  </div>
+                  <span className="text-xs font-semibold text-green-700">Save 32%</span>
+                </div>
+              </button>
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button className="px-4 py-2 text-slate-600 hover:text-slate-900" onClick={() => setShowPlanChooser(false)}>Cancel</button>
+              <button
+                className="rounded-xl bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+                disabled={checkoutLoading}
+                onClick={() => startCheckoutByPlan(upgradePlan)}
+              >
+                {checkoutLoading ? 'Starting checkout…' : 'Continue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upgrade Modal for FREE users who modified custom inputs */}
       {showUpgradeModal && (
@@ -1072,7 +1118,7 @@ export default function NewAlert() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={startCheckout}
+                onClick={() => setShowPlanChooser(true)}
                 className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 px-6 py-3 text-white font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:opacity-60"
                 disabled={checkoutLoading}
               >

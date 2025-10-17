@@ -453,9 +453,9 @@ export default function LandingPage() {
                 <h3 className="text-2xl font-bold text-slate-900">Pro</h3>
                 <p className="mt-1 text-slate-700">For serious wave hunters</p>
                 <div className="mt-4">
-                  <span className="text-4xl font-extrabold text-slate-900">{cycle === 'monthly' ? '$19' : '$15'}</span>
+                  <span className="text-4xl font-extrabold text-slate-900">{cycle === 'monthly' ? '$19' : '$13'}</span>
                   <span className="text-slate-700">/month</span>
-                  {cycle === 'yearly' && <span className="ml-2 text-sm text-green-600 font-semibold">Save 20%</span>}
+                  {cycle === 'yearly' && <span className="ml-2 text-sm text-green-600 font-semibold">Save 32%</span>}
                 </div>
                 <ul className="mt-6 space-y-3 text-slate-700">
                   <li className="flex items-start gap-2">
