@@ -90,6 +90,32 @@ export default function NewAlert() {
   const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
   const isLoading = tierLoading || usageLoading;
 
+  // Stripe checkout (upgrade) helper
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const startCheckout = async () => {
+    try {
+      setCheckoutLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY,
+          userId: user?.id,
+          email: user?.email,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Checkout error');
+      if (data?.url) window.location.href = data.url as string;
+    } catch (e) {
+      console.error('checkout error', e);
+      alert('Unable to start checkout. Please try again.');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -756,12 +782,14 @@ export default function NewAlert() {
                 <p className="text-sm text-blue-900">
                   <span className="font-semibold">💡 Currently using {selectedSkill || 'preset'} conditions.</span> Unlock full customization with Pro!
                 </p>
-              <a
-                  href="/upgrade"
-                  className="text-sm font-bold text-blue-600 hover:text-blue-700 underline whitespace-nowrap ml-4"
-                >
-                  Upgrade to Pro →
-                </a>
+              <button
+                type="button"
+                onClick={startCheckout}
+                className="text-sm font-bold text-blue-600 hover:text-blue-700 underline whitespace-nowrap ml-4 disabled:opacity-60"
+                disabled={checkoutLoading}
+              >
+                {checkoutLoading ? 'Starting checkout…' : 'Upgrade to Pro →'}
+              </button>
               </div>
             )}
               
@@ -977,12 +1005,14 @@ export default function NewAlert() {
             </button>
             
             {!isPro && (
-              <a
-                href="/upgrade"
-                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+              <button
+                type="button"
+                onClick={startCheckout}
+                className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:opacity-60"
+                disabled={checkoutLoading}
               >
-                Upgrade to Pro
-              </a>
+                {checkoutLoading ? 'Starting checkout…' : 'Upgrade to Pro'}
+              </button>
             )}
           </div>
         </div>
@@ -1040,12 +1070,14 @@ export default function NewAlert() {
 
             {/* Action buttons */}
             <div className="space-y-3">
-              <a
-                href="/upgrade"
-                className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 px-6 py-3 text-white font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+              <button
+                type="button"
+                onClick={startCheckout}
+                className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 px-6 py-3 text-white font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:opacity-60"
+                disabled={checkoutLoading}
               >
-                ✨ Upgrade to Pro - Save Custom Conditions
-              </a>
+                ✨ {checkoutLoading ? 'Starting checkout…' : 'Upgrade to Pro - Save Custom Conditions'}
+              </button>
               
               <button
                 type="button"
