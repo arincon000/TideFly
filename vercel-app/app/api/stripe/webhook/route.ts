@@ -69,6 +69,24 @@ export async function POST(req: NextRequest) {
       priceId = obj?.items?.data?.[0]?.price?.id || obj?.plan?.id || obj?.price?.id;
     }
 
+    // Fallback mapping: if we don't have a userId (typical for subscription.updated/deleted),
+    // try to resolve via customer or subscription already stored in our DB
+    if (!userId && admin) {
+      try {
+        const { data: existing } = await admin
+          .from('subscriptions')
+          .select('user_id')
+          .or(
+            [
+              customerId ? `stripe_customer_id.eq.${customerId}` : '',
+              subId ? `stripe_subscription_id.eq.${subId}` : ''
+            ].filter(Boolean).join(',')
+          )
+          .maybeSingle();
+        userId = existing?.user_id || null;
+      } catch {}
+    }
+
     if (!userId) return;
     await admin.from('subscriptions').upsert({
       user_id: userId,
