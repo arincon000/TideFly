@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     if (!admin) return;
     const obj = payload?.data?.object || payload;
 
-    const userId =
+    let userId =
       obj?.client_reference_id || obj?.metadata?.user_id || obj?.metadata?.userId || null;
 
     const customerId = typeof obj?.customer === 'string' ? obj.customer : obj?.customer?.id;
