@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 
-export const config = { api: { bodyParser: false } } as const;
+export const config = { api: { bodyParser: false } } as any;
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get('stripe-signature');
