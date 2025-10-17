@@ -1,0 +1,572 @@
+═══════════════════════════════════════════════════════════════════════════════
+                        TIDEFLY - NEXT STEPS (October 15, 2025)
+═══════════════════════════════════════════════════════════════════════════════
+
+This document contains two major feature implementations to be completed:
+1. Fix Non-Operational IATA Codes (Data Quality)
+2. AI Itinerary Planner (Pro+ Feature)
+
+═══════════════════════════════════════════════════════════════════════════════
+                    TASK 1: FIX NON-OPERATIONAL IATA CODES
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEM:
+--------
+Some spots in the database use non-operational airport IATA codes (airports 
+without scheduled commercial service). This causes flight search failures in 
+the Amadeus API, resulting in alerts without flight options.
+
+SOLUTION OVERVIEW:
+------------------
+Create a Python script that:
+1. Identifies non-operational IATA codes in spots database
+2. Finds the nearest operational airport for each
+3. Generates SQL UPDATE statements to fix Supabase database
+4. Produces a detailed change log for review
+
+═══════════════════════════════════════════════════════════════════════════════
+
+IMPLEMENTATION STEPS:
+---------------------
+
+STEP 1: Create the Python Script (fix_iata_codes.py)
+-----------------------------------------------------
+
+import pandas as pd
+import numpy as np
+from math import radians, sin, cos, sqrt, atan2
+
+# 1. Load data
+print("Loading data...")
+airports = pd.read_csv('airports_dataset.csv')
+spots = pd.read_csv('spots_upload_fixed_migrated.csv')
+
+# 2. Filter to operational airports only
+operational = airports[
+    (airports['scheduled_service'] == 'yes') & 
+    (airports['iata_code'].notna()) &
+    (airports['iata_code'].str.len() == 3)
+].copy()
+
+print(f"Found {len(operational)} operational airports with IATA codes")
+
+# 3. Distance calculation function
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two points in kilometers"""
+    R = 6371  # Earth radius in km
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    return R * c
+
+def find_nearest_operational(spot_lat, spot_lon, operational_df):
+    """Find nearest operational airport to a spot"""
+    operational_df = operational_df.copy()
+    operational_df['distance'] = operational_df.apply(
+        lambda row: haversine_distance(
+            spot_lat, spot_lon, 
+            row['latitude_deg'], row['longitude_deg']
+        ),
+        axis=1
+    )
+    nearest = operational_df.nsmallest(1, 'distance').iloc[0]
+    return nearest['iata_code'], nearest['distance'], nearest['name']
+
+# 4. Process spots and generate updates
+print("\nScanning spots for non-operational IATAs...")
+updates = []
+changes_log = []
+
+for idx, spot in spots.iterrows():
+    current_iata = spot['primary_airport_iata']
+    spot_slug = spot['slug']
+    
+    # Skip if already operational
+    if current_iata in operational['iata_code'].values:
+        continue
+    
+    # Find replacement
+    new_iata, distance, airport_name = find_nearest_operational(
+        spot['latitude'], spot['longitude'], operational
+    )
+    
+    # Log change
+    log_entry = {
+        'spot_name': spot['full_location_name'],
+        'slug': spot_slug,
+        'old_iata': current_iata,
+        'new_iata': new_iata,
+        'distance_km': round(distance, 1),
+        'new_airport_name': airport_name
+    }
+    changes_log.append(log_entry)
+    
+    print(f"  ⚠️  {spot['full_location_name']}: {current_iata} → {new_iata} ({distance:.1f}km)")
+    
+    # Generate SQL UPDATE
+    sql = f"""UPDATE spots 
+SET primary_airport_iata = '{new_iata}'
+WHERE slug = '{spot_slug}' AND primary_airport_iata = '{current_iata}';"""
+    updates.append(sql)
+    
+    # Update CSV data
+    spots.at[idx, 'primary_airport_iata'] = new_iata
+
+# 5. Save outputs
+print("\nSaving outputs...")
+spots.to_csv('spots_fixed_operational_iata.csv', index=False)
+
+with open('update_iata_codes.sql', 'w') as f:
+    f.write("-- ═══════════════════════════════════════════════════════════\n")
+    f.write("-- TideFly: Update Non-Operational IATA Codes\n")
+    f.write("-- Generated: 2025-10-15\n")
+    f.write("-- ═══════════════════════════════════════════════════════════\n\n")
+    f.write("-- INSTRUCTIONS:\n")
+    f.write("-- 1. Review iata_changes_log.csv before running\n")
+    f.write("-- 2. Run this in Supabase SQL Editor\n")
+    f.write("-- 3. Verify results with the query at the end\n\n")
+    f.write("BEGIN;\n\n")
+    f.write('\n\n'.join(updates))
+    f.write("\n\nCOMMIT;\n\n")
+    f.write("-- Verify: Check updated count\n")
+    f.write(f"-- SELECT COUNT(*) FROM spots WHERE primary_airport_iata IN ('{\"','\".join([c['new_iata'] for c in changes_log])}');\n")
+
+# 6. Save change log
+pd.DataFrame(changes_log).to_csv('iata_changes_log.csv', index=False)
+
+print(f"\n✅ Fixed {len(changes_log)} non-operational IATAs")
+print(f"\n📄 Outputs:")
+print(f"   - spots_fixed_operational_iata.csv (full corrected dataset)")
+print(f"   - update_iata_codes.sql (SQL to run in Supabase)")
+print(f"   - iata_changes_log.csv (review changes)")
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 2: Run the Script
+-----------------------
+python fix_iata_codes.py
+
+STEP 3: Review Changes
+-----------------------
+Open iata_changes_log.csv and verify:
+- Old IATA codes are indeed non-operational
+- New IATA codes are reasonable distances (< 100km ideally)
+- Airport names make sense for the region
+
+STEP 4: Backup Supabase
+------------------------
+Before applying updates, create a backup:
+
+CREATE TABLE spots_backup_20251015 AS SELECT * FROM spots;
+
+STEP 5: Apply SQL Updates
+--------------------------
+1. Open Supabase SQL Editor
+2. Paste contents of update_iata_codes.sql
+3. Run the transaction (BEGIN...COMMIT)
+4. Verify with the included SELECT query
+
+STEP 6: Test
+-------------
+1. Create a test alert with a previously non-operational IATA
+2. Verify the worker can now find flights
+3. Check that flight links work correctly
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ALTERNATIVE APPROACH: Runtime Fallback (Future Enhancement)
+------------------------------------------------------------
+After fixing the data, consider adding runtime fallback in worker/worker.py:
+
+def get_operational_iata_or_fallback(iata, lat, lon):
+    """
+    Check if IATA is operational, return nearest alternative if not.
+    Cache results to avoid repeated lookups.
+    """
+    # Load operational airports list (cache this)
+    if iata in OPERATIONAL_IATAS:
+        return iata
+    
+    # Find nearest operational airport
+    nearest = find_nearest_operational_airport(lat, lon)
+    print(f"[iata-fallback] {iata} not operational, using {nearest}")
+    return nearest
+
+Then call before flight search:
+    dest_iata = get_operational_iata_or_fallback(
+        spot['primary_airport_iata'], 
+        spot['latitude'], 
+        spot['longitude']
+    )
+
+═══════════════════════════════════════════════════════════════════════════════
+                    TASK 2: AI ITINERARY PLANNER (PRO+ FEATURE)
+═══════════════════════════════════════════════════════════════════════════════
+
+OVERVIEW:
+---------
+Create an AI-powered day-by-day surf trip itinerary planner that uses TideFly's
+forecast data to recommend:
+- Best surf session times (based on wave/wind conditions)
+- Meals (breakfast, lunch, dinner) near the spot
+- Activities for non-surf time
+- Travel times and logistics
+
+TIER: Pro+ only (coming soon)
+UI: Modal already implemented in AlertRow.tsx
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ARCHITECTURE:
+-------------
+
+┌─────────────────┐
+│   User clicks   │
+│  "AI Itinerary" │
+│     button      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Frontend (vercel-app/components/AlertRow.tsx)             │
+│  - Shows modal with "Coming Soon for Pro+ Users"           │
+│  - Will call: POST /api/itinerary/generate                 │
+└────────┬────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  API Route (vercel-app/app/api/itinerary/generate/route.ts)│
+│  - Validates user is Pro+                                   │
+│  - Fetches alert rule + forecast data                       │
+│  - Calls ChatGPT Agent with TideFly context                 │
+└────────┬────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ChatGPT Agent (OpenAI Agent Builder)                       │
+│  - Custom tools for forecast, POIs, travel time             │
+│  - System prompt: Surf Coach + Local Guide                  │
+│  - Returns structured JSON + readable itinerary             │
+└─────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+INPUTS TO AGENT:
+----------------
+
+From TideFly:
+- Alert rule: spot_id, skill_level, wave_min_m, wave_max_m, wind_max_kmh, 
+              planning_logic (conservative|optimistic|aggressive)
+- Forecast data: Daily wave/wind stats for forecast window
+- Spot context: name, country, nearest_city, iata_city_name, coordinates
+- Trip dates: depart_date, return_date (from good forecast days)
+- Origin/Destination IATAs
+
+From User (optional preferences):
+- Dietary restrictions
+- Activity pace (relaxed, moderate, packed)
+- Cuisine preferences
+- Car rental (yes/no)
+- Budget level (budget, moderate, luxury)
+- Coffee/snacks importance
+- Nightlife interest
+
+═══════════════════════════════════════════════════════════════════════════════
+
+AGENT TOOLS (Custom Functions):
+--------------------------------
+
+Tool 1: getForecast
+-------------------
+Input: spotId, startDate, endDate, skillPreset, planningLogic
+Output: {
+  "days": [
+    {
+      "date": "2025-10-15",
+      "surfable": true,
+      "confidence": "high",
+      "bestWindow": "06:30-09:00",
+      "waveAvg": 1.8,
+      "windAvg": 18,
+      "reasoning": "Low wind morning, optimal wave height"
+    }
+  ]
+}
+
+Tool 2: getSpotContext
+----------------------
+Input: spotId
+Output: {
+  "name": "Ericeira",
+  "country": "Portugal",
+  "nearestCity": "Ericeira",
+  "iataCity": "Lisbon",
+  "coordinates": [39.0, -9.4],
+  "timezone": "Europe/Lisbon"
+}
+
+Tool 3: getPOIs
+---------------
+Input: townOrCoords, categories, budgetLevel
+Categories: ["breakfast", "lunch", "dinner", "cafe", "surf-rental", "activity"]
+Output: [
+  {
+    "name": "Café da Vila",
+    "category": "breakfast",
+    "dish": "Pastel de nata + coffee",
+    "distanceMin": 8,
+    "priceRange": "€",
+    "vibe": "Local favorite, ocean view"
+  }
+]
+
+Tool 4 (Optional): getTravelTime
+---------------------------------
+Input: origin, destination
+Output: { "drivingMin": 15, "walkingMin": 45, "mode": "car" }
+
+Tool 5 (Optional): getSunriseSunset
+------------------------------------
+Input: lat, lon, date
+Output: { "sunrise": "07:23", "sunset": "19:45" }
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SYSTEM PROMPT (ChatGPT Agent):
+-------------------------------
+
+You are a Surf Coach and Local Travel Guide for TideFly, helping surfers plan 
+perfect surf trips.
+
+Your role:
+- Analyze wave/wind forecasts and recommend optimal surf session times
+- Suggest meals, cafes, and activities near the surf spot
+- Respect the user's skill level and planning logic (conservative/optimistic)
+- Provide local insights: signature dishes, hidden gems, surf culture tips
+- Balance surf time with rest, meals, and exploration
+
+Rules:
+1. Always prioritize safety: respect skill level and conditions
+2. Default to early morning surf (wind typically calmer)
+3. If forecast is marginal, suggest backup activities (walk, market, snorkel)
+4. For each meal/place, give a quick reason (signature dish, view, vibe)
+5. Ask for missing info: dietary prefs, pace, car vs walking, base town
+6. Output both natural summary AND structured JSON
+
+Planning Logic:
+- Conservative: require all thresholds met, morning bias
+- Optimistic: allow near-miss if trend improving
+- Aggressive: accept higher wind or slightly lower waves
+
+Output Format:
+{
+  "trip": {
+    "start": "2025-10-15",
+    "end": "2025-10-18",
+    "baseTown": "Ericeira",
+    "spotId": "abc123"
+  },
+  "days": [
+    {
+      "date": "2025-10-15",
+      "surfWindows": [
+        {
+          "start": "06:30",
+          "end": "09:00",
+          "spot": "Ribeira d'Ilhas",
+          "confidence": "high",
+          "why": "Wind < 20kmh, waves 1.5-2.3m, perfect for intermediate"
+        }
+      ],
+      "meals": [
+        {
+          "time": "10:00",
+          "type": "breakfast",
+          "place": "Café da Vila",
+          "dish": "Pastel de nata + galão",
+          "distanceMin": 8
+        }
+      ],
+      "activities": [
+        {
+          "time": "11:30",
+          "name": "Board rental + reef check",
+          "place": "Ericeira Surf Shop",
+          "distanceMin": 5
+        }
+      ],
+      "dinner": {
+        "time": "19:00",
+        "place": "Tik Tak",
+        "dish": "Grilled sea bass"
+      },
+      "notes": ["Backup surf at 16:30 if wind drops"]
+    }
+  ]
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+
+IMPLEMENTATION STEPS:
+---------------------
+
+PHASE 1: MVP (1-2 days)
+------------------------
+1. Create ChatGPT Agent in OpenAI Agent Builder
+2. Implement getForecast and getSpotContext tools (use TideFly API data)
+3. Use curated POI deck (CSV) for each region (no external API yet)
+4. Test with 3-5 sample alerts
+5. Return JSON to frontend, render in modal
+
+PHASE 2: Enhanced (2-3 days)
+-----------------------------
+1. Add Google Places API for POIs
+2. Add Google Distance Matrix for travel times
+3. Add sunrise/sunset API
+4. Implement user preference collection form
+5. Save itineraries to user account (new table: itineraries)
+6. Add ICS export for calendar
+
+PHASE 3: Advanced (future)
+---------------------------
+1. Multi-spot itineraries (road trip mode)
+2. Rental gear availability integration
+3. Surf lesson booking
+4. Live re-planning if forecast updates
+5. Tide data integration
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TIERING:
+--------
+Free: Not available (show upgrade prompt)
+Pro: Not available (show Pro+ coming soon)
+Pro+: Full access (5 itineraries/month, save/export)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FRONTEND INTEGRATION:
+---------------------
+
+Current State (Already Done):
+- Button exists: "✨ AI Itinerary" with purple-pink gradient
+- Modal exists: Shows "Coming Soon for Pro+ Users"
+- Location: vercel-app/components/AlertRow.tsx
+
+Next Steps:
+1. Create API route: vercel-app/app/api/itinerary/generate/route.ts
+2. Update modal to show loading state while generating
+3. Display generated itinerary in modal (replace "Coming Soon" content)
+4. Add export buttons (PDF, ICS, Share)
+
+Example API Call:
+-----------------
+POST /api/itinerary/generate
+{
+  "ruleId": "abc123",
+  "preferences": {
+    "diet": "vegetarian",
+    "pace": "moderate",
+    "car": true,
+    "budget": "moderate"
+  }
+}
+
+Response:
+{
+  "success": true,
+  "itinerary": { /* full JSON structure */ },
+  "summary": "3-day surf trip to Ericeira with 5 surf sessions..."
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+
+POI DATA SOURCES:
+-----------------
+
+Option 1: Google Places API (Recommended)
+- Pros: Comprehensive, real-time, reviews
+- Cons: Costs $0.032 per request (manageable for Pro+)
+- Setup: Enable in Google Cloud Console
+
+Option 2: Curated CSV (MVP Fallback)
+- Create spots_pois.csv with pre-researched places
+- Columns: spot_id, category, name, dish, distance_km, price_range, vibe
+- Manually curate 3-5 options per category for top 50 spots
+
+Option 3: Yelp Fusion API
+- Similar to Google Places
+- Free tier: 500 calls/day
+
+Recommendation: Start with curated CSV for MVP, add Google Places in Phase 2
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SAMPLE CURATED POI CSV:
+-----------------------
+spot_id,category,name,dish,distance_km,price_range,vibe,coordinates
+ericeira-pt,breakfast,Café da Vila,Pastel de nata,0.5,€,Local favorite,39.0,-9.4
+ericeira-pt,lunch,Tik Tak,Grilled fish,0.8,€€,Beachfront,39.0,-9.4
+ericeira-pt,dinner,Prim,Seafood rice,1.2,€€€,Upscale,39.0,-9.4
+ericeira-pt,cafe,Ouriço,Coffee + pastry,0.3,€,Surf vibe,39.0,-9.4
+ericeira-pt,surf-rental,Ericeira Surf Shop,Board rental,0.6,€€,Friendly,39.0,-9.4
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ENVIRONMENT VARIABLES NEEDED:
+------------------------------
+OPENAI_API_KEY=sk-...                    # For ChatGPT Agent
+GOOGLE_PLACES_API_KEY=AIza...            # Phase 2 (optional)
+GOOGLE_MAPS_API_KEY=AIza...              # Phase 2 (optional)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+COST ESTIMATES (Pro+ Feature):
+-------------------------------
+- OpenAI Agent: ~$0.10-0.30 per itinerary (GPT-4)
+- Google Places: ~$0.10 per itinerary (3 POI lookups)
+- Google Distance Matrix: ~$0.05 per itinerary
+- Total: ~$0.25-0.45 per itinerary
+
+If Pro+ is $49/month and includes 5 itineraries:
+- Cost: $2.25 max
+- Revenue: $49
+- Margin: 95%+ (very profitable feature)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TESTING CHECKLIST:
+------------------
+□ Agent respects skill level (beginner doesn't get 3m waves)
+□ Agent respects planning logic (conservative vs aggressive)
+□ Morning surf bias when no clear best time
+□ Backup activities suggested for marginal days
+□ POIs are within reasonable distance (< 20km)
+□ Meal times are sensible (breakfast 8-10am, lunch 12-2pm, dinner 7-9pm)
+□ JSON output is valid and complete
+□ Natural summary is readable and helpful
+□ Works for 3-day, 5-day, and 7-day trips
+□ Handles spots with limited POI data gracefully
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FUTURE ENHANCEMENTS:
+--------------------
+1. Multi-language support (Spanish, Portuguese, French)
+2. Tide integration (show best tide windows)
+3. Crowd forecasting (avoid peak times)
+4. Weather context (rain, temperature)
+5. Packing list generator
+6. Local surf etiquette tips
+7. Emergency contacts (surf rescue, hospitals)
+8. Equipment recommendations based on forecast
+
+═══════════════════════════════════════════════════════════════════════════════
+                                    END OF DOCUMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+Questions? Contact: [Your email/Slack]
+Last Updated: October 15, 2025
+Version: 1.0
+

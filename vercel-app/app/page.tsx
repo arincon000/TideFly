@@ -2,9 +2,11 @@
 import "./globals.css"; // leave for THIS redeploy
 import { useState } from "react";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LandingPage() {
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('yearly');
+  const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
 
   // Demo wizard state (hero section)
   type Skill = 'beginner' | 'intermediate' | 'advanced';
@@ -42,6 +44,28 @@ export default function LandingPage() {
   const [demoPlanning, setDemoPlanning] = useState<'conservative'|'aggressive'|'optimistic'>('conservative');
 
   const isIata = (v: string) => /^[A-Z]{3}$/.test(v);
+
+  const startCheckout = async (priceId?: string) => {
+    try {
+      setCheckoutLoading(true);
+      // Use explicit priceId if provided, otherwise choose by current toggle
+      const chosen = priceId || (cycle === 'monthly' ? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY : process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY);
+      const { data: { user } } = await supabase.auth.getUser();
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId: chosen, userId: user?.id, email: user?.email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Checkout error');
+      if (data?.url) window.location.href = data.url as string;
+    } catch (err) {
+      console.error('checkout error', err);
+      alert('Unable to start checkout. Please try again.');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -463,9 +487,9 @@ export default function LandingPage() {
                     <span className="font-semibold">Priority email alerts</span>
                   </li>
                 </ul>
-                <a href="/auth?view=sign_up" className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 font-semibold text-white hover:from-sky-700 hover:to-blue-700 transition-colors duration-200">
-                  Upgrade to Pro
-                </a>
+                <button onClick={() => startCheckout(cycle === 'monthly' ? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY : process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY)} className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 px-5 py-3 font-semibold text-white hover:from-sky-700 hover:to-blue-700 transition-colors duration-200 disabled:opacity-60" disabled={checkoutLoading}>
+                  {checkoutLoading ? 'Starting checkout...' : 'Upgrade to Pro'}
+                </button>
               </div>
 
               {/* Pro+ Tier (Coming Soon) */}
