@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     let priceId: string | undefined;
     let periodStart: string | undefined;
     let periodEnd: string | undefined;
+    let cancelAtPeriodEnd: boolean | undefined;
 
     if (payload?.type === 'checkout.session.completed' && sessionSubId) {
       try {
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
         priceId = sub.items?.data?.[0]?.price?.id;
         if (sub.current_period_start) periodStart = new Date(sub.current_period_start * 1000).toISOString();
         if (sub.current_period_end) periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        cancelAtPeriodEnd = !!sub.cancel_at_period_end;
       } catch {}
     } else if (obj?.object === 'subscription') {
       subId = obj?.id;
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
       priceId = obj?.items?.data?.[0]?.price?.id || obj?.plan?.id;
       if (obj?.current_period_start) periodStart = new Date(obj.current_period_start * 1000).toISOString();
       if (obj?.current_period_end) periodEnd = new Date(obj.current_period_end * 1000).toISOString();
+      cancelAtPeriodEnd = !!obj?.cancel_at_period_end;
     } else {
       priceId = obj?.items?.data?.[0]?.price?.id || obj?.plan?.id || obj?.price?.id;
     }
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest) {
       status: subStatus,
       current_period_start: periodStart,
       current_period_end: periodEnd,
+      cancel_at_period_end: cancelAtPeriodEnd,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 

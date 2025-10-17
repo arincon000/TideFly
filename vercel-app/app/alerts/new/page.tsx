@@ -1023,32 +1023,41 @@ export default function NewAlert() {
       {/* Plan chooser modal */}
       {showPlanChooser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowPlanChooser(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-900 mb-3">Choose your plan</h3>
-            <div className="space-y-3">
+            {/* Toggle like landing page */}
+            <div className="inline-flex rounded-full border border-slate-200 p-1 bg-white mb-4">
               <button
-                className={`w-full rounded-xl border px-4 py-3 text-left ${upgradePlan==='monthly' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
                 onClick={() => setUpgradePlan('monthly')}
+                className={`px-4 py-1.5 text-sm font-semibold rounded-full ${upgradePlan==='monthly' ? 'bg-blue-600 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-slate-900">Monthly</div>
-                    <div className="text-sm text-slate-600">$19 / month</div>
-                  </div>
-                </div>
+                Monthly
               </button>
               <button
-                className={`w-full rounded-xl border px-4 py-3 text-left ${upgradePlan==='yearly' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
                 onClick={() => setUpgradePlan('yearly')}
+                className={`px-4 py-1.5 text-sm font-semibold rounded-full ${upgradePlan==='yearly' ? 'bg-blue-600 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-slate-900">Yearly</div>
-                    <div className="text-sm text-slate-600">$156 billed yearly ($13 / mo)</div>
-                  </div>
-                  <span className="text-xs font-semibold text-green-700">Save 32%</span>
-                </div>
+                Yearly
               </button>
+            </div>
+
+            {/* Simple card preview */}
+            <div className="rounded-2xl border-2 border-sky-200 bg-gradient-to-b from-sky-50 to-blue-50 p-5">
+              <div className="text-2xl font-bold text-slate-900">Pro</div>
+              <p className="mt-1 text-slate-700">For serious wave hunters</p>
+              <div className="mt-3">
+                <span className="text-4xl font-extrabold text-slate-900">{upgradePlan==='monthly' ? '$19' : '$13'}</span>
+                <span className="text-slate-700">/month</span>
+                {upgradePlan==='yearly' && <span className="ml-2 text-sm text-green-600 font-semibold">Save 32%</span>}
+              </div>
+              <ul className="mt-4 grid grid-cols-2 gap-y-1 text-slate-700 text-sm">
+                <li>✓ 5 active alerts</li>
+                <li>✓ Up to 10 total alerts</li>
+                <li>✓ Custom surf conditions</li>
+                <li>✓ Max price threshold</li>
+                <li>✓ 10-day forecast window</li>
+                <li>✓ Advanced planning logic</li>
+              </ul>
             </div>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button className="px-4 py-2 text-slate-600 hover:text-slate-900" onClick={() => setShowPlanChooser(false)}>Cancel</button>
